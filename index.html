@@ -3279,26 +3279,52 @@ function shoot() {
   if (S.waitAtSpeed && !atSpeed(C.flyRpm)) return;
   lastShotAt = now;
 
-  /* Fly the ball for real: launched at the speed the wheel actually has, integrated in 3D so
-     it can strike the cage and bounce off instead of jumping straight to a verdict. */
-  const exit = flyToExit(rpmNow);
+  /* A CHANNEL is a barrel with its own flywheel, so four channels fire FOUR balls at once.
+     This used to launch exactly one whatever the layout said, which made the whole
+     single-versus-multi-channel choice cosmetic. */
+  const A = arch();
+  const n = Math.max(1, Math.min(A.balls, S.magLeft));
+
+  const exit0 = flyToExit(rpmNow);
   const dir = S.heading + S.tip*Math.PI/180;
   const a = C.angle*Math.PI/180;
-  const mesh = new THREE.Mesh(new THREE.SphereGeometry(BALL[S.ball].dia/2, 20, 14),
-    ballMaterialFor(S.ball, S.holes));
-  mesh.castShadow = true; R3.scene.add(mesh);
   const IPS = 1/IN;                                   // m/s -> in/s
-  flights.push({
-    mesh: mesh, kind: S.ball, r: BALL[S.ball].dia/2,
-    p: new THREE.Vector3(S.rx, S.launch, S.ry),
-    v: new THREE.Vector3(Math.cos(dir)*exit*Math.cos(a)*IPS,
-                         exit*Math.sin(a)*IPS,
-                         Math.sin(dir)*exit*Math.cos(a)*IPS),
-    spin: spinFor(exit), dir: dir, t: 0, bounces: 0
-  });
+  /* the barrels sit side by side across the robot, so the balls do not start from one point */
+  const pitch = BALL[S.ball].dia + 0.6;
+  const across = { x: -Math.sin(dir), z: Math.cos(dir) };
+
+  /* Barrels are TOED IN at the goal, not parallel. Fired parallel from a 12.6 in. spread the
+     outer balls arrive half a foot off centre and miss, which is a property of the mounting
+     rather than of the shooter - a team building four channels aims them at the same place. */
+  const aimAt = targetXZ();
+  for (let i = 0; i < n; i++) {
+    const off = (i - (n-1)/2) * pitch;
+    /* No two flywheels are identical - grip, durometer and belt tension all vary a little, so
+       a volley spreads rather than landing as one ball. Belted off a single motor they match
+       closely, though: +/-0.6% across four channels. At 1.2% each the spread alone ate the
+       whole scoring window, which said more about the number I picked than about the shooter. */
+    const jitter = n > 1 ? 1 + (i - (n-1)/2)*0.004 : 1;
+    const exit = exit0*jitter;
+    const bx = S.rx + across.x*off, bz = S.ry + across.z*off;
+    const bdir = Math.atan2(aimAt.z - bz, aimAt.x - bx);
+    const mesh = new THREE.Mesh(new THREE.SphereGeometry(BALL[S.ball].dia/2, 20, 14),
+      ballMaterialFor(S.ball, S.holes));
+    mesh.castShadow = true; R3.scene.add(mesh);
+    flights.push({
+      mesh: mesh, kind: S.ball, r: BALL[S.ball].dia/2,
+      p: new THREE.Vector3(bx, S.launch, bz),
+      v: new THREE.Vector3(Math.cos(bdir)*exit*Math.cos(a)*IPS,
+                           exit*Math.sin(a)*IPS,
+                           Math.sin(bdir)*exit*Math.cos(a)*IPS),
+      spin: spinFor(exit), dir: bdir, t: 0, bounces: 0
+    });
+  }
+  /* Each ball comes off its OWN flywheel, so the volley costs one ball's worth of sag on
+     each of them - the same fractional droop as a single shot, which is the point of
+     spending four motors on four channels. */
   rpmNow = Math.max(0, rpmNow - response(Math.max(rpmNow,1)).droopRpm);
-  S.magLeft--;
-  recAction({ type:"shoot", rpm:S.rpm, dist:C.dist_in });
+  S.magLeft -= n;
+  recAction({ type:"shoot", rpm:S.rpm, dist:C.dist_in, balls:n });
   needUI = true;
   updateHud(C);
   save();
