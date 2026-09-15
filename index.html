@@ -424,6 +424,7 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
         <div><b>exit</b><span class="vd" id="hExit">&mdash;</span></div>
         <div><b>hood / tip</b><span class="vd" id="hAng">&mdash;</span></div>
         <div><b>mode</b><span class="vd" id="hMode">&mdash;</span></div>
+        <div><b>scoring in</b><span class="vd" id="hAlly">&mdash;</span></div>
         <div><b>entry</b><span class="vd" id="hEntry">&mdash;</span></div>
         <div><b>range gap</b><span class="vd" id="hGap">&mdash;</span></div>
         <div><b>lateral gap</b><span class="vd" id="hLat">&mdash;</span></div>
@@ -435,7 +436,7 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
       <div class="minis">
         <div class="mini"><span class="ml">TOP &middot; click to place</span>
           <svg id="mTop" viewBox="0 0 150 150" role="img" aria-label="Top-down field, click to place the robot."></svg></div>
-        <div class="mini"><span class="ml">SIDE &middot; click to place</span>
+        <div class="mini"><span class="ml">SIDE &middot; click a goal to target</span>
           <svg id="mSide" viewBox="0 0 150 150" role="img" aria-label="Side elevation, click to set stand-off."></svg></div>
       </div>
       <div class="board" id="board">
@@ -2011,7 +2012,7 @@ const LOAD_BLUE = { x0:F.size-11, x1:F.size, z0:23, z1:46 };
 
 function targetXZ() {
   if (typeof R3 !== "undefined" && R3 && R3.cells && R3.cells[S.ally] && typeof THREE !== "undefined") {
-    const st = R3.cells[S.ally], up = st.upIsA ? st.a : st.b;
+    const st = R3.cells[S.ally], up = raisedCell(st);
     const w = new THREE.Vector3();
     up.getWorldPosition(w);
     return { x:w.x, z:w.z };
@@ -2026,7 +2027,7 @@ function goalsXZ() {
   const out = [];
   ["red", "blue"].forEach(function (a) {
     if (!(typeof R3 !== "undefined" && R3 && R3.cells && R3.cells[a] && typeof THREE !== "undefined")) return;
-    const st = R3.cells[a], up = st.upIsA ? st.a : st.b;
+    const st = R3.cells[a], up = raisedCell(st);
     const w = new THREE.Vector3(); up.getWorldPosition(w);
     out.push({ ally:a, x:w.x, y:w.y, z:w.z, mine: a === S.ally });
   });
@@ -2878,7 +2879,7 @@ function stageAuto() {
   }
   /* 3 NECTAR already in each upward-facing CELL */
   Object.keys(R3.cells).forEach(ally => {
-    const st = R3.cells[ally], up = st.upIsA ? st.a : st.b;
+    const st = R3.cells[ally], up = raisedCell(st);
     [st.a, st.b].forEach(cl => { cl.userData.contents.forEach(o => cl.remove(o.mesh));
       cl.userData.contents.length = 0; });
     falling.forEach(f => R3.scene.remove(f.mesh)); falling.length = 0;
@@ -3032,7 +3033,7 @@ const autoPoints = () => (S.left ? 3 : 0) + S.tips*20 + cellCount()*2;
 function scoreIntoCell(kind) {
   const ally = S.ally;
   const st = R3.cells[ally];
-  const up = st.upIsA ? st.a : st.b;
+  const up = raisedCell(st);
   const dia = BALL[kind].dia;
   const m = new THREE.Mesh(new THREE.SphereGeometry(dia/2, 16, 12),
     ballMaterialFor(kind, S.holes));
@@ -3061,11 +3062,28 @@ function levelCells(st) {
   _re.set(st.ang || 0, 0, 0);
   _rq.setFromEuler(_re);
   _rqi.copy(_rq).invert();
-  const t = Math.min(1, Math.abs(st.ang || 0)/Math.PI);
+  /* The pose has to be PERIODIC with the rocker, not a one-way ramp. min(1, |ang|/PI)
+     saturates after the first half turn, so from the second TIP onward the orientation stayed
+     swapped while the position kept going round: the CELL sitting at the top had its mouth
+     pointing down, and the one at the bottom held its load with the mouth up and could never
+     empty. Triangular in ang, period 2*PI: 0 at 0, 1 at PI, back to 0 at 2*PI. */
+  const TAU = Math.PI*2;
+  let ph = (st.ang || 0) % TAU; if (ph < 0) ph += TAU;
+  const t = ph <= Math.PI ? ph/Math.PI : 2 - ph/Math.PI;
   _tA.copy(st.qA).slerp(st.qB, t);
   _tB.copy(st.qB).slerp(st.qA, t);
   st.a.quaternion.copy(_rqi).multiply(_tA);
   st.b.quaternion.copy(_rqi).multiply(_tB);
+}
+
+/* Which CELL is actually up is a question about the world, so measure it there. The upIsA
+   flag has to be kept in step by hand through every tip, reset and restage, and a single
+   missed toggle silently aims the whole app at the CELL that is already down. */
+const _wpA = new THREE.Vector3(), _wpB = new THREE.Vector3();
+function raisedCell(st) {
+  if (!st || !st.a || !st.b) return null;
+  st.a.getWorldPosition(_wpA); st.b.getWorldPosition(_wpB);
+  return _wpA.y >= _wpB.y ? st.a : st.b;
 }
 
 /* The TIP threshold is a MASS threshold: the manual says the HIVE holds "until enough POLLEN
@@ -3206,7 +3224,7 @@ function stepTips(dt) {
        ball arriving during that settle skipped the check, and if no further ball came the CELL
        sat there loaded past its threshold and never tipped. A real HIVE is a balance: once it
        is heavy enough it goes, whenever that happens to be. */
-    const upNow = st.upIsA ? st.a : st.b;
+    const upNow = raisedCell(st);
     if (!st.releasing) checkTip(st, upNow);
     const target = st.target || 0;
     const settled = Math.abs(st.ang - target) < 0.004 && Math.abs(st.w) < 0.05;
@@ -3428,7 +3446,7 @@ function predictShot(exit, angleDeg, dir) {
   const acc = new THREE.Vector3();
   const h = 0.004;
   let t = 0, apex = S.launch, struck = false;
-  const st = R3.cells[S.ally], up = st.upIsA ? st.a : st.b;
+  const st = R3.cells[S.ally], up = raisedCell(st);
   const mouth = new THREE.Vector3(); up.getWorldPosition(mouth);
 
   while (t < 6) {
@@ -3450,7 +3468,7 @@ function predictShot(exit, angleDeg, dir) {
     }
     if (res === "hit") struck = true;
     /* the other three cages are obstacles, not targets */
-    [st.upIsA ? st.b : st.a, R3.cells.blue.a, R3.cells.blue.b].forEach(c => {
+    [raisedCell(st) === st.a ? st.b : st.a, R3.cells.blue.a, R3.cells.blue.b].forEach(c => {
       if (hitCell(f, c, _prevP) === "hit") struck = true;
     });
 
@@ -3540,7 +3558,7 @@ function dropIntoCell(cell, st, f) {
   m.castShadow = true; m.position.copy(lp);
   cell.add(m);
   cell.userData.contents.push({ mesh:m, kind:f.kind, p:lp, v:lv, r:f.r });
-  const up = st.upIsA ? st.a : st.b;
+  const up = raisedCell(st);
   if (cell === up) { S.scored[S.ally] = (S.scored[S.ally]||0) + 1; checkTip(st, up); }
   needUI = true;
 }
@@ -4207,7 +4225,7 @@ const BOT_R = 9;                       // half an 18 in. frame
 function botShootSpot(ally, lane) {
   const st = R3 && R3.cells ? R3.cells[ally] : null;
   let tx = F.size/2, tz = ally === "red" ? 60 : 84;
-  if (st) { const up = st.upIsA ? st.a : st.b, w = new THREE.Vector3();
+  if (st) { const up = raisedCell(st), w = new THREE.Vector3();
             up.getWorldPosition(w); tx = w.x; tz = w.z; }
   /* Stand off 46 in. on the side the mouth faces, each ROBOT in its own lane. Sending both
      ROBOTS of an ALLIANCE to one spot had them shoving each other there all match. */
@@ -4601,23 +4619,46 @@ function drawMinis(C) {
     const d = C.dist_in;
     side.appendChild(svgEl("polygon",{points:[[X(d-F.frameD/2),Y(0)],[X(d),Y(F.pivotH)],
       [X(d+F.frameD/2),Y(0)]].map(q=>q.join(",")).join(" "), fill:"rgba(255,255,255,.13)"}));
-    /* BOTH CELLS, each at its own range and height. The one line drawn here used to be blue
-       whichever ALLIANCE you were playing, which made it useless for judging the shot. Yours
-       is drawn solid and labelled; the opponent's is dimmed, so you can see how much closer
-       or further their goal is from where you are standing. */
-    (typeof goalsXZ === "function" ? goalsXZ() : []).forEach(function (G) {
+    /* BOTH CELLS, each at its own range and height, and each CLICKABLE. In BIOBUZZ you only
+       score in your OWN CELL, so choosing a goal here is the same thing as choosing which
+       ALLIANCE you are playing - clicking the blue line switches you to blue and every
+       calculation follows. Yours is solid and labelled; the other is dimmed and dashed.
+       Labels sit above or below the line so the two never print on top of each other. */
+    (typeof goalsXZ === "function" ? goalsXZ() : []).forEach(function (G, gi) {
       const gd = Math.hypot(G.x - S.rx, G.z - S.ry);
       if (gd > xMax) return;
       const col = G.ally === "red" ? "#e35a78" : "#5596ea";
+      const gx = X(gd), gy = Y(G.y);
+
+      /* a fat invisible strip so the line is easy to hit on a small panel */
+      const hit = svgEl("rect", { x:gx - 22, y:gy - 9, width:44, height:18,
+        fill:"transparent", style:"cursor:pointer" });
+      hit.addEventListener("pointerdown", function (ev) {
+        ev.preventDefault(); ev.stopPropagation();
+        S.ally = G.ally;
+        if (typeof aimAtHive === "function") aimAtHive();
+        needUI = true;
+        if (typeof save === "function") save();
+        if (typeof refreshAll === "function") refreshAll();
+      });
+
       side.appendChild(svgEl("line",{
-        x1:X(gd-F.cellSpan/2), x2:X(gd+F.cellSpan/2), y1:Y(G.y), y2:Y(G.y),
-        stroke:col, "stroke-width":G.mine ? 3 : 2, "stroke-linecap":"round",
-        opacity:G.mine ? 1 : .42,
+        x1:gx-F.cellSpan/2*(W/xMax), x2:gx+F.cellSpan/2*(W/xMax), y1:gy, y2:gy,
+        stroke:col, "stroke-width":G.mine ? 3.4 : 2, "stroke-linecap":"round",
+        opacity:G.mine ? 1 : .45,
         "stroke-dasharray":G.mine ? "0" : "3 3" }));
-      side.appendChild(svgEl("text",{ x:X(gd), y:Y(G.y)-5, "text-anchor":"middle",
-        fill:col, "font-size":7.5, opacity:G.mine ? 1 : .55,
-        "font-family":"var(--f-mono)" })).textContent =
-        G.mine ? "YOURS " + (gd/12).toFixed(1) + "ft" : (gd/12).toFixed(1) + "ft";
+      if (G.mine) {   /* a tick under the selected goal, so which one is live is unmistakable */
+        side.appendChild(svgEl("polygon",{
+          points:[[gx,gy+4],[gx-3.5,gy+9],[gx+3.5,gy+9]].map(q=>q.join(",")).join(" "),
+          fill:col }));
+      }
+      const label = svgEl("text",{ x:gx, y: G.mine ? gy - 6 : gy + 15,
+        "text-anchor":"middle", fill:col, "font-size":7.5,
+        opacity:G.mine ? 1 : .6, style:"pointer-events:none" });
+      label.textContent = (G.mine ? "\u25b2 " : "") + G.ally.toUpperCase()
+                        + " " + (gd/12).toFixed(1) + "ft";
+      side.appendChild(label);
+      side.appendChild(hit);
     });
     if (C.shot) {
       const pts = C.shot.pts.filter(q => q[0]/IN <= xMax && q[1]/IN + S.launch >= 0)
@@ -4732,6 +4773,9 @@ function updateHud(C) {
     : "click the field to place \u00b7 drag to orbit \u00b7 W A S D / I J K L drive \u00b7 1 2 3 4 \u00b7 Space shoots";
   $("hMode").textContent = S.src === "fixed" ? "manual rpm"
     : (S.src === "code" ? "your java" : "auto-solved");
+  const hAlly = $("hAlly");
+  if (hAlly) { hAlly.textContent = S.ally.toUpperCase();
+               hAlly.style.color = S.ally === "red" ? "#e35a78" : "#5596ea"; }
   $("hEntry").textContent = C.cross ? C.cross.ang.toFixed(0) + "\u00b0" : "\u2014";
   $("hGap").textContent = C.cross ? (rangeGap(C.cross.ang) <= 0 ? "none"
     : "\u00b1" + rangeWindow(C.cross.ang).toFixed(1) + "\u2033") : "\u2014";
@@ -5488,7 +5532,7 @@ function drawTable(C) {
 function cellCount() {
   if (T2.on) return T2.cell.length;
   if (!R3 || !R3.cells || !R3.cells[S.ally]) return 0;
-  const st = R3.cells[S.ally], up = st.upIsA ? st.a : st.b;
+  const st = R3.cells[S.ally], up = raisedCell(st);
   return up.userData.contents.length;
 }
 
