@@ -592,6 +592,11 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
             <div class="cat" id="catWheel"></div>
           </div>
           <div class="panel">
+            <div class="panel-head"><span class="panel-title">Hub &mdash; how the wheel mounts</span>
+              <span class="panel-note" id="hubNote">a 14mm bore wheel cannot go on a shaft alone</span></div>
+            <div class="cat" id="catHub"></div>
+          </div>
+          <div class="panel">
             <div class="panel-head"><span class="panel-title">Inertia booster</span>
               <span class="panel-note">steel mass to kill the rpm sag</span></div>
             <div class="cat" id="catBoost"></div>
@@ -707,6 +712,10 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
               <button id="mFixed" aria-pressed="true">I set the RPM</button>
               <button id="mSolve" aria-pressed="false">Solve it for me</button>
               <button id="mCode" aria-pressed="false">My Java</button>
+            </div>
+            <div class="seg" role="group" aria-label="Alliance">
+              <button id="allyRed" aria-pressed="true">RED alliance</button>
+              <button id="allyBlue" aria-pressed="false">BLUE alliance</button>
             </div>
             <div class="seg" role="group" aria-label="Projectile">
               <button id="bPollen" aria-pressed="true">POLLEN 2.8&Prime;</button>
@@ -1317,9 +1326,46 @@ const WHEELS = {
         s30:"3615-4008-0072", s15:"3615-4008-0072", price:6.99, list:6.99, fam:"boot", fixed:30 },
   b96:{ nm:"Boot-Wheel", mm:96, mass:80, est:true, bore:"8mm REX",
         s30:"3615-4008-0096", s15:"3615-4008-0096", price:8.99, list:8.99, fam:"boot", fixed:30 },
+  hog72:{ nm:"Hogback Traction Wheel", mm:72, mass:58, est:true, bore:"14mm",
+        s30:"3626-0014-0072", s15:"3626-0014-0072", price:6.74, list:8.99, fam:"hogback",
+        fixed:50, tread:"bonded silicone rubber over a plastic core" },
+  hog96:{ nm:"Hogback Traction Wheel", mm:96, mass:82, est:false, bore:"14mm",
+        s30:"3626-0014-0096", s15:"3626-0014-0096", price:7.49, list:9.99, fam:"hogback",
+        fixed:50, tread:"bonded silicone rubber over a plastic core" },
   cust:{ nm:"Custom flywheel (not a goBILDA part)", mm:130, mass:120, est:true, bore:"your choice",
         s30:"custom", s15:"custom", price:0, list:0, fam:"custom" }
 };
+
+/* ===== mounting hardware =====
+   A 14mm-bore wheel cannot go on a motor shaft by itself - it needs a hub. That is a real
+   part you have to buy, and it is also rotating mass: its inertia adds to the flywheel's, so
+   it changes spin-up time and the rpm sag per ball just as the booster does. Modelled as a
+   solid disc, J = 1/2 m r^2, at the hub's own outer radius rather than the wheel's.
+   SKUs and prices are from the goBILDA 8mm REX bore hub listing. MASSES ARE ESTIMATES -
+   goBILDA does not publish them on that page - so treat the inertia they add as indicative. */
+const HUBS = {
+  none:{ nm:"None \u2014 wheel straight on the motor shaft", sku:"\u2014", price:0,
+         mass:0, od:0, est:false, fits:"8mm REX bore wheels only",
+         note:"only works if the wheel itself has an 8mm REX bore" },
+  h1309:{ nm:"1309 Series Sonic Hub (8mm REX Bore)", sku:"1309-0016-4008", price:7.99,
+          mass:22, od:16, est:true, fits:"14mm bore",
+          note:"the usual way to put a 14mm bore wheel on a REX shaft" },
+  h1310:{ nm:"1310 Series Hyper Hub (8mm REX Bore)", sku:"1310-0016-4008", price:7.99,
+          mass:26, od:16, est:true, fits:"14mm bore",
+          note:"clamping hub, grips the shaft without a flat" },
+  h1311:{ nm:"1311 Series Thru-Hole Sonic Hub (8mm REX Bore)", sku:"1311-0016-4008", price:7.99,
+          mass:24, od:16, est:true, fits:"14mm bore",
+          note:"shaft can pass all the way through" },
+  h1313:{ nm:"1313 Series Hyper Hub (8mm REX Bore)", sku:"1313-1632-4008", price:12.99,
+          mass:48, od:32, est:true, fits:"14mm bore",
+          note:"larger flange - the most inertia of the four" }
+};
+const hub = () => HUBS[S.hub] || HUBS.none;
+/* a hub is a disc on the shaft: J = 1/2 m r^2 at ITS radius, not the wheel's */
+const hubInertia = () => { const H = hub();
+  const r = (H.od/2)/1000; return 0.5*(H.mass/1000)*r*r; };
+/* You cannot build a 14mm bore wheel without one. */
+const hubMissing = () => wheelP().bore === "14mm" && S.hub === "none";
 
 /* Steel flywheels bolt alongside the contact wheel purely to add rotational inertia.
    goBILDA publishes their moment of inertia, so these use the real figure, not an estimate. */
@@ -1412,7 +1458,7 @@ const S = {
   park:false, rec:null,
   rpmSlow:2050, rpmMid:2320, rpmFull:2650, trackL:0, trackR:0, strafeX:0, padName:"",
   trDist:71, trRpm:2320, autoT:30, autoRun:false, left:false,
-  angle:40, tip:0, wrap:135, launch:24, zFloorBase:9, zBaseAxis:13, gear:1, cell:59.55, tilt:30, eta:0.45, cd:0.75, rpm:3900,
+  angle:40, tip:0, wrap:135, launch:24, zFloorBase:9, zBaseAxis:13, hub:"h1309", ally:"red", gear:1, cell:59.55, tilt:30, eta:0.45, cd:0.75, rpm:3900,
   wheelMass:85, robotMass:12, magSize:4, magLeft:4,
   ballCount:80, intakeOn:true, rejectBlue:false, tipMass:200, tipBalls:8,
   scored:{red:0, blue:0}, tips:0, picked:0, curve:null, miniCam:true, waitAtSpeed:true,
@@ -1426,7 +1472,7 @@ const DEFAULTS = JSON.parse(JSON.stringify(S));
    from last time is a terrible way to open, and the match state should always start clean. */
 const TRANSIENT = ["rx","ry","heading","magLeft","tips","picked","scored",
                    "trackL","trackR","strafeX","autoT","autoRun","left","padName",
-                   "matchPhase","matchT","scoreAuto","park","recCount","zFloorBase","zBaseAxis"];
+                   "matchPhase","matchT","scoreAuto","park","recCount","zFloorBase","zBaseAxis","hub","ally"];
 try {
   const v = localStorage.getItem("biobuzz-bench-v7");
   if (v) { const o = JSON.parse(v); TRANSIENT.forEach(k => delete o[k]); Object.assign(S, o); }
@@ -1447,7 +1493,10 @@ const maxFlyRpm = () => motor().rpm * LOAD_FRAC / S.gear;
 const wheelSku = () => { const W = wheelP(); return W.fixed ? W.s30 : (S.duro === 15 ? W.s15 : W.s30); };
 const booster = () => BOOSTERS[S.booster] || BOOSTERS.none;
 /* rim-loaded contact wheel plus whatever the booster adds, per wheel */
-const wheelInertia = () => 0.6*(S.wheelMass/1000)*wheelR()*wheelR() + booster().J;
+/* Everything that actually spins with the flywheel: the contact wheel (rim-loaded), the
+   steel booster, and the hub that holds the wheel on the shaft. */
+const wheelInertia = () =>
+  0.6*(S.wheelMass/1000)*wheelR()*wheelR() + booster().J + hubInertia();
 /* A heavier ball takes more out of the wheel on the way past, so it leaves slower - and a
    wheel with more rotational inertia cares less. That is a momentum exchange between the
    ball (m r_wheel^2) and the flywheel (J), and it was missing entirely: POLLEN and NECTAR
@@ -1459,7 +1508,14 @@ const massFactor = () => {
   const kFor = m => J / (J + m*R*R);
   return kFor(BALL[S.ball].mass) / kFor(BALL.nectar.mass);
 };
-const suggestedEta = () => +((S.duro === 15 ? 0.55 : 0.45) * etaMul(S.wrap)).toFixed(2);
+/* Base transfer efficiency by durometer. A harder tread deforms less around the ball, so it
+   grips it for less of the contact arc and hands over less of the rim speed. 15A and 30A are
+   the two the GripForce line comes in; 50A is the Hogback. All three are MODELLED, not
+   measured - shoot at a known distance and trim eta to match. */
+const ETA_BY_DURO = { 15:0.55, 30:0.45, 50:0.35 };
+const wheelDuro = () => wheelP().fixed || S.duro;
+const suggestedEta = () =>
+  +((ETA_BY_DURO[wheelDuro()] || 0.45) * etaMul(S.wrap)).toFixed(2);
 
 /* ============================================================================================
    VERIFIED SPEC SHEET
@@ -1474,6 +1530,9 @@ const SPEC = [
     ["Soft foam TILE", "24 x 24 x 0.59 in", "Manual 9.2"],
     ["Tiles per side", "6", "derived: 144 / 24"],
     ["ALLIANCE AREA", "97 in wide x 54 in deep", "Manual 9.5"],
+    ["Shooter wheels", "Gecko 15A/30A, Hogback 50A, Boot-Wheel", "goBILDA listings"],
+    ["Hogback mass", "96mm = 82 g published; 72mm estimated", "goBILDA product page"],
+    ["Hub inertia", "J = 1/2 m r^2; hub masses are ESTIMATES", "goBILDA 8mm REX hub list"],
     ["MATCH", "30 s AUTO + 8 s transition + 2 min TELEOP", "V1 10.1"],
     ["FIELD timer", "counts 2:30 to 0:00, holds at 2:00 in transition", "V1 Table 9-1"],
     ["Cues", "AUTO ends 2:00, FLOWER unlock 1:00, warning 0:20", "V1 Table 9-1"],
@@ -1896,7 +1955,10 @@ function response(flyRpm) {
   const spinRpm = exit > 0 ? spinFor(exit)*60/(2*Math.PI) : 0;
   const spinRatio = exit > 0 ? spinFor(exit)*P.r/exit : 0;
 
-  const cost = A.motors*M.price + A.wheels*(wheelP().price + booster().price);
+  /* every channel needs its own wheel, hub and booster - the hub is not optional on a
+     14mm bore wheel, so it belongs in the BOM the same way the wheel does */
+  const cost = A.motors*M.price
+             + A.wheels*(wheelP().price + booster().price + hub().price);
   return { spinup, droopFrac, droopRpm:droopFrac*flyRpm, recov, feed, cycle,
            cost, imp, dv, tipMoment, react, tc, force, spinRpm, spinRatio };
 }
@@ -1948,8 +2010,8 @@ const LOAD_RED  = { x0:0, x1:11, z0:98, z1:121 };
 const LOAD_BLUE = { x0:F.size-11, x1:F.size, z0:23, z1:46 };
 
 function targetXZ() {
-  if (typeof R3 !== "undefined" && R3 && R3.cells && R3.cells.red && typeof THREE !== "undefined") {
-    const st = R3.cells.red, up = st.upIsA ? st.a : st.b;
+  if (typeof R3 !== "undefined" && R3 && R3.cells && R3.cells[S.ally] && typeof THREE !== "undefined") {
+    const st = R3.cells[S.ally], up = st.upIsA ? st.a : st.b;
     const w = new THREE.Vector3();
     up.getWorldPosition(w);
     return { x:w.x, z:w.z };
@@ -1958,6 +2020,19 @@ function targetXZ() {
   const dh = ARM_TO_OPENING*Math.sin(S.tilt*Math.PI/180);
   return { x:F.size/2 - F.hiveCtoC/2, z:F.size/2 - dh };
 }
+/* Both raised CELLS, so a side elevation can show the goal you are shooting at AND the one
+   you are not. Which is yours depends on the ALLIANCE you picked, not on a hard-coded red. */
+function goalsXZ() {
+  const out = [];
+  ["red", "blue"].forEach(function (a) {
+    if (!(typeof R3 !== "undefined" && R3 && R3.cells && R3.cells[a] && typeof THREE !== "undefined")) return;
+    const st = R3.cells[a], up = st.upIsA ? st.a : st.b;
+    const w = new THREE.Vector3(); up.getWorldPosition(w);
+    out.push({ ally:a, x:w.x, y:w.y, z:w.z, mine: a === S.ally });
+  });
+  return out;
+}
+
 /* ===== the shot ===== */
 function compute() {
   const T = targetXZ();
@@ -2955,7 +3030,7 @@ const autoPoints = () => (S.left ? 3 : 0) + S.tips*20 + cellCount()*2;
    NECTAR are LAUNCHED into the upwards-facing CELL" (9.6.2) and never states a number, because
    it depends on how much weight sits on the raised end. So accumulate grams, not balls. */
 function scoreIntoCell(kind) {
-  const ally = "red";
+  const ally = S.ally;
   const st = R3.cells[ally];
   const up = st.upIsA ? st.a : st.b;
   const dia = BALL[kind].dia;
@@ -3126,6 +3201,13 @@ function stepTips(dt) {
   Object.keys(R3.cells).forEach(ally => {
     const st = R3.cells[ally];
     if (st.w === undefined) { st.w = 0; st.ang = st.flip || 0; }
+    /* Re-test the TIP every frame, not only at the instant a ball lands. checkTip used to be
+       called from dropIntoCell alone, and it refuses while the rocker is still settling - so a
+       ball arriving during that settle skipped the check, and if no further ball came the CELL
+       sat there loaded past its threshold and never tipped. A real HIVE is a balance: once it
+       is heavy enough it goes, whenever that happens to be. */
+    const upNow = st.upIsA ? st.a : st.b;
+    if (!st.releasing) checkTip(st, upNow);
     const target = st.target || 0;
     const settled = Math.abs(st.ang - target) < 0.004 && Math.abs(st.w) < 0.05;
     if (settled && !st.releasing) {
@@ -3346,7 +3428,7 @@ function predictShot(exit, angleDeg, dir) {
   const acc = new THREE.Vector3();
   const h = 0.004;
   let t = 0, apex = S.launch, struck = false;
-  const st = R3.cells.red, up = st.upIsA ? st.a : st.b;
+  const st = R3.cells[S.ally], up = st.upIsA ? st.a : st.b;
   const mouth = new THREE.Vector3(); up.getWorldPosition(mouth);
 
   while (t < 6) {
@@ -3459,7 +3541,7 @@ function dropIntoCell(cell, st, f) {
   cell.add(m);
   cell.userData.contents.push({ mesh:m, kind:f.kind, p:lp, v:lv, r:f.r });
   const up = st.upIsA ? st.a : st.b;
-  if (cell === up) { S.scored.red += 1; checkTip(st, up); }
+  if (cell === up) { S.scored[S.ally] = (S.scored[S.ally]||0) + 1; checkTip(st, up); }
   needUI = true;
 }
 
@@ -4384,15 +4466,37 @@ function drawCatalogue() {
     badge:(V.s60*2+0.06).toFixed(2) + " s per ball",
     pick:() => { S.servo = k; refreshAll(); } }; }));
 
+  /* Each wheel carries its own name - the Boot-Wheels and the Hogback are not Geckos, and
+     labelling every row "GripForce Gecko" sent students to the wrong product page. */
   fill("catWheel", Object.keys(WHEELS).map(k => { const W = WHEELS[k];
-    const sk = S.duro === 15 ? W.s15 : W.s30; return {
-    img:thumb("wheel", { mm:W.mm, duro:S.duro }), name:"GripForce Gecko\u2122 Wheel (" + W.bore +
-      " Bore, " + W.mm + "mm Diameter, " + S.duro + "A Durometer)",
-    sku:sk, spec:W.mm + " mm \u00b7 " + S.duro + "A \u00b7 " + W.bore + " bore", url:sku(sk),
+    const duro = W.fixed || S.duro;
+    const sk = W.fixed ? W.s30 : (S.duro === 15 ? W.s15 : W.s30);
+    const nm = W.fam === "custom" ? W.nm
+             : W.nm + " (" + W.bore + " Bore, " + W.mm + "mm Diameter, " + duro + "A Durometer)";
+    return {
+    img:thumb("wheel", { mm:W.mm, duro:duro }), name:nm,
+    sku:sk, spec:W.mm + " mm \u00b7 " + duro + "A \u00b7 " + W.bore + " bore"
+      + (W.est === false ? " \u00b7 " + W.mass + " g published" : ""),
+    url: W.fam === "custom" ? GB + "flywheels/" : sku(sk),
     price:W.price, list:W.list, on:S.wheel===k,
-    badge:W.bore === "14mm" ? "needs a 14mm hub adapter" : "direct on 8mm REX",
-    badgeCls:W.bore === "14mm" ? "" : "soft",
+    badge: W.fixed ? (W.fixed + "A only \u00b7 " + (W.tread || "fixed durometer"))
+         : (W.bore === "14mm" ? "needs a 14mm hub adapter" : "direct on 8mm REX"),
+    badgeCls: W.fixed ? "warn" : (W.bore === "14mm" ? "" : "soft"),
     pick:() => { S.wheel = k; S.wheelMass = W.mass; S.eta = suggestedEta(); refreshAll(); } }; }));
+
+  fill("catHub", Object.keys(HUBS).map(k => { const H = HUBS[k];
+    const bad = k === "none" && wheelP().bore === "14mm";
+    const J = k === "none" ? 0 : 0.5*(H.mass/1000)*Math.pow((H.od/2)/1000, 2);
+    return {
+    img:thumb("wheel", { mm: Math.max(14, H.od), duro:30 }),
+    name:H.nm, sku:H.sku,
+    spec: k === "none" ? H.fits
+        : H.fits + " \u00b7 ~" + H.mass + " g EST \u00b7 +" + (J*1e7).toFixed(0) + " g\u00b7cm\u00b2",
+    url: k === "none" ? GB + "hubs/" : sku(H.sku),
+    price:H.price, list:H.price, on:S.hub===k,
+    badge: bad ? "your wheel has a 14mm bore \u2014 this will not mount" : H.note,
+    badgeCls: bad ? "no" : "soft",
+    pick:() => { S.hub = k; refreshAll(); } }; }));
 
   fill("catCam", Object.keys(CAMERAS).map(k => { const V = CAMERAS[k]; return {
     img:thumb("servo"), name:V.nm, sku:V.sku,
@@ -4497,8 +4601,24 @@ function drawMinis(C) {
     const d = C.dist_in;
     side.appendChild(svgEl("polygon",{points:[[X(d-F.frameD/2),Y(0)],[X(d),Y(F.pivotH)],
       [X(d+F.frameD/2),Y(0)]].map(q=>q.join(",")).join(" "), fill:"rgba(255,255,255,.13)"}));
-    side.appendChild(svgEl("line",{x1:X(d-F.cellSpan/2),x2:X(d+F.cellSpan/2),y1:Y(S.cell),y2:Y(S.cell),
-      stroke:"#5596ea","stroke-width":2.5,"stroke-linecap":"round"}));
+    /* BOTH CELLS, each at its own range and height. The one line drawn here used to be blue
+       whichever ALLIANCE you were playing, which made it useless for judging the shot. Yours
+       is drawn solid and labelled; the opponent's is dimmed, so you can see how much closer
+       or further their goal is from where you are standing. */
+    (typeof goalsXZ === "function" ? goalsXZ() : []).forEach(function (G) {
+      const gd = Math.hypot(G.x - S.rx, G.z - S.ry);
+      if (gd > xMax) return;
+      const col = G.ally === "red" ? "#e35a78" : "#5596ea";
+      side.appendChild(svgEl("line",{
+        x1:X(gd-F.cellSpan/2), x2:X(gd+F.cellSpan/2), y1:Y(G.y), y2:Y(G.y),
+        stroke:col, "stroke-width":G.mine ? 3 : 2, "stroke-linecap":"round",
+        opacity:G.mine ? 1 : .42,
+        "stroke-dasharray":G.mine ? "0" : "3 3" }));
+      side.appendChild(svgEl("text",{ x:X(gd), y:Y(G.y)-5, "text-anchor":"middle",
+        fill:col, "font-size":7.5, opacity:G.mine ? 1 : .55,
+        "font-family":"var(--f-mono)" })).textContent =
+        G.mine ? "YOURS " + (gd/12).toFixed(1) + "ft" : (gd/12).toFixed(1) + "ft";
+    });
     if (C.shot) {
       const pts = C.shot.pts.filter(q => q[0]/IN <= xMax && q[1]/IN + S.launch >= 0)
         .map(q => X(q[0]/IN)+","+Y(q[1]/IN + S.launch));
@@ -5367,8 +5487,8 @@ function drawTable(C) {
 /* balls currently sitting in the raised CELL of our HIVE */
 function cellCount() {
   if (T2.on) return T2.cell.length;
-  if (!R3 || !R3.cells || !R3.cells.red) return 0;
-  const st = R3.cells.red, up = st.upIsA ? st.a : st.b;
+  if (!R3 || !R3.cells || !R3.cells[S.ally]) return 0;
+  const st = R3.cells[S.ally], up = st.upIsA ? st.a : st.b;
   return up.userData.contents.length;
 }
 
@@ -5411,6 +5531,15 @@ function drawStats(C) {
   $("phaseTag").style.color = S.matchPhase === "auto" ? "var(--good)"
     : S.matchPhase === "teleop" ? "var(--amber)" : "#8b97a4";
   $("scPark").textContent = S.park ? "yes +5" : "no";
+  /* a 14mm bore wheel with no hub is not a buildable shooter - say so where it is seen */
+  const hn = $("hubNote");
+  if (hn) {
+    const bad = (typeof hubMissing === "function") && hubMissing();
+    hn.textContent = bad
+      ? "\u26a0 " + wheelP().mm + "mm " + wheelP().nm + " has a 14mm bore \u2014 pick a hub"
+      : "adds " + (hubInertia()*1e7).toFixed(0) + " g\u00b7cm\u00b2 to the flywheel";
+    hn.style.color = bad ? "var(--crit)" : "";
+  }
   if (typeof drawBoard === "function") drawBoard(C);
   const botBtn = $("bBots");
   if (botBtn) botBtn.textContent = BOTS.length ? "Clear robots" : "4-ROBOT match";
@@ -5897,6 +6026,9 @@ function syncInputs() {
   $("bNectar").setAttribute("aria-pressed", S.ball === "nectar");
   $("bSmooth").setAttribute("aria-pressed", !S.holes);
   $("bHoles").setAttribute("aria-pressed", !!S.holes);
+  const ar = $("allyRed"), ab = $("allyBlue");
+  if (ar) ar.setAttribute("aria-pressed", S.ally === "red");
+  if (ab) ab.setAttribute("aria-pressed", S.ally === "blue");
   $("duro15").setAttribute("aria-pressed", S.duro === 15);
   $("duro30").setAttribute("aria-pressed", S.duro === 30);
   $("cPredict").value = S.predict;
@@ -6094,6 +6226,10 @@ $("bPollen").addEventListener("click", () => { S.ball = "pollen"; refreshAll(); 
 $("bNectar").addEventListener("click", () => { S.ball = "nectar"; refreshAll(); });
 $("bSmooth").addEventListener("click", () => { S.holes = false; S.cd = 0.50; refreshAll(); });
 $("bHoles").addEventListener("click", () => { S.holes = true; S.cd = 0.75; refreshAll(); });
+["red","blue"].forEach(function (a) {
+  const el = $("ally" + a.charAt(0).toUpperCase() + a.slice(1));
+  if (el) el.addEventListener("click", () => { S.ally = a; aimAtHive(); refreshAll(); });
+});
 $("duro15").addEventListener("click", () => { S.duro = 15; S.eta = suggestedEta(); refreshAll(); });
 $("duro30").addEventListener("click", () => { S.duro = 30; S.eta = suggestedEta(); refreshAll(); });
 $("bBest").addEventListener("click", () => {
