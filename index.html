@@ -1,22 +1,3 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="description" content="FTC 2026-27 BIOBUZZ shooter bench: 3D field, ballistics, goBILDA part picker and autonomous Java export.">
-<meta name="color-scheme" content="light dark">
-<meta property="og:title" content="BIOBUZZ Shooter Bench">
-<meta property="og:description" content="Build an FTC BIOBUZZ shooter from real goBILDA parts, test the ballistics on a 3D field, and export a compiling autonomous OpMode.">
-<meta property="og:type" content="website">
-<style>
-  :root { color-scheme: light dark; }
-  html, body { margin: 0; }
-  body { font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; background: #f7f7f5; }
-  img { max-width: 100%; }
-  [hidden] { display: none !important; }
-</style>
-</head>
-<body>
 <title>BIOBUZZ Shooter Bench</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -370,6 +351,48 @@ footer b{color:var(--ink-2); font-weight:600}
 footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
 .flag{border-left:2px solid var(--warn); background:var(--surface); padding:9px 13px;
   border-radius:0 4px 4px 0; margin:10px 0 4px; max-width:78ch; color:var(--ink-2)}
+/* ---------- the measured stack-up ---------- */
+.measure{margin-top:11px; padding:9px 10px; background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.10); border-radius:6px}
+.measure .mh{display:flex; justify-content:space-between; align-items:baseline;
+  font-size:9px; letter-spacing:.11em; color:#8b97a4; margin-bottom:7px}
+.measure .mh b{font-family:var(--f-mono); font-size:11px; color:#fff; letter-spacing:0}
+.measure label{display:flex; justify-content:space-between; align-items:center; gap:8px;
+  font-size:10.5px; color:#aab6c2; margin-bottom:5px}
+.measure input{width:62px; font-family:var(--f-mono); font-size:11.5px; text-align:right;
+  color:#fff; background:rgba(0,0,0,.30); border:1px solid rgba(255,255,255,.16);
+  border-radius:4px; padding:3px 5px}
+.measure input:focus-visible{outline:2px solid var(--amber); outline-offset:1px}
+.measure .mrow{display:flex; justify-content:space-between; font-size:10.5px;
+  color:#8b97a4; margin-bottom:4px}
+.measure .mrow b{font-family:var(--f-mono); font-size:11.5px; color:#cdd6df; font-weight:500}
+.measure .mrow.tot{border-top:1px solid rgba(255,255,255,.14); padding-top:6px; margin-top:6px;
+  color:#fff}
+.measure .mrow.tot b{color:var(--amber); font-size:13px; font-weight:600}
+.measure .mnote{font-size:10px; color:#8b97a4; margin:7px 0 0; line-height:1.45}
+/* ---------- live scoreboard on the FIELD ---------- */
+.board{position:absolute; right:12px; top:52px; width:186px;
+  background:rgba(10,14,18,.74); backdrop-filter:blur(3px); border-radius:7px;
+  border:1px solid rgba(255,255,255,.10); padding:8px 10px 7px;
+  font-family:var(--f-mono); font-size:10.5px; color:#cdd6df;
+  font-variant-numeric:tabular-nums; pointer-events:none}
+.board.off{display:none}
+.board .bhead{display:flex; justify-content:space-between; align-items:baseline;
+  border-bottom:1px solid rgba(255,255,255,.14); padding-bottom:5px; margin-bottom:5px}
+.board .bhead span{font-size:9px; letter-spacing:.12em; text-transform:uppercase; color:#8b97a4}
+.board .bhead b{font-family:var(--f-display); font-size:19px; color:#fff; letter-spacing:.03em}
+.board .brow{display:flex; justify-content:space-between; gap:8px; margin-bottom:2px}
+.board .brow span{color:#8b97a4}
+.board .brow b{color:#fff; font-weight:500}
+.board .brow.zero span, .board .brow.zero b{color:#5d6874}
+.board .btot{display:grid; grid-template-columns:auto 1fr auto 1fr; gap:4px 7px;
+  align-items:baseline; border-top:1px solid rgba(255,255,255,.14);
+  padding-top:6px; margin-top:6px}
+.board .btot span{font-size:9px; letter-spacing:.1em; color:#8b97a4}
+.board .btot b{font-family:var(--f-display); font-size:17px; text-align:right}
+.board .btot b:first-of-type{color:#e35a78}
+.board .btot b:last-of-type{color:#5596ea}
+@media (max-width:760px){ .board{display:none} }
 @media (prefers-reduced-motion:reduce){ *{transition:none!important; animation:none!important} }
 </style>
 <div class="wrap">
@@ -415,6 +438,11 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
         <div class="mini"><span class="ml">SIDE &middot; click to place</span>
           <svg id="mSide" viewBox="0 0 150 150" role="img" aria-label="Side elevation, click to set stand-off."></svg></div>
       </div>
+      <div class="board" id="board">
+        <div class="bhead"><span id="bPhase">idle</span><b id="bClock">30.0</b></div>
+        <div class="brows" id="bRows"></div>
+        <div class="btot"><span>RED</span><b id="bRed">0</b><span>BLUE</span><b id="bBlue">0</b></div>
+      </div>
       <button class="shootbtn" id="bShoot">SHOOT</button>
     </div>
       <aside class="dock">
@@ -427,6 +455,7 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
             <button id="bHoodStraight">Straight</button>
             <button id="bHoodHook">Hook</button>
             <button id="bHoodDeep">Deep wrap</button>
+            <button id="bHoodReset" title="back to the stock hook">Reset</button>
           </div>
           <div class="dslider">
             <label for="cWrap"><span>Curvature / wrap</span><b><output id="vWrap"></output></b></label>
@@ -439,6 +468,17 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
           <div class="dslider">
             <label for="cTip"><span>Tip / direction</span><b><output id="vTip"></output></b></label>
             <input type="range" id="cTip" min="-15" max="15" step="0.25" value="0">
+          </div>
+          <div class="measure">
+            <div class="mh"><span>MEASURED OFF THE ROBOT</span><b id="mTotal">&mdash;</b></div>
+            <label for="mFloorBase">Floor &rarr; shooter base plate
+              <input type="number" id="mFloorBase" step="0.25" min="0" max="29" value="9"></label>
+            <label for="mBaseAxis">Base plate &rarr; flywheel axis
+              <input type="number" id="mBaseAxis" step="0.25" min="0" max="29" value="13"></label>
+            <div class="mrow"><span>+ flywheel radius</span><b id="mWheelR">&mdash;</b></div>
+            <div class="mrow"><span>+ ball radius at exit</span><b id="mBallR">&mdash;</b></div>
+            <div class="mrow tot"><span>= LAUNCH HEIGHT</span><b id="mLaunch">&mdash;</b></div>
+            <p class="mnote" id="mNote"></p>
           </div>
           <div class="dstat">
             <span class="k">Wrap measured</span><span class="v" id="cvWrap">&mdash;</span>
@@ -480,21 +520,28 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
     </div>
     <div class="autobar">
       <span class="clk" id="autoClk">30.0</span>
+      <span class="sc" id="phaseCue">ready · 2:30</span>
       <span class="sc" id="phaseTag">idle</span>
+      <button id="bHome" title="back to the open practice field">⌂ Home</button>
       <button class="go" id="bMatch">Run full match</button>
       <button id="bAutoStart">Start AUTO</button>
       <button id="bAutoStage">Stage</button>
       <button id="bRec">&#9679; Record</button>
+      <button id="bPlay">&#9654; Play AUTO</button>
+      <button id="bBots">4-ROBOT match</button>
       <span class="sc">LEAVE <b id="scLeave">no</b></span>
       <span class="sc">PARK <b id="scPark">no</b></span>
       <span class="sc">tips <b id="scTips">0</b></span>
       <span class="sc">CELL <b id="scCell">0</b></span>
       <span class="sc">steps <b id="scSteps">0</b></span>
       <span class="sc">POINTS <b id="scPts">0</b></span>
+      <span class="sc">RED <b id="scRed">0</b></span>
+      <span class="sc">BLUE <b id="scBlue">0</b></span>
     </div>
 
     <div class="tabs" role="tablist">
       <button id="tb-build" aria-pressed="true">Build</button>
+      <button id="tb-shooter" aria-pressed="false">Curvature &amp; Z</button>
       <button id="tb-aim" aria-pressed="false">Aim &amp; hood</button>
       <button id="tb-range" aria-pressed="false">Test range</button>
       <button id="tb-auto" aria-pressed="false">Auto &amp; Java</button>
@@ -572,6 +619,64 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
       </div>
     </section>
 
+    <!-- ======== CURVATURE & Z ======== -->
+    <section class="page" id="pg-shooter" hidden>
+      <div class="cols c2">
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">Hood curvature</span>
+            <span class="panel-note">drag the three nodes &middot; wheel and ball to scale</span></div>
+          <svg class="chart" id="hoodBig" viewBox="0 0 460 340" role="img"
+               aria-label="Hood profile around the flywheel, with the ball at entry and exit."></svg>
+          <div class="ctlwrap" style="border-top:1px solid var(--grid)">
+            <div class="dpreset" style="margin:0 0 12px">
+              <button class="linkbtn" id="bHoodStraight2">Straight</button>
+              <button class="linkbtn" id="bHoodHook2">Hook</button>
+              <button class="linkbtn" id="bHoodDeep2">Deep wrap</button>
+              <button class="linkbtn" id="bHoodReset2">Reset</button>
+            </div>
+            <div class="ctl-grid">
+              <div class="ctl"><label class="ctl-lab" for="cWrap2"><span>Curvature / wrap</span><output id="vWrap2"></output></label>
+                <input type="range" id="cWrap2" min="20" max="180" step="1" value="135"></div>
+              <div class="ctl"><label class="ctl-lab" for="cAngle2"><span>Hood angle</span><output id="vAngle2"></output></label>
+                <input type="range" id="cAngle2" min="20" max="70" step="0.5" value="40"></div>
+            </div>
+            <div class="spec" style="margin-top:14px">
+              <div class="stat"><span class="k">Wheel</span><span class="v" id="bgWheel">&mdash;</span></div>
+              <div class="stat"><span class="k">Ball</span><span class="v" id="bgBall">&mdash;</span></div>
+              <div class="stat"><span class="k">Contact arc</span><span class="v" id="bgArc">&mdash;</span></div>
+              <div class="stat"><span class="k">Backspin</span><span class="v" id="bgSpin">&mdash;<span class="u">rpm</span></span></div>
+              <div class="stat"><span class="k">Transfer &eta;</span><span class="v" id="bgEta">&mdash;</span></div>
+              <div class="stat"><span class="k">Exit</span><span class="v" id="bgExit">&mdash;<span class="u">m/s</span></span></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">Z axis &mdash; launch height</span>
+            <span class="panel-note">measure it off the robot, do not guess</span></div>
+          <svg class="chart" id="zStack" viewBox="0 0 460 340" role="img"
+               aria-label="Vertical stack-up from the tiles to the ball at launch."></svg>
+          <div class="ctlwrap" style="border-top:1px solid var(--grid)">
+            <table style="margin-bottom:12px">
+              <thead><tr><th>Measured on your robot</th><th>inches</th></tr></thead>
+              <tbody>
+                <tr><td>Floor &rarr; shooter base plate</td>
+                    <td><input type="number" id="zFloorBase" step="0.25" min="0" max="29" value="9"></td></tr>
+                <tr><td>Base plate &rarr; flywheel axis</td>
+                    <td><input type="number" id="zBaseAxis" step="0.25" min="0" max="29" value="13"></td></tr>
+                <tr><td>+ flywheel radius</td><td id="zWheelR">&mdash;</td></tr>
+                <tr><td>+ ball radius at the exit</td><td id="zBallR">&mdash;</td></tr>
+                <tr><td class="hi">= LAUNCH Z</td><td class="hi" id="zTotal">&mdash;</td></tr>
+                <tr><td>Rise to the CELL mouth (59.55&Prime;)</td><td id="zRise">&mdash;</td></tr>
+                <tr><td>R105 headroom (29&Prime; max)</td><td id="zHead">&mdash;</td></tr>
+              </tbody>
+            </table>
+            <p style="font-size:12px; color:var(--ink-2); margin:0; max-width:60ch" id="zNote"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ======== AIM ======== -->
     <section class="page" id="pg-aim" hidden>
       <div class="panel">
@@ -588,8 +693,8 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
               <input type="range" id="cLaunch" min="6" max="29" step="0.5" value="24"></div>
             <div class="ctl"><label class="ctl-lab" for="cGear"><span>Motor : flywheel</span><output id="vGear"></output></label>
               <input type="range" id="cGear" min="0.5" max="4" step="0.1" value="1"></div>
-            <div class="ctl"><label class="ctl-lab" for="cCell"><span>CELL mouth Z &#9650;</span><output id="vCell"></output></label>
-              <input type="range" id="cCell" min="41" max="59" step="0.25" value="51"></div>
+            <div class="ctl"><label class="ctl-lab" for="cTilt"><span>HIVE tilt &#9650;</span><output id="vTilt"></output></label>
+              <input type="range" id="cTilt" min="5" max="60" step="1" value="30"></div>
             <div class="ctl"><label class="ctl-lab" for="cEta"><span>Transfer eff.</span><output id="vEta"></output></label>
               <input type="range" id="cEta" min="0.25" max="0.75" step="0.01" value="0.45"></div>
             <div class="ctl"><label class="ctl-lab" for="cCd"><span>Drag coeff.</span><output id="vCd"></output></label>
@@ -716,6 +821,21 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
           <div id="visBox" style="margin-top:13px"></div>
         </div>
       </div>
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Tag readout</span>
+          <span class="panel-note">what the camera has locked on, and what to do with it</span></div>
+        <div class="cols c2" style="padding:14px">
+          <div>
+            <svg class="chart" id="tagView" viewBox="0 0 300 300" role="img"
+                 aria-label="The AprilTag the camera is closest to."></svg>
+          </div>
+          <div id="tagInfo"></div>
+        </div>
+        <pre id="tagCode" style="margin:0; padding:14px; overflow-x:auto; font-family:var(--f-mono);
+          font-size:11.5px; line-height:1.5; color:var(--ink); background:var(--surface-2);
+          border-top:1px solid var(--grid)"></pre>
+        </div>
+      </div>
     </section>
 
     <!-- ======== SPEC SHEET ======== -->
@@ -725,6 +845,17 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
           <span class="panel-note">every number, and where it came from</span></div>
         <div style="padding:0 0 10px" id="specBox"></div>
         <p style="font-size:12px; color:var(--ink-2); padding:4px 14px 14px; margin:0; max-width:80ch">
+          <b>How the TIP works here:</b> V1 &sect;9.6.2 calls the rocker &ldquo;a connecting
+          assembly that rotates on a pivot&rdquo;, and Figure 9-9 draws both CELLS identical and
+          ridge-up. So the assembly carries the CELLS round rather than turning them over: as it
+          swings, each CELL is handed the other&rsquo;s pose, the ridge stays up throughout and
+          only the MOUTH rolls from facing up to facing down, which is what empties it.
+          <br><br>
+          One number still does not reconcile: Figure 9-9&rsquo;s 42.91&Prime; CELL span implies a
+          mouth about 62.5&Prime; up, while the 53.5&Prime; and 65.6&Prime; opening heights in
+          &sect;9.6.2 put it at 59.55&Prime;. This app uses 59.55&Prime;, because that is stated in
+          text and it is the number ballistics depends on. Check the CAD.
+          <br><br>
           Amber sources are <b>not</b> settled facts. The manual states a &plusmn;1&Prime; tolerance
           on its own illustrations (&sect;9.1) and names the <b>3D CAD model</b> as the official
           geometry &mdash; so measure anything critical against the CAD, not against this page.
@@ -737,6 +868,18 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
         <div class="scroll"><table>
           <thead><tr><th>Achievement</th><th>AUTO</th><th>TELEOP</th><th>Condition</th></tr></thead>
           <tbody id="ptsBody"></tbody></table></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Ranking points</span>
+          <span class="panel-note">Manual Table 10-2, thresholds from Table 10-3</span></div>
+        <div class="scroll"><table>
+          <thead><tr><th>RP</th><th>Worth</th><th>Where you are</th><th>Status</th></tr></thead>
+          <tbody id="rpBody"></tbody></table></div>
+        <p style="font-size:12px; color:var(--ink-2); padding:11px 14px; margin:0; max-width:78ch">
+          Thresholds shown are the <b>All Other Events</b> column of Table 10-3. The FIRST
+          Championship and Regional Championship thresholds are listed as TBA in V0.9 and will
+          come in a Team Update.
+        </p>
       </div>
     </section>
 
@@ -782,7 +925,8 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
           <div class="op">=</div>
           <div class="ch hot" id="ch8"><span class="k">Ball leaves at</span><span class="v">&mdash;<span class="u">m/s</span></span></div>
         </div>
-        <p style="font-size:12px; color:var(--ink-2); padding:0 14px 13px; margin:0; max-width:82ch">
+        <p style="font-size:12px; color:var(--amber); padding:0 14px 6px; margin:0" id="tiltNote"></p>
+          <p style="font-size:12px; color:var(--ink-2); padding:0 14px 13px; margin:0; max-width:82ch">
           The two amber inputs are the ones you keep changing. <b>Wheel radius multiplies directly
           into the exit speed</b> &mdash; double the diameter at the same rpm and the ball leaves
           twice as fast. That is the whole reason a part swap changes where the ball lands.
@@ -1111,15 +1255,19 @@ const GB = "https://www.gobilda.com/";
 const sku = s => GB + "search.php?search_query=" + encodeURIComponent(s);
 
 /* ===== BIOBUZZ field, V1 Competition Manual section 9 ===== */
-const F = { size:144, pivotH:43.95, cellSpacing:18.8, frameW:49.46, frameD:38.95,
-            /* Manual 9.6.2: "The opening of the CELL is approximately 20 in. wide by 14 in
-               tall and 12 in. deep". So the OPENING is 20 x 14 and the bucket behind it is 12
-               deep. Rotated to face upwards that means a 20 x 14 hole in the sky with a 12 in.
-               drop below it - the 12 is NOT the hole, and using it as the hole made every shot
-               look tighter than it is. Named unambiguously here so it cannot be confused again. */
-            cellW:20,        /* across the field  - lateral, does not foreshorten          */
-            cellSpan:14,     /* fore-aft          - along the shot, foreshortens by sin(e) */
-            cellDepth:12,    /* vertical          - how deep the ball falls in             */
+const F = { size:144, pivotH:43.95,
+            /* Figure 9-9 / 9-10, measured rather than estimated:
+               opening spans 53.5 to 65.6 in above the TILES, tilted 30 deg.
+               Cross-check: 12.10 / cos(30) = 13.97 in, and the text says the opening is
+               14 in tall. And 12.04 + 18.84 + 12.04 = 42.92 vs the stated 42.91 total. */
+            openBottom:53.5, openTop:65.6, hiveTilt:30,
+            cellGap:18.84,          /* clear gap between the two cages, Fig 9-9 */
+            hiveCtoC:25.5,          /* red HIVE centre to blue HIVE centre, Fig 9-10 */
+            hiveBottom:25.5,        /* lowest point of the HIVE above the TILES, Fig 9-10 */
+            cellSpacing:18.8, frameW:49.46, frameD:38.95,
+            cellW:20,               /* opening width, 9.6.2 */
+            cellSpan:14,            /* opening height, 9.6.2 - confirmed by 12.10/cos(30) */
+            cellDepth:12.04,        /* cage depth, Fig 9-9 */
             flowerH:21.5, flowerDia:4, maxRobotH:29, tile:24 };
 const BALL = { pollen:{ dia:2.8, mass:0.055*0.45359237, label:"POLLEN", col:0xe8c21c },
                nectar:{ dia:3.6, mass:0.091*0.45359237, label:"NECTAR", col:0x2f6fd0 } };
@@ -1264,7 +1412,7 @@ const S = {
   park:false, rec:null,
   rpmSlow:2050, rpmMid:2320, rpmFull:2650, trackL:0, trackR:0, strafeX:0, padName:"",
   trDist:71, trRpm:2320, autoT:30, autoRun:false, left:false,
-  angle:55, tip:0, wrap:135, launch:24, gear:1, cell:51, eta:0.45, cd:0.75, rpm:2320,
+  angle:40, tip:0, wrap:135, launch:24, zFloorBase:9, zBaseAxis:13, gear:1, cell:59.55, tilt:30, eta:0.45, cd:0.75, rpm:3900,
   wheelMass:85, robotMass:12, magSize:4, magLeft:4,
   ballCount:80, intakeOn:true, rejectBlue:false, tipMass:200, tipBalls:8,
   scored:{red:0, blue:0}, tips:0, picked:0, curve:null, miniCam:true, waitAtSpeed:true,
@@ -1278,14 +1426,14 @@ const DEFAULTS = JSON.parse(JSON.stringify(S));
    from last time is a terrible way to open, and the match state should always start clean. */
 const TRANSIENT = ["rx","ry","heading","magLeft","tips","picked","scored",
                    "trackL","trackR","strafeX","autoT","autoRun","left","padName",
-                   "matchPhase","matchT","scoreAuto","park","recCount"];
+                   "matchPhase","matchT","scoreAuto","park","recCount","zFloorBase","zBaseAxis"];
 try {
-  const v = localStorage.getItem("biobuzz-bench-v5");
+  const v = localStorage.getItem("biobuzz-bench-v7");
   if (v) { const o = JSON.parse(v); TRANSIENT.forEach(k => delete o[k]); Object.assign(S, o); }
 } catch (e) {}
 let saveT = null;
 const save = () => { clearTimeout(saveT); saveT = setTimeout(() => {
-  try { localStorage.setItem("biobuzz-bench-v5", JSON.stringify(S)); } catch (e) {} }, 300); };
+  try { localStorage.setItem("biobuzz-bench-v7", JSON.stringify(S)); } catch (e) {} }, 300); };
 
 const motor = () => MOTORS[S.motor], wheelP = () => WHEELS[S.wheel];
 const hood  = () => HOODS[S.hood],   arch = () => cfg();
@@ -1300,6 +1448,17 @@ const wheelSku = () => { const W = wheelP(); return W.fixed ? W.s30 : (S.duro ==
 const booster = () => BOOSTERS[S.booster] || BOOSTERS.none;
 /* rim-loaded contact wheel plus whatever the booster adds, per wheel */
 const wheelInertia = () => 0.6*(S.wheelMass/1000)*wheelR()*wheelR() + booster().J;
+/* A heavier ball takes more out of the wheel on the way past, so it leaves slower - and a
+   wheel with more rotational inertia cares less. That is a momentum exchange between the
+   ball (m r_wheel^2) and the flywheel (J), and it was missing entirely: POLLEN and NECTAR
+   used to leave at exactly the same speed despite NECTAR being 66% heavier.
+   eta stays the measured transfer efficiency for the REFERENCE ball (NECTAR), so the slider
+   keeps its meaning and this term only expresses the difference between balls and wheels. */
+const massFactor = () => {
+  const R = wheelR(), J = wheelInertia();
+  const kFor = m => J / (J + m*R*R);
+  return kFor(BALL[S.ball].mass) / kFor(BALL.nectar.mass);
+};
 const suggestedEta = () => +((S.duro === 15 ? 0.55 : 0.45) * etaMul(S.wrap)).toFixed(2);
 
 /* ============================================================================================
@@ -1315,6 +1474,17 @@ const SPEC = [
     ["Soft foam TILE", "24 x 24 x 0.59 in", "Manual 9.2"],
     ["Tiles per side", "6", "derived: 144 / 24"],
     ["ALLIANCE AREA", "97 in wide x 54 in deep", "Manual 9.5"],
+    ["MATCH", "30 s AUTO + 8 s transition + 2 min TELEOP", "V1 10.1"],
+    ["FIELD timer", "counts 2:30 to 0:00, holds at 2:00 in transition", "V1 Table 9-1"],
+    ["Cues", "AUTO ends 2:00, FLOWER unlock 1:00, warning 0:20", "V1 Table 9-1"],
+    ["ALLIANCE AREA sides", "left and right; CELLS tilt to audience", "Manual Fig 10-2"],
+    ["FLOWERS", "one per wall at 48 in. / 96 in., 180\u00b0 rotational", "Manual Fig 10-2, 9-17"],
+    ["GARDEN", "23 in. x 2 in., in OPPOSITE corners of the FIELD", "Manual 9.3, Fig 9-3"],
+    ["GARDEN - red", "audience wall, corner nearest the red ALLIANCE", "Manual Fig 10-2"],
+    ["LOADING ZONE", "23 in. along the ALLIANCE wall x 11 in. deep", "Manual Fig 9-3"],
+    ["Raised CELL - red", "audience side; blue\u2019s raised CELL is opposite", "Manual Fig 9-10, 10-2"],
+    ["CELL ridge", "up on all four CELLS at rest", "Manual Fig 9-9"],
+    ["TIP throw", "assembly turns; the CELLS are carried, not turned over", "V1 9.6.2, Fig 9-9"],
     ["LOADING ZONE", "23 in wide x 11 in deep", "Manual 9.5"],
     ["GARDEN", "23 x 2 in", "Manual 9.5"]
   ]],
@@ -1340,8 +1510,16 @@ const SPEC = [
     ["Frame", "49.46 in wide x 38.95 in deep", "Manual 9.6.1"],
     ["CELLS apart", "18.8 in (47.8 cm)", "Manual 9.6.2"],
     ["CELL opening", "20 in wide x 14 in", "Manual 9.6.2"],
-    ["CELL depth", "12 in (30.5 cm)", "Manual 9.6.2"],
-    ["Raised CELL MOUTH height", "51 in", "ESTIMATE - only in Fig 9-10/9-11"],
+    ["CELL depth", "12.04 in", "Manual Fig 9-9"],
+    ["Opening, bottom edge", "53.5 in (135.90 cm)", "Manual Fig 9-10"],
+    ["Opening, top edge", "65.6 in (166.60 cm)", "Manual Fig 9-10"],
+    ["Opening CENTRE (the target)", "59.55 in", "derived: midpoint of Fig 9-10"],
+    ["HIVE tilt", "30 deg", "Manual Fig 9-10"],
+    ["Bottom of HIVE", "25.5 in (64.75 cm)", "Manual Fig 9-10"],
+    ["HIVE centre to centre", "25.5 in (64.75 cm)", "Manual Fig 9-10"],
+    ["Gap between the two cages", "18.84 in (47.85 cm)", "Manual Fig 9-9"],
+    ["Cage depth", "12.04 in (30.58 cm)", "Manual Fig 9-9"],
+    ["HIVE overall width", "42.91 in (109.0 cm)", "Manual Fig 9-9"],
     ["TIP mechanism", "bi-stable, tips when enough mass lands", "Manual 9.6.2"],
     ["TIP threshold", "no count published - it is a balance", "Manual 9.6.2"]
   ]],
@@ -1356,8 +1534,8 @@ const SPEC = [
     ["Family", "36h11", "Manual 9.9"],
     ["Arrangement", "clusters of 4, on each CELL bottom", "Manual 9.9"],
     ["Facing", "DOWNWARD toward the TILES", "Manual 9.6"],
-    ["Red IDs", "0-3 far side, 4-7 audience side", "Manual Fig 9-17 - partly inferred"],
-    ["Blue IDs", "38-41 audience side, 42-45 far", "Manual Fig 9-17 - partly inferred"]
+    ["Red IDs", "30-33 far side, 34-37 audience side", "Manual Fig 9-16"],
+    ["Blue IDs", "38-41 audience side, 42-45 far", "Manual Fig 9-16"]
   ]],
   ["MATCH", [
     ["AUTO", "30 seconds", "Manual 10.1"],
@@ -1377,6 +1555,33 @@ const POINTS = {
   flower:{ nm:"In an owned FLOWER", auto:0, teleop:2, note:"per element" },
   garden:{ nm:"In the GARDEN", auto:0, teleop:1, note:"per element" }
 };
+/* RANKING POINTS, Table 10-2, with the "All Other Events" thresholds from Table 10-3.
+   The Championship and Regional numbers are TBA in V0.9, so only these are usable. */
+const RP = {
+  swarm:{ nm:"SWARM", rp:1, threshold:16, note:"combined LEAVE + PARK points" },
+  poll1:{ nm:"POLLINATOR 1", rp:1, threshold:4, note:"TIPS" },
+  poll2:{ nm:"POLLINATOR 2", rp:1, threshold:7, note:"TIPS" },
+  win:{ nm:"WIN", rp:3, note:"more MATCH points than your opponent" },
+  tie:{ nm:"TIE", rp:1, note:"the same MATCH points" }
+};
+function rankingPoints() {
+  const leavePark = (S.left ? POINTS.leave.auto : 0)
+                  + (S.park ? POINTS.park.auto + POINTS.park.teleop : 0);
+  const tips = S.tips || 0;
+  const red = alliancePoints("red"), blue = alliancePoints("blue");
+  const out = [];
+  out.push({ nm:RP.swarm.nm, got: leavePark >= RP.swarm.threshold, rp:RP.swarm.rp,
+             detail: leavePark + " / " + RP.swarm.threshold + " pts" });
+  out.push({ nm:RP.poll1.nm, got: tips >= RP.poll1.threshold, rp:RP.poll1.rp,
+             detail: tips + " / " + RP.poll1.threshold + " TIPS" });
+  out.push({ nm:RP.poll2.nm, got: tips >= RP.poll2.threshold, rp:RP.poll2.rp,
+             detail: tips + " / " + RP.poll2.threshold + " TIPS" });
+  const done = S.matchPhase === "done";
+  out.push({ nm: red === blue ? RP.tie.nm : RP.win.nm,
+             got: done && red >= blue, rp: red === blue ? RP.tie.rp : RP.win.rp,
+             detail: done ? red + " v " + blue : "match not finished" });
+  return out;
+}
 
 /* Vision hardware. FOV figures are manufacturer-typical, NOT from the manual - measure yours. */
 const CAMERAS = {
@@ -1392,6 +1597,24 @@ const CAMERAS = {
          note:"PROHIBITED - named in R702 Example 6" }
 };
 const camera = () => CAMERAS[S.camera] || CAMERAS.none;
+
+/* ===== HIVE geometry =====
+   The CELL is a HOUSE-shaped prism: a pentagon cross-section 20 in. wide by 14 in. tall
+   (flat floor, straight walls, peaked roof) extruded 12 in. deep - which is exactly Manual
+   9.6.2's "20 in. wide by 14 in tall and 12 in. deep". The OPEN face is the house-shaped end,
+   not a side panel, which is what the field close-up shows.
+
+   The rocker is driven by its TILT from vertical. That is the honest input: it is what you can
+   see in a photograph, and the mouth height falls out of it. Driving it the other way round
+   forced a 64 degree tilt that left both cages nearly level. */
+/* The opening CENTRE is the ballistic target: (53.5 + 65.6)/2 = 59.55 in at the manual's
+   30 deg lean. The arm length that puts it there follows, and then any other tilt is a
+   consistent what-if rather than a guess. */
+const OPEN_CENTRE = (F.openBottom + F.openTop)/2;                       // 59.55 in
+const ARM_TO_OPENING = (OPEN_CENTRE - F.pivotH) / Math.cos(F.hiveTilt*Math.PI/180);
+const rockerArm = () => ARM_TO_OPENING;
+const cellMouthZ = () => F.pivotH + ARM_TO_OPENING*Math.cos(S.tilt*Math.PI/180);
+const cellSeparation = () => 2*ARM_TO_OPENING*Math.cos(S.tilt*Math.PI/180);
 
 /* ===== the hood profile =====
    Three anchor points, each with an in- and out-handle, so two cubic segments describe the
@@ -1453,12 +1676,55 @@ function curveMetrics(cv) {
            angle: prev === null ? 45 : prev*180/Math.PI,
            minR, squeeze: Math.max(0, hoodClearance() - minR) };
 }
-function syncCurveFromSliders() { S.curve = makeCurve(S.angle, S.wrap); }
+function syncCurveFromSliders() {
+  S.curve = makeCurve(S.angle, S.wrap);
+  S.eta = suggestedEta();      // wrap changed, so the transfer efficiency has to follow
+}
 function syncSlidersFromCurve() {
   const m = curveMetrics(S.curve);
   S.wrap = Math.max(20, Math.min(180, m.wrap));
   S.angle = Math.max(20, Math.min(70, m.angle));
+  /* Wrap is not just a number on a readout: a longer contact arc both spins the ball harder
+     and hands it more of the wheel's surface speed. That coupling used to live only in the
+     wrap SLIDER's handler, so dragging the hood nodes - the whole point of the curve editor -
+     changed the drawing and nothing else. Keep it here, where every path that moves the curve
+     has to come through. */
+  S.eta = suggestedEta();
   return m;
+}
+
+/* ============================================================================================
+   THE OFFICIAL MATCH CLOCK.
+   V1 Table 9-1: the FIELD timer runs 2:30 -> 0:00 for the WHOLE MATCH, it is not a per-phase
+   count. AUTO ends at 2:00, the transition runs 0:08 to 0:01, TELEOP begins at 2:00, FLOWER
+   ownership unlocks at 1:00 and the final warning is 0:20. V1 10.1 gives the lengths:
+   a 30-second AUTO, an 8-second transition and a 2-minute TELEOP.
+   The manual also notes the visual FIELD timer is the authority, not the audio cue.
+   ============================================================================================ */
+const MATCH_CLOCK = { auto:30, transition:8, teleop:120 };
+const MATCH_TOTAL = MATCH_CLOCK.auto + MATCH_CLOCK.teleop;        // 150 s shown as 2:30
+
+/* seconds remaining on the official FIELD timer */
+function fieldClock() {
+  if (S.matchPhase === "auto")       return MATCH_CLOCK.teleop + Math.max(0, S.matchT);
+  if (S.matchPhase === "transition") return MATCH_CLOCK.teleop;   // timer holds at 2:00
+  if (S.matchPhase === "teleop")     return Math.max(0, S.matchT);
+  if (S.matchPhase === "done")       return 0;
+  return MATCH_TOTAL;                                             // idle: showing 2:30
+}
+const mmss = s => Math.floor(s/60) + ":" + String(Math.floor(s%60)).padStart(2, "0");
+
+/* the milestones a DRIVE TEAM actually plans around */
+function matchCue() {
+  const t = fieldClock();
+  if (S.matchPhase === "idle") return { txt:"ready \u00b7 2:30", col:"#8b97a4" };
+  if (S.matchPhase === "done") return { txt:"MATCH end", col:"#8b97a4" };
+  if (S.matchPhase === "transition")
+    return { txt:"transition \u00b7 drivers pick up", col:"var(--warn)" };
+  if (S.matchPhase === "auto") return { txt:"AUTO \u00b7 ends at 2:00", col:"var(--good)" };
+  if (t <= 20) return { txt:"final 20 seconds", col:"var(--crit)" };
+  if (t <= 60) return { txt:"FLOWER ownership unlocked", col:"var(--warn)" };
+  return { txt:"TELEOP", col:"var(--good)" };
 }
 
 /* ===== ballistics ===== */
@@ -1571,8 +1837,8 @@ const COMPARE = {
       .map(b => ({ name:b[1], over:{ ball:b[0] } })) }
 };
 
-const exitToFly = v => (v/(S.eta*wheelR()))*60/(2*Math.PI);
-const flyToExit = r => (r*2*Math.PI/60)*wheelR()*S.eta;
+const exitToFly = v => (v/(S.eta*wheelR()*massFactor()))*60/(2*Math.PI);
+const flyToExit = r => (r*2*Math.PI/60)*wheelR()*S.eta*massFactor();
 
 /* The basketball geometry. Depth is foreshortened by the entry angle; width is not. */
 const rangeGap = entryDeg => F.cellSpan*Math.sin(Math.abs(entryDeg)*Math.PI/180) - BALL[S.ball].dia;
@@ -1667,6 +1933,20 @@ function studentRpm(distIn, riseIn) {
    You shoot at YOUR raised CELL, which sits about a foot to one side of the frame centre -
    not at the middle of the HIVE structure. Aiming at the centre puts the ball past the end
    of the cage, which is exactly what the flat 2D verdict used to hide. */
+/* The four FLOWERS are NOT at the wall midpoints. Figure 10-2 and Figure 9-17 both show
+   them one per wall at 2-tile / 4-tile offsets, in 180-degree rotational symmetry.
+   z = 0 is the AUDIENCE wall, x = 0 is the red ALLIANCE wall. */
+const FLOWERS = [[48, 141], [141, 96], [96, 3], [3, 48]];
+
+/* The GARDENS sit in OPPOSITE corners (Manual 9.3): red in the audience/red corner,
+   blue in the far/blue corner. 23 in. along the wall, 2 in. deep. */
+const GARDEN_RED  = { x0:2,  x1:25,  z:3 };
+const GARDEN_BLUE = { x0:119, x1:142, z:F.size-3 };
+
+/* LOADING ZONE: 23 in. along the ALLIANCE wall x 11 in. deep (Figure 9-3). */
+const LOAD_RED  = { x0:0, x1:11, z0:98, z1:121 };
+const LOAD_BLUE = { x0:F.size-11, x1:F.size, z0:23, z1:46 };
+
 function targetXZ() {
   if (typeof R3 !== "undefined" && R3 && R3.cells && R3.cells.red && typeof THREE !== "undefined") {
     const st = R3.cells.red, up = st.upIsA ? st.a : st.b;
@@ -1675,9 +1955,8 @@ function targetXZ() {
     return { x:w.x, z:w.z };
   }
   /* no 3D scene to ask, so work the raised red CELL out from the same rocker geometry */
-  const dv = (S.cell - F.cellDepth/2) - F.pivotH;
-  const dh = Math.sqrt(Math.max(1, (F.cellSpacing/2)*(F.cellSpacing/2) - dv*dv));
-  return { x:F.size/2 - 12, z:F.size/2 + dh };
+  const dh = ARM_TO_OPENING*Math.sin(S.tilt*Math.PI/180);
+  return { x:F.size/2 - F.hiveCtoC/2, z:F.size/2 - dh };
 }
 /* ===== the shot ===== */
 function compute() {
@@ -1708,19 +1987,25 @@ function compute() {
 
   let missR = NaN, missL = NaN, verdict = "NO SHOT", why = "";
   if (isNaN(exit)) { verdict = "NO SHOT"; why = S.src === "code" ? "code returned no rpm" : "unreachable"; }
-  else if (!cr) { verdict = "NO ARC"; why = "never falls to CELL height"; }
   else {
-    missR = cr.x/IN*Math.cos(aimErr) - dist_in;
-    missL = cr.x/IN*Math.sin(aimErr);
-    const rw = rangeWindow(cr.ang), lw = lateralWindow();
-    if (rangeGap(cr.ang) <= 0) { verdict = "TOO FLAT"; why = cr.ang.toFixed(0)+"\u00b0 entry leaves no gap"; }
-    else if (Math.abs(missR) <= rw && Math.abs(missL) <= lw) { verdict = "IN"; why = "scored"; }
-    else if (Math.abs(missL) > lw) { verdict = missL > 0 ? "WIDE LEFT" : "WIDE RIGHT";
-      why = Math.abs(missL).toFixed(1)+"\u2033 off the 20\u2033 axis"; }
-    else { verdict = missR > 0 ? "LONG" : "SHORT"; why = Math.abs(missR).toFixed(1)+"\u2033 of range"; }
+    /* the preview IS the shot: same integration, same cage, same answer */
+    const pred = (typeof predictShot === "function") ? predictShot(exit, angle, S.heading + S.tip*Math.PI/180) : null;
+    if (pred) {
+      verdict = pred.result; why = pred.why;
+      missR = pred.miss; missL = pred.lateral;
+    } else if (!cr) { verdict = "NO ARC"; why = "never falls to CELL height"; }
+    else {
+      /* 2D mode: no cage to fly against, so fall back to the plane solve */
+      missR = cr.x/IN*Math.cos(aimErr) - dist_in;
+      missL = cr.x/IN*Math.sin(aimErr);
+      const rw = rangeWindow(cr.ang), lw = lateralWindow();
+      if (rangeGap(cr.ang) <= 0) { verdict = "TOO FLAT"; why = cr.ang.toFixed(0)+"\u00b0 entry leaves no gap"; }
+      else if (Math.abs(missR) <= rw && Math.abs(missL) <= lw) { verdict = "IN"; why = "scored"; }
+      else if (Math.abs(missL) > lw) { verdict = missL > 0 ? "WIDE LEFT" : "WIDE RIGHT";
+        why = Math.abs(missL).toFixed(1)+"\u2033 off the 20\u2033 axis"; }
+      else { verdict = missR > 0 ? "LONG" : "SHORT"; why = Math.abs(missR).toFixed(1)+"\u2033 of range"; }
+    }
   }
-  if (capped && verdict !== "IN") why = "motor maxed at " + Math.round(ceiling) +
-    " rpm, needs " + Math.round(want);
   return { dist_in, dist_m, rise_in, rise_m, angle, aimErr, bearing,
            req, reqFly, flyRpm, want, capped, ceiling, exit, shot,
            cross:cr, missR, missL, verdict, why };
@@ -1820,7 +2105,13 @@ function tagTexture(ids) {
   }, 512);
 }
 
-const TAGS = { redFar:[0,1,2,3], redAud:[4,5,6,7], blueAud:[38,39,40,41], blueFar:[42,43,44,45] };
+const TAGS = {
+  /* Figure 9-16, stated explicitly. My earlier 0-7 came from PDF text that had lost a digit. */
+  redFar:  [30,31,32,33],   /* red CELL, side opposite the audience */
+  redAud:  [34,35,36,37],   /* red CELL, audience side              */
+  blueAud: [38,39,40,41],   /* blue CELL, audience side             */
+  blueFar: [42,43,44,45]    /* blue CELL, side opposite the audience */
+};
 
 function tube(a, b, r, mat) {
   const va = new THREE.Vector3().fromArray(a), vb = new THREE.Vector3().fromArray(b);
@@ -1868,17 +2159,19 @@ function buildScene() {
   /* ---- perimeter wall, alliance colours on two sides ---- */
   const wallH = 12.5, wt = 1.6;
   const dark = new THREE.MeshStandardMaterial({ color:0x23272c, roughness:.8 });
+  /* Figure 10-2: ALLIANCE AREAS sit left and right (the X axis); the raised CELLS tilt
+     toward the audience and away from it (the Z axis). The two are perpendicular. */
   const walls = [
-    { p:[F.size/2, wallH/2, -wt/2],        s:[F.size+wt*2, wallH, wt], c:0xa3122b },
-    { p:[F.size/2, wallH/2, F.size+wt/2],  s:[F.size+wt*2, wallH, wt], c:0x1f6fd0 },
-    { p:[-wt/2, wallH/2, F.size/2],        s:[wt, wallH, F.size], c:null },
-    { p:[F.size+wt/2, wallH/2, F.size/2],  s:[wt, wallH, F.size], c:null }
+    { p:[-wt/2, wallH/2, F.size/2],        s:[wt, wallH, F.size+wt*2], c:0xa3122b },
+    { p:[F.size+wt/2, wallH/2, F.size/2],  s:[wt, wallH, F.size+wt*2], c:0x1f6fd0 },
+    { p:[F.size/2, wallH/2, -wt/2],        s:[F.size, wallH, wt], c:null },
+    { p:[F.size/2, wallH/2, F.size+wt/2],  s:[F.size, wallH, wt], c:null }
   ];
   walls.forEach(w => {
     const m = new THREE.Mesh(new THREE.BoxGeometry(w.s[0], w.s[1], w.s[2]), dark);
     m.position.set(w.p[0], w.p[1], w.p[2]); m.receiveShadow = true; scene.add(m);
     if (w.c !== null) {
-      const trim = new THREE.Mesh(new THREE.BoxGeometry(w.s[0], 2.4, wt*1.1),
+      const trim = new THREE.Mesh(new THREE.BoxGeometry(w.s[0]*1.05, 2.4, w.s[2]*1.05),
         new THREE.MeshStandardMaterial({ color:w.c, roughness:.55 }));
       trim.position.set(w.p[0], wallH - 1.6, w.p[2]); scene.add(trim);
     }
@@ -1913,15 +2206,20 @@ function buildScene() {
   /* S.cell is the MOUTH height - the plane the ball must actually arrive at - so the cage body
      hangs half its depth below that. The rocker still has to satisfy the 18.8 in. CELL spacing
      (9.6.2), which fixes dh once dv is known. */
-  const halfLen = F.cellSpacing/2;
-  const dv = Math.max(-halfLen*0.99, Math.min(halfLen*0.99,
-             (S.cell - F.cellDepth/2) - F.pivotH));
-  const dh = Math.sqrt(Math.max(1, halfLen*halfLen - dv*dv));
-  const tiltRad = Math.atan2(dh, dv);      // lean of the rocker away from vertical
+  /* the rocker leans by S.tilt from vertical; everything else follows from that */
+  const tiltRad = S.tilt*Math.PI/180;
+  const halfLen = rockerArm();
+  const armY = halfLen*Math.cos(tiltRad);      // vertical half-offset
+  const armZ = halfLen*Math.sin(tiltRad);      // fore-aft half-offset
+  const dv = armY, dh = armZ;
   const cells = {};
-  [["red", -12, 0xa3122b, TAGS.redFar, TAGS.redAud],
-   ["blue", 12, 0x1f6fd0, TAGS.blueFar, TAGS.blueAud]].forEach(function (row) {
+  [["red", -F.hiveCtoC/2, 0xa3122b, TAGS.redFar, TAGS.redAud],
+   ["blue", F.hiveCtoC/2, 0x1f6fd0, TAGS.blueFar, TAGS.blueAud]].forEach(function (row) {
     const ally = row[0], dx = row[1], col = row[2];
+    /* Each HIVE leans toward its OWN alliance, so its raised mouth faces the robots that
+       shoot into it. Red's wall is at z = 0, blue's at z = 144. Leaning the wrong way put
+       the cage's closed back toward the shooter and nothing could ever go in. */
+    const side = (ally === "red") ? -1 : 1;
     const rocker = new THREE.Group();
     rocker.position.set(c + dx, F.pivotH, c);
     /* A CELL is an open hexagonal cage: coloured tube frame, clear side panels, a white
@@ -1942,76 +2240,107 @@ function buildScene() {
        Sized from Manual 9.6.2 - mouth 20 in. across the extrusion by 14 in. along the profile,
        12 in. deep. The previous build used a REGULAR hexagon, which forces the mouth edge to
        exactly half the span: it came out 7 in. instead of 14. Explicit corners fix that. */
+    /* A CELL is a HOUSE-shaped prism, open at the house-shaped end.
+       Cross-section: 20 in. wide x 14 in. tall - flat floor, straight walls, peaked roof.
+       Extruded 12 in. deep (Manual 9.6.2). Local axes: x across the 20, y up the 14,
+       z into the 12 - with the MOUTH at z = 0 and the closed back at z = -depth. */
     function mkCell(sign, tagIds) {
       const g = new THREE.Group();
-      const W = F.cellW;                     // 20 in. across the extrusion
-      const hs = F.cellSpan/2;               // 7 in.  - half the mouth
-      const hd = F.cellDepth/2;              // 6 in.  - half the depth
-      const shoulder = -hd + F.cellDepth*0.34;
-      const baseHalf = hs*0.5;
-      const MOUTH = 0, FLOOR = 3;
+      const hw = F.cellW/2;               // 10  - half the 20 in. width
+      const hh = F.cellSpan/2;            // 7   - half the 14 in. height
+      const dep = F.cellDepth;            // 12  - how deep the house is
+      const eave = hh*0.28;               // where the roof starts
 
-      /* [y, z]: +y is out of the mouth, z runs along the 14 in. span */
-      const corner = [
-        [ hd,  hs], [ hd, -hs],              // the mouth edge, 14 in. long
-        [ shoulder, -hs],                    // straight side
-        [-hd, -baseHalf],                    // chamfer
-        [-hd,  baseHalf],                    // flat base
-        [ shoulder,  hs]                     // chamfer back up
+      /* the house outline, anticlockwise */
+      const poly = [
+        [-hw, -hh], [ hw, -hh],           // floor
+        [ hw,  eave],                     // right wall
+        [  0,  hh],                       // ridge
+        [-hw,  eave]                      // left wall
       ];
-      const edges = corner.map((c0, k) => {
-        const c1 = corner[(k+1) % corner.length];
-        let ny = c1[1] - c0[1], nz = -(c1[0] - c0[0]);
-        const L = Math.hypot(ny, nz) || 1; ny /= L; nz /= L;
-        const my = (c0[0]+c1[0])/2, mz = (c0[1]+c1[1])/2;
-        if (ny*my + nz*mz < 0) { ny = -ny; nz = -nz; }
-        return { ny:ny, nz:nz, d: ny*my + nz*mz, k:k };
+      const edges = poly.map((p0, k) => {
+        const p1 = poly[(k+1) % poly.length];
+        let nx = p1[1]-p0[1], ny = -(p1[0]-p0[0]);
+        const L = Math.hypot(nx, ny) || 1; nx /= L; ny /= L;
+        const mx = (p0[0]+p1[0])/2, my = (p0[1]+p1[1])/2;
+        if (nx*mx + ny*my < 0) { nx = -nx; ny = -ny; }
+        return { nx:nx, ny:ny, d: nx*mx + ny*my };
       });
 
       const tubeMat = new THREE.MeshStandardMaterial({ color:col, roughness:.40, metalness:.38 });
       const glass = new THREE.MeshPhysicalMaterial({ color:0xdfeaf2, roughness:.09,
-        metalness:0, transparent:true, opacity:.19, side:THREE.DoubleSide });
+        metalness:0, transparent:true, opacity:.20, side:THREE.DoubleSide });
       const cloth = new THREE.MeshStandardMaterial({ color:0xf4f6f8, roughness:.95,
         side:THREE.DoubleSide });
 
-      for (let k = 0; k < corner.length; k++) {
-        if (k === MOUTH) continue;
-        const c0 = corner[k], c1 = corner[(k+1) % corner.length];
-        const verts = new Float32Array([
-          -W/2, c0[0], c0[1],   W/2, c0[0], c0[1],   W/2, c1[0], c1[1],
-          -W/2, c0[0], c0[1],   W/2, c1[0], c1[1],  -W/2, c1[0], c1[1]
+      /* the five walls of the house, running the 12 in. depth */
+      poly.forEach((p0, k) => {
+        const p1 = poly[(k+1) % poly.length];
+        const v = new Float32Array([
+          p0[0], p0[1], 0,   p1[0], p1[1], 0,   p1[0], p1[1], -dep,
+          p0[0], p0[1], 0,   p1[0], p1[1], -dep, p0[0], p0[1], -dep
         ]);
         const geo = new THREE.BufferGeometry();
-        geo.setAttribute("position", new THREE.BufferAttribute(verts, 3));
+        geo.setAttribute("position", new THREE.BufferAttribute(v, 3));
         geo.computeVertexNormals();
-        const panel = new THREE.Mesh(geo, k === FLOOR ? cloth : glass);
-        panel.castShadow = true;
-        g.add(panel);
-      }
-      /* the white panel slung inside, just above the base - what the balls rest on */
-      const tray = new THREE.Mesh(new THREE.PlaneGeometry(W*0.92, baseHalf*2.4), cloth);
-      tray.rotation.x = -Math.PI/2;
-      tray.position.y = -hd + 1.1;
-      g.add(tray);
+        const m = new THREE.Mesh(geo, k === 0 ? cloth : glass);
+        m.castShadow = true; g.add(m);
+      });
+      /* the closed back of the house */
+      const back = new THREE.Mesh(new THREE.BufferGeometry(), glass);
+      const tri = [];
+      for (let k = 1; k < poly.length-1; k++)
+        tri.push(poly[0][0], poly[0][1], -dep, poly[k][0], poly[k][1], -dep,
+                 poly[k+1][0], poly[k+1][1], -dep);
+      back.geometry.setAttribute("position", new THREE.BufferAttribute(new Float32Array(tri), 3));
+      back.geometry.computeVertexNormals();
+      g.add(back);
 
-      /* tube rails on every edge of the profile, at both ends, plus the stringers */
-      for (let k = 0; k < corner.length; k++) {
-        const c0 = corner[k], c1 = corner[(k+1) % corner.length];
-        [-W/2, W/2].forEach(x => g.add(tube([x, c0[0], c0[1]], [x, c1[0], c1[1]], .45, tubeMat)));
-        g.add(tube([-W/2, c0[0], c0[1]], [W/2, c0[0], c0[1]], .40, tubeMat));
-      }
+      /* the red/blue tube frame on every edge, front and back, plus the depth rails */
+      poly.forEach((p0, k) => {
+        const p1 = poly[(k+1) % poly.length];
+        [0, -dep].forEach(z => g.add(tube([p0[0],p0[1],z], [p1[0],p1[1],z], .45, tubeMat)));
+        g.add(tube([p0[0],p0[1],0], [p0[0],p0[1],-dep], .40, tubeMat));
+      });
 
       const tg = new THREE.Mesh(new THREE.PlaneGeometry(9, 9),
         new THREE.MeshStandardMaterial({ map:tagTexture(tagIds), roughness:.9,
           side:THREE.DoubleSide }));
       tg.rotation.x = Math.PI/2;
-      tg.position.set(0, -hd - .6, 0);
+      tg.position.set(0, -hh - .6, -dep/2);
       g.add(tg);
 
-      g.position.set(0, sign*dv, sign*dh);
-      g.rotation.x = sign > 0 ? 0 : Math.PI;
+      /* Sit the cage at the end of the rocker arm, mouth pointing away from the pivot.
+         ARM_TO_OPENING is already the distance from the pivot to the OPENING - it is solved
+         from the manual's own 53.5 in. and 65.6 in. opening heights (9.6.2) - and this group's
+         origin IS the mouth plane, because the walls run from z = 0 back to z = -depth.
+         So there is nothing to add here. The half-depth that used to be added put the 3D
+         opening 5.2 in. above the height the solver aims at, and every ball sailed under the
+         rim and through a side wall. */
+      const out = 0;
+      g.position.set(0, sign*(armY + out*Math.cos(tiltRad)),
+                        sign*side*(armZ + out*Math.sin(tiltRad)));
+      /* Figure 9-9 shows BOTH CELLS of a HIVE built identically - same house, ridge up,
+         neither one inverted. Only their MOUTHS face opposite ways, because each opens
+         radially outward from the pivot.
+
+         The old line flipped the second CELL by 180 degrees about its local X, which does
+         turn the mouth around - but it also turns the ridge over, so one cage rendered as
+         an upside-down house. The flip belongs on the cell's own vertical axis: 180 degrees
+         about local Y swaps +z for -z (the mouth) and leaves +y (the ridge) exactly where
+         it was. Both cages then read as houses, and the mouths still oppose. */
+      const qRidge = new THREE.Quaternion()
+        .setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI/2 + side*tiltRad);
+      const qFace = new THREE.Quaternion()
+        .setFromAxisAngle(new THREE.Vector3(0, 1, 0), sign > 0 ? 0 : Math.PI);
+      /* Red and blue HIVES lean opposite ways, so one alliance also needs a half turn about
+         the mouth normal to keep the ridge up and the flat 20 in. floor down - the floor is
+         what the NECTAR rests on. Rolling about local Z leaves the mouth direction alone. */
+      const qRoll = new THREE.Quaternion()
+        .setFromAxisAngle(new THREE.Vector3(0, 0, 1), side < 0 ? Math.PI : 0);
+      g.quaternion.copy(qRidge).multiply(qFace).multiply(qRoll);
       g.userData = { tag:tg, contents:[], levelSign:sign,
-                     edges:edges, halfW:W/2, mouth:MOUTH, ay:hd };
+                     edges:edges, hw:hw, hh:hh, dep:dep };
       rocker.add(g);
       return g;
     }
@@ -2025,16 +2354,39 @@ function buildScene() {
       dm.position.set(0, d[1]*2.5, d[1]*6.5); rocker.add(dm);
     });
     hive.add(rocker);
+    /* Keep each CELL's built orientation. V1 9.6.2 calls the rocker "a connecting assembly
+       that rotates on a pivot" and Figure 9-9 draws both CELLS identical and ridge-up, so the
+       CELLS are carried by the assembly rather than spun with it. Storing the two build
+       orientations lets the tip hand each CELL the other's pose instead of turning it over. */
     cells[ally] = { rocker:rocker, a:cellA, b:cellB, upIsA:true,
-                    flip:0, target:0, tiltRad:tiltRad, dv:dv, dh:dh };
+                    flip:0, target:0, tiltRad:tiltRad, dv:dv, dh:dh, side:side,
+                    qA: cellA.quaternion.clone(), qB: cellB.quaternion.clone() };
   });
   scene.add(hive);
+
+  /* ---- tape: GARDENS in opposite corners, LOADING ZONES on the ALLIANCE walls (9.3) ---- */
+  const tape = (x0, z0, x1, z1, col) => {
+    const g = new THREE.Mesh(
+      new THREE.PlaneGeometry(Math.abs(x1-x0), Math.abs(z1-z0)),
+      new THREE.MeshBasicMaterial({ color:col, transparent:true, opacity:.85 }));
+    g.rotation.x = -Math.PI/2;
+    g.position.set((x0+x1)/2, 0.06, (z0+z1)/2);
+    scene.add(g);
+  };
+  tape(GARDEN_RED.x0,  GARDEN_RED.z-1,  GARDEN_RED.x1,  GARDEN_RED.z+1,  0xd8203c);
+  tape(GARDEN_BLUE.x0, GARDEN_BLUE.z-1, GARDEN_BLUE.x1, GARDEN_BLUE.z+1, 0x2f6fd0);
+  [[LOAD_RED, 0xd8203c], [LOAD_BLUE, 0x2f6fd0]].forEach(([L, col]) => {
+    tape(L.x0, L.z0, L.x1, L.z0+1, col);          /* the two ends */
+    tape(L.x0, L.z1-1, L.x1, L.z1, col);
+    const inner = (L.x0 === 0) ? L.x1 : L.x0;     /* and the line parallel to the wall */
+    tape(inner-1, L.z0, inner, L.z1, col);
+  });
 
   /* ---- FLOWERS, Manual 9.7 ---- */
   const stalk = new THREE.MeshStandardMaterial({ color:0x3faa3f, roughness:.55 });
   const ringMat = new THREE.MeshStandardMaterial({ color:0xe8c21c, roughness:.45, metalness:.2 });
   const pollenMat = () => ballMaterialFor("pollen", S.holes);
-  [[c,3],[c,F.size-3],[3,c],[F.size-3,c]].forEach(f => {
+  FLOWERS.forEach(f => {
     for (let i = 0; i < 3; i++) {
       const a = i*Math.PI*2/3;
       scene.add(tube([f[0]+Math.cos(a)*2.6, 0, f[1]+Math.sin(a)*2.6],
@@ -2214,7 +2566,13 @@ function recStart() {
   REC.last = { x:S.rx, y:S.ry, h:S.heading };
   S.recCount = 0; needUI = true;
 }
-function recStop() { REC.on = false; needUI = true; }
+function recStop() {
+  /* Fold in whatever driving happened after the last action, otherwise the final leg -
+     very often the drive into the LOADING ZONE to PARK - never reaches the OpMode. */
+  recMove();
+  S.recCount = REC.steps.length;
+  REC.on = false; needUI = true;
+}
 const recT = () => REC.on ? (performance.now()/1000 - REC.t0) : 0;
 
 /* fold whatever driving happened since the last step into turn + travel */
@@ -2413,6 +2771,16 @@ function toJava() {
    AUTO is 30 seconds (10.1). LEAVE is 3 points for stopping contact with the perimeter wall. */
 const AUTO_SECS = 30;
 function stageAuto() {
+  /* Put the HIVE back to its staged lean FIRST. Restaging used to leave the rocker wherever
+     the last tip had thrown it, so the "fresh" FIELD did not match Figure 10-2 - and the
+     three staged NECTAR went into whichever CELL happened to be up rather than the right one. */
+  if (R3 && R3.cells) Object.keys(R3.cells).forEach(function (a) {
+    const st = R3.cells[a];
+    st.ang = 0; st.w = 0; st.target = 0; st.flip = 0; st.flipFrom = 0;
+    st.releasing = false; st.upIsA = true;
+    st.rocker.rotation.x = 0;
+    st.a.quaternion.copy(st.qA); st.b.quaternion.copy(st.qB);
+  });
   R3.fieldBalls.forEach(b => R3.fieldGroup.remove(b.mesh));
   R3.fieldBalls.length = 0;
   const c = F.size/2;
@@ -2425,11 +2793,14 @@ function stageAuto() {
     R3.fieldBalls.push({ mesh:m, kind:kind, blue:!!blue, x:x, z:z, dia:dia });
   };
   /* 4 POLLEN in each FLOWER */
-  [[c,3],[c,F.size-3],[3,c],[F.size-3,c]].forEach(f => {
+  FLOWERS.forEach(f => {
     for (let i = 0; i < 4; i++) drop(f[0] + (i%2-0.5)*4, f[1] + (Math.floor(i/2)-0.5)*4, "pollen");
   });
-  /* 4 POLLEN in each GARDEN, lined up along the rear wall */
-  for (let i = 0; i < 4; i++) { drop(18 + i*5, 14, "pollen"); drop(18 + i*5, F.size-14, "pollen"); }
+  /* 4 POLLEN in each GARDEN. Fig 10-2: red GARDEN bottom-left, blue GARDEN top-right. */
+  for (let i = 0; i < 4; i++) {
+    drop(GARDEN_RED.x0  + 3 + i*5.5, GARDEN_RED.z,  "pollen");   // GARDEN - RED
+    drop(GARDEN_BLUE.x1 - 3 - i*5.5, GARDEN_BLUE.z, "pollen");   // GARDEN - BLUE
+  }
   /* 3 NECTAR already in each upward-facing CELL */
   Object.keys(R3.cells).forEach(ally => {
     const st = R3.cells[ally], up = st.upIsA ? st.a : st.b;
@@ -2440,24 +2811,77 @@ function stageAuto() {
       const dia = BALL.nectar.dia;
       const m = new THREE.Mesh(new THREE.SphereGeometry(dia/2, 14, 10),
         ballMaterialFor(ally === "blue" ? "nectar" : "nectarRed", S.holes));
-      const p = new THREE.Vector3((i-1)*4.6, -up.userData.ay*0.55, 0);
+      const p = new THREE.Vector3((i-1)*4.6, -up.userData.hh*0.55, -up.userData.dep*0.5);
       m.position.copy(p); m.castShadow = true;
       up.add(m);
       up.userData.contents.push({ mesh:m, kind:"nectar", p:p,
                                   v:new THREE.Vector3(0,0,0), r:dia/2 });
     }
   });
-  /* the ROBOT: against the wall in the alliance area, 4 POLLEN pre-loaded */
-  S.rx = 30; S.ry = 12; S.heading = Math.atan2(F.size/2 - 12, F.size/2 - 30);
+  /* the ROBOT starts in its ALLIANCE AREA touching the wall (G304). Red's wall is now the
+     LEFT one (low X), per Fig 10-2, and its raised CELL is toward the audience side. */
+  /* AUTO starts in the red LOADING ZONE, against the red ALLIANCE wall (Fig 10-2) */
+  S.rx = 13; S.ry = (LOAD_RED.z0 + LOAD_RED.z1)/2;
+  const T0 = targetXZ();
+  S.heading = Math.atan2(T0.z - S.ry, T0.x - S.rx);
   S.magSize = Math.max(4, S.magSize);
   S.magLeft = 4;
   S.tips = 0; S.picked = 0; S.left = false;
   /* Solve the three bound speeds for where AUTO actually starts, so the pre-load is
      shootable out of the box and the student can see what the numbers should look like. */
-  const dAuto = Math.hypot(F.size/2 - S.rx, F.size/2 - S.ry)*IN;
+  /* Measure to the raised CELL, not to the middle of the FIELD - the CELL sits about a foot
+     off centre in both axes, and aiming at the centre is exactly the error that made the
+     staged pre-load miss. */
+  const dAuto = Math.hypot(T0.x - S.rx, T0.z - S.ry)*IN;
   const vAuto = solveExit(dAuto, (S.cell - S.launch)*IN, S.angle);
-  if (!isNaN(vAuto)) {
-    const mid = Math.min(Math.round(exitToFly(vAuto)), Math.round(maxFlyRpm()));
+  let mid = isNaN(vAuto) ? NaN : Math.min(Math.round(exitToFly(vAuto)), Math.round(maxFlyRpm()));
+
+  /* The closed-form answer ignores the cage, so walk the real verdict and take the middle of
+     whatever band actually scores. If nothing scores at this hood angle, try the others. */
+  const keep = { rpm:S.rpm, src:S.src, angle:S.angle };
+  S.src = "fixed";
+  /* Shooting into a CELL tilted 30 degrees away from you, the scoring speeds are NOT one
+     clean band - some speeds drop through the mouth and others clip the near lip. Take the
+     WIDEST CONTIGUOUS run, because the midpoint of first-to-last can land in a dead gap. */
+  const keepRpmNow = rpmNow;
+  const bandAt = () => {
+    let best = null, run = null;
+    for (let r = 1500; r <= maxFlyRpm(); r += 25) {
+      S.rpm = r; rpmNow = r;                 // judge at speed, not at whatever the wheel is doing
+      if (compute().verdict === "IN") {
+        run = run || { lo:r, hi:r };
+        run.hi = r;
+        if (!best || (run.hi - run.lo) > (best.hi - best.lo)) best = run;
+      } else run = null;
+    }
+    return best;
+  };
+  let band = bandAt(), ang = S.angle;
+  if (!band) {
+    for (const a of [40, 45, 35, 50, 55, 30, 60]) {
+      S.angle = a; const b = bandAt();
+      if (b) { band = b; ang = a; break; }
+    }
+  }
+  S.angle = ang;
+  if (band) {
+    /* The midpoint of a run can still sit on a knife edge, so confirm it and walk outward
+       to the nearest speed in the run that really scores. A staged pre-load that misses is
+       the one thing a student will not think to question. */
+    const scores = r => { S.rpm = r; rpmNow = r; return compute().verdict === "IN"; };
+    mid = Math.round((band.lo + band.hi)/2);
+    if (!scores(mid)) {
+      let found = NaN;
+      for (let d = 25; d <= (band.hi - band.lo)/2 + 25; d += 25) {
+        if (mid - d >= band.lo && scores(mid - d)) { found = mid - d; break; }
+        if (mid + d <= band.hi && scores(mid + d)) { found = mid + d; break; }
+      }
+      if (!isNaN(found)) mid = found;
+    }
+  }
+  S.rpm = keep.rpm; S.src = keep.src; rpmNow = keepRpmNow;
+
+  if (!isNaN(mid)) {
     S.rpmMid = mid;
     S.rpmSlow = Math.max(400, Math.round(mid*0.88));
     S.rpmFull = Math.min(Math.round(maxFlyRpm()), Math.round(mid*1.12));
@@ -2469,7 +2893,8 @@ function stageAuto() {
   needUI = true; save();
 }
 /* The real match: 30 s AUTO, 8 s transition, 2 min TELEOP (Manual 10.1). */
-const PHASE = { auto:30, transition:8, teleop:120 };
+/* V1 10.1: a 30-second AUTO, an 8-second transition, a 2-minute TELEOP. */
+const PHASE = MATCH_CLOCK;
 function startMatch() {
   stageAuto();
   S.matchPhase = "auto"; S.matchT = PHASE.auto;
@@ -2482,7 +2907,9 @@ function stepMatch(dt) {
   if (S.matchPhase === "idle" || S.matchPhase === "done") return;
   S.matchT -= dt;
   /* PARK: at least partly in the LOADING ZONE (10.5, G-rules) */
-  S.park = (S.ry < 20 && S.rx > 48 && S.rx < 96);
+  /* PARK needs only PARTIAL overlap with the LOADING ZONE, so grow the
+     zone by half a ROBOT (18 in. frame) before testing the ROBOT centre. */
+  S.park = (S.rx < LOAD_RED.x1 + 9 && S.ry > LOAD_RED.z0 - 9 && S.ry < LOAD_RED.z1 + 9);
   if (S.matchT <= 0) {
     if (S.matchPhase === "auto") {
       S.scoreAuto = matchPoints();          // AUTO is banked at the buzzer
@@ -2495,6 +2922,10 @@ function stepMatch(dt) {
   }
 }
 /* Table 10-2 */
+/* AUTO and TELEOP totals for the whole ALLIANCE, yours plus the partner that drives itself */
+function alliancePoints(ally) {
+  return (ally === "red" ? matchPoints() : 0) + botPoints(ally);
+}
 function matchPoints() {
   const auto = S.matchPhase === "auto";
   let pts = 0;
@@ -2533,7 +2964,7 @@ function scoreIntoCell(kind) {
   m.castShadow = true;
   /* enter through the mouth, slightly off-centre so the pile is not a stack of coins */
   const p = new THREE.Vector3((Math.random()-.5)*F.cellW*0.55,
-                              up.userData.ay*0.80, (Math.random()-.5)*3);
+                              up.userData.hh*0.2, -up.userData.dep*0.35);
   const v = new THREE.Vector3((Math.random()-.5)*8, -34, (Math.random()-.5)*8);
   m.position.copy(p);
   up.add(m);
@@ -2543,13 +2974,36 @@ function scoreIntoCell(kind) {
   needUI = true;
 }
 
+/* The rocker carries the CELLS round; it does not turn them over. As it swings, hand each
+   CELL the other one's built pose. Because the two poses differ by half a turn about the
+   CELL's own ridge axis, the ridge stays up the whole way and only the MOUTH rolls from
+   facing up to facing down - which is what empties it. */
+const _rq = new THREE.Quaternion(), _rqi = new THREE.Quaternion();
+const _tA = new THREE.Quaternion(), _tB = new THREE.Quaternion();
+const _re = new THREE.Euler();
+function levelCells(st) {
+  if (!st.qA || !st.qB) return;
+  _re.set(st.ang || 0, 0, 0);
+  _rq.setFromEuler(_re);
+  _rqi.copy(_rq).invert();
+  const t = Math.min(1, Math.abs(st.ang || 0)/Math.PI);
+  _tA.copy(st.qA).slerp(st.qB, t);
+  _tB.copy(st.qB).slerp(st.qA, t);
+  st.a.quaternion.copy(_rqi).multiply(_tA);
+  st.b.quaternion.copy(_rqi).multiply(_tB);
+}
+
 /* The TIP threshold is a MASS threshold: the manual says the HIVE holds "until enough POLLEN
    or NECTAR are LAUNCHED", never a count, because it is a balance. */
 function checkTip(st, up) {
   const grams = up.userData.contents.reduce((a, o) => a + BALL[o.kind].mass*1000, 0);
   if (grams >= S.tipMass && !st.releasing && Math.abs((st.ang||0) - (st.target||0)) < 0.05) {
     st.flipFrom = st.target || 0;
-    st.target = (st.target || 0) + Math.PI;     // over to the other stable state
+    /* Over to the other stable state. It has to be a half turn: each CELL's mouth opens
+       radially outward from the pivot, so only a half turn actually swaps which one faces
+       up - a 2 x tilt throw leaves the same CELL up and scores nothing. The cost is that
+       the ridges invert while tipped; see the note in the Spec sheet. */
+    st.target = (st.target || 0) + Math.PI;
     st.releasing = true;
     st.w = 0.25;                                 // it starts to go
     needUI = true;
@@ -2572,8 +3026,7 @@ function stepCellPhysics(dt) {
       if (!items.length) return;
       cell.getWorldQuaternion(_q);
       _gv.set(0, -G_IN, 0).applyQuaternion(_q.clone().invert());
-      const edges = cell.userData.edges, halfW = cell.userData.halfW;
-      const mouth = cell.userData.mouth, mEdge = edges[mouth];
+      const U = cell.userData, edges = U.edges;
 
       for (let i = items.length - 1; i >= 0; i--) {
         const o = items[i];
@@ -2581,26 +3034,23 @@ function stepCellPhysics(dt) {
         o.v.multiplyScalar(0.992);
         o.p.addScaledVector(o.v, h);
 
-        /* the two flat ends of the prism */
-        if (o.p.x >  halfW - o.r) { o.p.x =  halfW - o.r; o.v.x *= -0.32; }
-        if (o.p.x < -halfW + o.r) { o.p.x = -halfW + o.r; o.v.x *= -0.32; }
-
-        /* every wall except the mouth, using that wall's own normal */
+        /* the five walls of the house, each with its own normal */
         for (let k = 0; k < edges.length; k++) {
-          if (k === mouth) continue;
           const e = edges[k];
-          const d = o.p.y*e.ny + o.p.z*e.nz;
+          const d = o.p.x*e.nx + o.p.y*e.ny;
           if (d > e.d - o.r) {
             const pen = d - (e.d - o.r);
-            o.p.y -= e.ny*pen; o.p.z -= e.nz*pen;
-            const vn = o.v.y*e.ny + o.v.z*e.nz;
-            if (vn > 0) { o.v.y -= 1.34*vn*e.ny; o.v.z -= 1.34*vn*e.nz; }
+            o.p.x -= e.nx*pen; o.p.y -= e.ny*pen;
+            const vn = o.v.x*e.nx + o.v.y*e.ny;
+            if (vn > 0) { o.v.x -= 1.34*vn*e.nx; o.v.y -= 1.34*vn*e.ny; }
             o.v.multiplyScalar(0.955);
           }
         }
-        /* out through the mouth - this is how a tipped CELL empties itself */
-        const dM = o.p.y*mEdge.ny + o.p.z*mEdge.nz;
-        if (dM > mEdge.d + o.r*0.6) {
+        /* the closed back of the house */
+        if (o.p.z < -U.dep + o.r) { o.p.z = -U.dep + o.r;
+          if (o.v.z < 0) o.v.z = -o.v.z*0.15; }   /* the back panel is soft, it does not throw balls back out */
+        /* out through the open house face - this is how a tipped CELL empties */
+        if (o.p.z > o.r*0.6) {
           o.mesh.getWorldPosition(_wp);
           cell.remove(o.mesh);
           items.splice(i, 1);
@@ -2681,6 +3131,8 @@ function stepTips(dt) {
     if (settled && !st.releasing) {
       st.ang = target; st.w = 0;
       st.rocker.rotation.x = st.ang;
+    levelCells(st);
+      levelCells(st);
       return;
     }
     /* torque: the detent pulls toward the nearest stable state, the released mass drives it over */
@@ -2709,6 +3161,7 @@ function stepTips(dt) {
     }
     st.damperHit = false;
     st.rocker.rotation.x = st.ang;
+    levelCells(st);
     st.flip = st.ang;
   });
 }
@@ -2774,32 +3227,168 @@ function ballAccel(f, out) {
 /* Collide a flying ball with one CELL cage.
    "in" = it dropped through the mouth, "hit" = it struck the structure and bounced. */
 const _lp = new THREE.Vector3(), _lv = new THREE.Vector3(), _iq = new THREE.Quaternion();
-function hitCell(f, cell) {
-  _lp.copy(f.p); cell.worldToLocal(_lp);
-  const U = cell.userData, edges = U.edges, mouth = U.mouth;
-  if (Math.abs(_lp.x) > U.halfW + f.r) return null;
+/* A CELL is a five-sided house prism: the pentagon cross-section is the WALL, and the only
+   way in is the pentagon OPENING at local z = 0. The old test asked only "is the ball inside
+   the outline and within the depth", which is true just as much for a ball that punched
+   through a side wall as for one that dropped through the hole - and at 350 in/s the ball
+   moves 1.4 in per sub-step, further than its own radius, so it routinely jumped straight
+   through a wall and was counted as scored. This is a SWEPT test: the ball is only IN when
+   the segment it travelled actually crosses the mouth plane, inside the rim. Everything
+   else that touches the prism is a bounce. */
+const _q0 = new THREE.Vector3(), _q1 = new THREE.Vector3();
+const _prevP = new THREE.Vector3();
+function hitCell(f, cell, prevWorld) {
+  const U = cell.userData, edges = U.edges, r = f.r;
+  _q0.copy(prevWorld); cell.worldToLocal(_q0);
+  _q1.copy(f.p);       cell.worldToLocal(_q1);
+
+  /* how far outside the pentagon is a point? <=0 means inside */
+  const outBy = (x, y) => {
+    let worst = -1e9;
+    for (let k = 0; k < edges.length; k++) {
+      const e = edges[k];
+      const d = x*e.nx + y*e.ny - e.d;
+      if (d > worst) worst = d;
+    }
+    return worst;
+  };
+
+  /* ---- 1. through the HOLE: the segment crosses the mouth plane from in front ---- */
+  if (_q0.z > 0 && _q1.z <= 0) {
+    const s = _q0.z / (_q0.z - _q1.z);
+    const cx = _q0.x + (_q1.x - _q0.x)*s;
+    const cy = _q0.y + (_q1.y - _q0.y)*s;
+    if (outBy(cx, cy) < -r*0.55) return "in";      /* cleanly through, clear of the rim */
+    if (outBy(cx, cy) < r) {                       /* clipped the rim - bounce off it */
+      f.p.set(_q0.x, _q0.y, Math.max(_q0.z, r*0.3));
+      cell.localToWorld(f.p);
+      cell.getWorldQuaternion(_iq);
+      _lv.set(0, 0, 1).applyQuaternion(_iq).normalize();
+      const vn = f.v.dot(_lv);
+      if (vn < 0) f.v.addScaledVector(_lv, -1.5*vn);
+      f.v.multiplyScalar(0.62);
+      f.bounces++;
+      return "hit";
+    }
+    return null;                                   /* flew past the opening entirely */
+  }
+
+  /* ---- 2. the BACK panel, hit from behind ---- */
+  if (_q0.z < -U.dep && _q1.z >= -U.dep) {
+    const s = (_q0.z + U.dep) / (_q0.z - _q1.z);
+    const cx = _q0.x + (_q1.x - _q0.x)*s;
+    const cy = _q0.y + (_q1.y - _q0.y)*s;
+    if (outBy(cx, cy) < 0) {
+      f.p.copy(_q0); f.p.z = -U.dep - r; cell.localToWorld(f.p);
+      cell.getWorldQuaternion(_iq);
+      _lv.set(0, 0, -1).applyQuaternion(_iq).normalize();
+      const vn = f.v.dot(_lv);
+      if (vn < 0) f.v.addScaledVector(_lv, -1.5*vn);
+      f.v.multiplyScalar(0.62);
+      f.bounces++;
+      return "hit";
+    }
+  }
+
+  /* ---- 3. the five WALLS. Anything level with the cavity that is touching or through a
+            wall gets pushed back out and bounced - it never gets in this way. ---- */
+  /* Only the CAVITY counts as wall territory. A ball hovering in the last inch IN FRONT of
+     the opening is on its way in, and treating that as "inside the outline, so it must have
+     come through a wall" bounced away every clean shot. */
+  if (_q1.z > 0 || _q1.z < -U.dep - r) return null;
+
   let worst = -1e9, worstK = -1;
   for (let k = 0; k < edges.length; k++) {
     const e = edges[k];
-    const d = _lp.y*e.ny + _lp.z*e.nz - e.d;
+    const d = _q1.x*e.nx + _q1.y*e.ny - e.d;
     if (d > worst) { worst = d; worstK = k; }
   }
-  if (worst > f.r) return null;                       // well clear of the cage
-  if (worstK === mouth) return "in";                  // came over the open face: it goes in
-  if (worst > 0) return null;
-  /* struck a wall from outside: push out and reflect about that wall's world normal */
+  if (worst > r) return null;                            /* clear of the outline */
+
+  /* Inside the outline without having crossed the mouth means it came through a wall.
+     Send it back out through the wall it is nearest to. */
   const e = edges[worstK];
-  const push = (f.r - worst);
-  _lp.y += e.ny*push; _lp.z += e.nz*push;
-  cell.localToWorld(_lp);
-  f.p.copy(_lp);
+  const push = (r - worst);
+  _q1.x += e.nx*push; _q1.y += e.ny*push;
+  cell.localToWorld(_q1);
+  f.p.copy(_q1);
   cell.getWorldQuaternion(_iq);
-  _lv.set(0, e.ny, e.nz).applyQuaternion(_iq).normalize();
+  _lv.set(e.nx, e.ny, 0).applyQuaternion(_iq).normalize();
   const vn = f.v.dot(_lv);
-  if (vn < 0) f.v.addScaledVector(_lv, -1.5*vn);      // restitution ~0.5 off polycarbonate
+  if (vn < 0) f.v.addScaledVector(_lv, -1.5*vn);
   f.v.multiplyScalar(0.72);
   f.bounces++;
   return "hit";
+}
+
+/* ============================================================================================
+   ONE PHYSICS, USED TWICE.
+   The preview must be the same flight the ball actually takes - integrated in 3D against the
+   real cage, not a flat 2D estimate. Anything else lets the label and the outcome disagree,
+   which makes aiming and positioning untrustworthy. This runs the shot with no meshes and
+   reports what happens. Memoised, because compute() is called on every UI refresh.
+   ============================================================================================ */
+let _predKey = "", _predVal = null;
+function predictShot(exit, angleDeg, dir) {
+  if (!R3 || !R3.cells) return null;
+  const key = [S.rx.toFixed(2), S.ry.toFixed(2), S.heading.toFixed(4), S.tip, S.launch,
+               exit.toFixed(3), angleDeg.toFixed(2), S.ball, S.cd, S.magnus, S.drag,
+               S.tilt, S.cell, S.wrap].join("|");
+  if (key === _predKey) return _predVal;
+
+  const r = BALL[S.ball].dia/2;
+  const IPS = 1/IN, a = angleDeg*Math.PI/180;
+  const f = { r:r, kind:S.ball, bounces:0, dir:dir, spin:spinFor(exit),
+              p: new THREE.Vector3(S.rx, S.launch, S.ry),
+              v: new THREE.Vector3(Math.cos(dir)*exit*Math.cos(a)*IPS,
+                                   exit*Math.sin(a)*IPS,
+                                   Math.sin(dir)*exit*Math.cos(a)*IPS) };
+  const acc = new THREE.Vector3();
+  const h = 0.004;
+  let t = 0, apex = S.launch, struck = false;
+  const st = R3.cells.red, up = st.upIsA ? st.a : st.b;
+  const mouth = new THREE.Vector3(); up.getWorldPosition(mouth);
+
+  while (t < 6) {
+    _prevP.copy(f.p);
+    ballAccel(f, acc);
+    f.v.addScaledVector(acc, h);
+    f.p.addScaledVector(f.v, h);
+    t += h;
+    if (f.p.y > apex) apex = f.p.y;
+
+    /* our raised CELL first */
+    const res = hitCell(f, up, _prevP);
+    if (res === "in") {
+      _predKey = key;
+      _predVal = { result:"IN", why:"scored", t:t, apex:apex,
+                   miss:0, lateral:0, entry:Math.atan2(f.v.y,
+                     Math.hypot(f.v.x, f.v.z))*180/Math.PI };
+      return _predVal;
+    }
+    if (res === "hit") struck = true;
+    /* the other three cages are obstacles, not targets */
+    [st.upIsA ? st.b : st.a, R3.cells.blue.a, R3.cells.blue.b].forEach(c => {
+      if (hitCell(f, c, _prevP) === "hit") struck = true;
+    });
+
+    if (f.p.y <= r) break;
+  }
+  /* where did it end up relative to the opening? */
+  const dx = f.p.x - mouth.x, dz = f.p.z - mouth.z;
+  const along = dx*Math.cos(dir) + dz*Math.sin(dir);      // near / far
+  const across = -dx*Math.sin(dir) + dz*Math.cos(dir);    // left / right
+  const entry = Math.atan2(f.v.y, Math.hypot(f.v.x, f.v.z))*180/Math.PI;
+  let result = "SHORT", why = "";
+  if (struck) { result = "HIT THE CAGE"; why = "bounced off the structure"; }
+  else if (Math.abs(across) > lateralWindow()) {
+    result = across > 0 ? "WIDE LEFT" : "WIDE RIGHT";
+    why = Math.abs(across).toFixed(1) + "\u2033 off the 20\u2033 axis";
+  } else { result = along > 0 ? "LONG" : "SHORT";
+    why = Math.abs(along).toFixed(1) + "\u2033 of range"; }
+  _predKey = key;
+  _predVal = { result:result, why:why, t:t, apex:apex, miss:along, lateral:across, entry:entry };
+  return _predVal;
 }
 
 function stepFlight(dt) {
@@ -2809,6 +3398,7 @@ function stepFlight(dt) {
     let steps = Math.min(8, Math.max(1, Math.ceil(dt/h)));
     let gone = false;
     while (steps-- > 0 && !gone) {
+      _prevP.copy(f.p);
       ballAccel(f, _acc);
       f.v.addScaledVector(_acc, h);
       f.p.addScaledVector(f.v, h);
@@ -2819,7 +3409,7 @@ function stepFlight(dt) {
         const st = R3.cells[keys[ci]];
         const cells = [st.a, st.b];
         for (let c = 0; c < 2 && !gone; c++) {
-          if (hitCell(f, cells[c]) === "in") {
+          if (hitCell(f, cells[c], _prevP) === "in") {
             R3.scene.remove(f.mesh);
             dropIntoCell(cells[c], st, f);
             flights.splice(i, 1);
@@ -2859,7 +3449,10 @@ function stepFlight(dt) {
 function dropIntoCell(cell, st, f) {
   const lp = cell.worldToLocal(f.p.clone());
   const wq = new THREE.Quaternion(); cell.getWorldQuaternion(wq);
-  const lv = f.v.clone().applyQuaternion(wq.invert());
+  /* A CELL is a mesh-backed basket, not a hard box. A NECTAR arriving at ~350 in/s that kept
+     its momentum used to rebound off the back panel and fly straight back out of the mouth,
+     so a shot the preview called IN scored nothing. Take the entry energy out on capture. */
+  const lv = f.v.clone().applyQuaternion(wq.invert()).multiplyScalar(0.22);
   const m = new THREE.Mesh(new THREE.SphereGeometry(f.r, 16, 12),
     ballMaterialFor(f.kind, S.holes));
   m.castShadow = true; m.position.copy(lp);
@@ -3098,7 +3691,11 @@ function loop(t) {
   requestAnimationFrame(loop);
   const dt = Math.max(0, Math.min(0.05, (t - lastT)/1000 || 0.016)); lastT = t;
   pollGamepad();
-  const moved = drive(dt);
+  let moved = drive(dt);
+  if (moved) { cancelGoto(); recPlayStop(); }      // your hands on the sticks win
+  if (stepGoto(dt)) moved = true;
+  if (stepPlay(dt)) moved = true;
+  stepBots(dt);
   runIntake();
   stepTips(dt);
   stepCellPhysics(dt);
@@ -3171,13 +3768,18 @@ function stage2D() {
   T2.balls.length = 0;
   const c = F.size/2;
   const put = (x, z, kind, blue) => T2.balls.push({ x:x, z:z, kind:kind, blue:!!blue });
-  [[c,3],[c,F.size-3],[3,c],[F.size-3,c]].forEach(f => {
+  FLOWERS.forEach(f => {
     for (let i = 0; i < 4; i++) put(f[0]+(i%2-0.5)*4, f[1]+(Math.floor(i/2)-0.5)*4, "pollen");
   });
-  for (let i = 0; i < 4; i++) { put(18+i*5, 14, "pollen"); put(18+i*5, F.size-14, "pollen"); }
+  for (let i = 0; i < 4; i++) {
+    put(GARDEN_RED.x0  + 3 + i*5.5, GARDEN_RED.z,  "pollen");   /* GARDEN - RED */
+    put(GARDEN_BLUE.x1 - 3 - i*5.5, GARDEN_BLUE.z, "pollen");   /* GARDEN - BLUE */
+  }
   T2.cell = [{kind:"nectar"},{kind:"nectar"},{kind:"nectar"}];
   T2.tips = 0;
-  S.rx = 30; S.ry = 12; S.heading = Math.atan2(F.size/2-12, F.size/2-30);
+  S.rx = 13; S.ry = (LOAD_RED.z0 + LOAD_RED.z1)/2;
+  const T0 = targetXZ();
+  S.heading = Math.atan2(T0.z - S.ry, T0.x - S.rx);
   S.magLeft = 4; S.tips = 0; S.left = false; S.picked = 0;
   S.autoT = 30; S.autoRun = false;
   needUI = true;
@@ -3278,10 +3880,27 @@ function draw2D() {
     g.strokeStyle = "rgba(0,0,0,.35)"; g.lineWidth = 1;
     g.strokeRect(X(i*24), Z((j+1)*24), 24*k, 24*k);
   }
+  /* alliance walls are left and right (Fig 10-2) */
   g.strokeStyle = "#a3122b"; g.lineWidth = 4;
-  g.beginPath(); g.moveTo(X(0), Z(0)); g.lineTo(X(F.size), Z(0)); g.stroke();
+  g.beginPath(); g.moveTo(X(0), Z(0)); g.lineTo(X(0), Z(F.size)); g.stroke();
   g.strokeStyle = "#1f6fd0";
-  g.beginPath(); g.moveTo(X(0), Z(F.size)); g.lineTo(X(F.size), Z(F.size)); g.stroke();
+  g.beginPath(); g.moveTo(X(F.size), Z(0)); g.lineTo(X(F.size), Z(F.size)); g.stroke();
+
+  /* GARDEN and LOADING ZONE tape (9.3) */
+  const band = (x0, z0, x1, z1, col) => {
+    g.fillStyle = col;
+    g.fillRect(X(Math.min(x0,x1)), Z(Math.max(z0,z1)),
+               Math.abs(x1-x0)*k, Math.abs(z1-z0)*k);
+  };
+  band(GARDEN_RED.x0,  GARDEN_RED.z-1,  GARDEN_RED.x1,  GARDEN_RED.z+1,  "#d8203c");
+  band(GARDEN_BLUE.x0, GARDEN_BLUE.z-1, GARDEN_BLUE.x1, GARDEN_BLUE.z+1, "#2f6fd0");
+  [[LOAD_RED, "#d8203c"], [LOAD_BLUE, "#2f6fd0"]].forEach(function (e) {
+    const L = e[0];
+    band(L.x0, L.z0, L.x1, L.z0+1, e[1]);
+    band(L.x0, L.z1-1, L.x1, L.z1, e[1]);
+    const inner = (L.x0 === 0) ? L.x1 : L.x0;
+    band(inner-1, L.z0, inner, L.z1, e[1]);
+  });
 
   /* HIVE footprint and the two CELLS */
   const c = F.size/2;
@@ -3302,7 +3921,7 @@ function draw2D() {
   });
 
   /* FLOWERS */
-  [[c,3],[c,F.size-3],[3,c],[F.size-3,c]].forEach(f => {
+  FLOWERS.forEach(f => {
     g.beginPath(); g.arc(X(f[0]), Z(f[1]), Math.max(4, 3*k), 0, 7);
     g.fillStyle = "#3faa3f"; g.fill();
     g.strokeStyle = "#e8c21c"; g.lineWidth = 2; g.stroke();
@@ -3404,6 +4023,262 @@ function bind2D() {
     needUI = true; save();
   });
 }
+
+/* ============================================================================================
+   DRIVING TO A POINT, REPLAYING A RECORDING, AND THREE ROBOTS THAT DRIVE THEMSELVES.
+   ============================================================================================ */
+
+/* ---- click the field and the ROBOT drives there, instead of teleporting ---- */
+const GOTO = { on:false, x:0, z:0 };
+function gotoPoint(x, z) {
+  GOTO.on = true;
+  GOTO.x = Math.max(10, Math.min(F.size-10, x));
+  GOTO.z = Math.max(10, Math.min(F.size-10, z));
+  needUI = true;
+}
+function cancelGoto() { if (GOTO.on) { GOTO.on = false; needUI = true; } }
+
+/* One controller, shared by the click-to-drive and by every AI ROBOT: point the nose at the
+   target, then run at TOP_SPEED. Turning and driving are not simultaneous, the way a tank
+   drive actually behaves when a program says turnDegrees then driveInches. */
+function steerTo(o, tx, tz, dt, speed, tol) {
+  const dx = tx - o.x, dz = tz - o.z, d = Math.hypot(dx, dz);
+  if (d < (tol || 2.5)) return true;              // arrived
+  const bearing = Math.atan2(dz, dx);
+  const err = norm(bearing - o.h);
+  const turnRate = speed/TRACK_W*2;
+  if (Math.abs(err) > 0.14) {
+    o.h += Math.sign(err)*Math.min(Math.abs(err), turnRate*dt);
+  } else {
+    o.h += err*Math.min(1, dt*8);                 // trim while rolling
+    const step = Math.min(d, speed*dt);
+    o.x += Math.cos(o.h)*step;
+    o.z += Math.sin(o.h)*step;
+  }
+  return false;
+}
+function stepGoto(dt) {
+  if (!GOTO.on) return false;
+  const o = { x:S.rx, z:S.ry, h:S.heading };
+  const done = steerTo(o, GOTO.x, GOTO.z, dt, TOP_SPEED);
+  S.rx = Math.max(10, Math.min(F.size-10, o.x));
+  S.ry = Math.max(10, Math.min(F.size-10, o.z));
+  S.heading = o.h;
+  keepOutOfHive();
+  if (done) { GOTO.on = false; aimAtHive(); }
+  return true;
+}
+
+/* ---- replay a recorded AUTO, so the exported Java can be watched before it is trusted ---- */
+const PLAY = { on:false, i:0, cur:null, rem:0 };
+function recPlay() {
+  if (!REC.steps.length) return false;
+  stageAuto();
+  PLAY.on = true; PLAY.i = 0; PLAY.cur = null; PLAY.rem = 0;
+  S.matchPhase = "auto"; S.matchT = PHASE.auto;
+  S.scoreAuto = 0; S.autoRun = true; S.autoT = PHASE.auto;
+  cancelGoto();
+  needUI = true;
+  return true;
+}
+function recPlayStop() { PLAY.on = false; PLAY.cur = null; needUI = true; }
+function stepPlay(dt) {
+  if (!PLAY.on) return false;
+  if (!PLAY.cur) {
+    if (PLAY.i >= REC.steps.length) { PLAY.on = false; S.autoRun = false; needUI = true; return false; }
+    PLAY.cur = REC.steps[PLAY.i++];
+    PLAY.rem = PLAY.cur.type === "drive" ? PLAY.cur.inches
+             : PLAY.cur.type === "turn"  ? PLAY.cur.deg*Math.PI/180 : 0;
+  }
+  const a = PLAY.cur;
+  if (a.type === "drive") {
+    const step = Math.sign(PLAY.rem)*Math.min(Math.abs(PLAY.rem), TOP_SPEED*dt);
+    S.rx += Math.cos(S.heading)*step; S.ry += Math.sin(S.heading)*step;
+    PLAY.rem -= step;
+    if (Math.abs(PLAY.rem) < 0.4) PLAY.cur = null;
+  } else if (a.type === "turn") {
+    const rate = TOP_SPEED/TRACK_W*2;
+    const step = Math.sign(PLAY.rem)*Math.min(Math.abs(PLAY.rem), rate*dt);
+    S.heading += step; PLAY.rem -= step;
+    if (Math.abs(PLAY.rem) < 0.02) PLAY.cur = null;
+  } else if (a.type === "shoot") {
+    if (a.rpm) { S.rpm = a.rpm; S.src = "fixed"; }
+    if (!S.waitAtSpeed || atSpeed(lastC && !isNaN(lastC.flyRpm) ? lastC.flyRpm : 0)) {
+      lastShotAt = -99; shoot(); PLAY.cur = null;
+    }
+  } else { PLAY.cur = null; }
+  S.rx = Math.max(10, Math.min(F.size-10, S.rx));
+  S.ry = Math.max(10, Math.min(F.size-10, S.ry));
+  keepOutOfHive();
+  return true;
+}
+
+/* ============================================================================================
+   A FULL MATCH: your ROBOT plus three that drive themselves.
+   Two per ALLIANCE, the way a real BIOBUZZ MATCH is played. They hunt POLLEN, carry it to a
+   shooting spot in front of their own CELL, and shoot. They steer around each other and around
+   you - separation first, then the errand - because two ROBOTS trying to occupy one TILE is
+   the single most common thing that ruins a simulated match.
+   ============================================================================================ */
+const BOTS = [];
+const BOT_R = 9;                       // half an 18 in. frame
+function botShootSpot(ally, lane) {
+  const st = R3 && R3.cells ? R3.cells[ally] : null;
+  let tx = F.size/2, tz = ally === "red" ? 60 : 84;
+  if (st) { const up = st.upIsA ? st.a : st.b, w = new THREE.Vector3();
+            up.getWorldPosition(w); tx = w.x; tz = w.z; }
+  /* Stand off 46 in. on the side the mouth faces, each ROBOT in its own lane. Sending both
+     ROBOTS of an ALLIANCE to one spot had them shoving each other there all match. */
+  const away = ally === "red" ? -1 : 1;
+  return { x:tx + (lane || 0)*26, z:tz + away*46 };
+}
+function makeBots() {
+  BOTS.length = 0;
+  /* you are red. One red partner, two blue opponents. */
+  const seed = [
+    { ally:"red",  x:13, z:78,  col:0xd8203c, nm:"RED 2", lane:1 },
+    { ally:"blue", x:F.size-13, z:26, col:0x2f6fd0, nm:"BLUE 1", lane:-1 },
+    { ally:"blue", x:F.size-13, z:60, col:0x2f6fd0, nm:"BLUE 2", lane:1 }
+  ];
+  seed.forEach(function (s) {
+    const b = { ally:s.ally, nm:s.nm, x:s.x, z:s.z, h:s.ally === "red" ? 0 : Math.PI,
+                mag:4, state:"shoot", cool:0, target:null, scored:0, mesh:null,
+                lane: s.lane };
+    if (R3 && R3.scene) {
+      const g = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.BoxGeometry(17, 7, 17),
+        new THREE.MeshStandardMaterial({ color:0x2a2e34, roughness:.6, metalness:.3 }));
+      body.position.y = 5.5; body.castShadow = true; g.add(body);
+      const band = new THREE.Mesh(new THREE.BoxGeometry(17.4, 2.2, 17.4),
+        new THREE.MeshStandardMaterial({ color:s.col, roughness:.5 }));
+      band.position.y = 9.4; g.add(band);
+      const nose = new THREE.Mesh(new THREE.BoxGeometry(3, 2, 8),
+        new THREE.MeshStandardMaterial({ color:0xe8c21c, roughness:.6 }));
+      nose.position.set(9, 4, 0); g.add(nose);
+      R3.scene.add(g); b.mesh = g;
+    }
+    BOTS.push(b);
+  });
+  needUI = true;
+}
+function clearBots() {
+  BOTS.forEach(b => { if (b.mesh && R3 && R3.scene) R3.scene.remove(b.mesh); });
+  BOTS.length = 0;
+  needUI = true;
+}
+/* every ROBOT on the FIELD, so separation can consider all of them */
+function allBodies() {
+  const list = BOTS.map(b => ({ x:b.x, z:b.z, self:b }));
+  list.push({ x:S.rx, z:S.ry, self:null });
+  return list;
+}
+function separate(bot, dt) {
+  let px = 0, pz = 0;
+  allBodies().forEach(function (o) {
+    if (o.self === bot) return;
+    const dx = bot.x - o.x, dz = bot.z - o.z;
+    const d = Math.hypot(dx, dz);
+    const RANGE = BOT_R*2.3;                 // 20.7 in. - clear of an 18 in. frame
+    if (d > RANGE || d < 1e-3) return;
+    const push = (RANGE - d)/RANGE;
+    px += dx/d*push; pz += dz/d*push;
+  });
+  if (!px && !pz) return false;
+  const k = TOP_SPEED*1.5*dt;
+  bot.x += px*k; bot.z += pz*k;
+  return true;
+}
+function nearestBall(bot) {
+  if (!R3 || !R3.fieldBalls) return null;
+  let best = null, bd = 1e9;
+  R3.fieldBalls.forEach(function (b) {
+    if (bot.skip && bot.skip.indexOf(b) >= 0) return;     // already proved unreachable
+    const d = Math.hypot(b.x - bot.x, b.z - bot.z);
+    if (d < bd) { bd = d; best = b; }
+  });
+  if (!best && bot.skip && bot.skip.length) { bot.skip.length = 0; return nearestBall(bot); }
+  return best;
+}
+function stepBots(dt) {
+  if (!BOTS.length) return;
+  const live = S.matchPhase === "auto" || S.matchPhase === "teleop";
+  BOTS.forEach(function (bot) {
+    if (live) {
+      bot.cool -= dt;
+      /* Separation and the errand run TOGETHER. Letting separation cancel the errand
+         deadlocked any pair that started close: they shoved each other to exactly the
+         threshold distance and sat there for the whole match. */
+      const crowded = separate(bot, dt);
+      const speed = TOP_SPEED*(crowded ? 0.35 : 0.8);
+      if (bot.state === "hunt") {
+        const t = nearestBall(bot);
+        bot.huntT = (bot.huntT || 0) + dt;
+        if (!t || bot.mag >= 4) { bot.state = "shoot"; bot.huntT = 0; }
+        else if (steerTo(bot, t.x, t.z, dt, speed, 9)) {   /* intake reach, not centre */
+          const i = R3.fieldBalls.indexOf(t);
+          if (i >= 0) { R3.fieldGroup.remove(t.mesh); R3.fieldBalls.splice(i, 1);
+                        bot.mag++; needUI = true; }
+          bot.huntT = 0;
+        } else if (bot.huntT > 4) {
+          /* Four seconds on one ball means it cannot be reached - behind the HIVE legs, or
+             up inside a FLOWER. Give up on it and do something useful instead of freezing. */
+          bot.skip = bot.skip || [];
+          bot.skip.push(t);
+          bot.huntT = 0;
+          if (bot.mag > 0) bot.state = "shoot";
+        }
+      } else {
+        const spot = botShootSpot(bot.ally, bot.lane);
+        if (steerTo(bot, spot.x, spot.z, dt, speed, 7)) {
+          if (bot.mag > 0 && bot.cool <= 0) {
+            bot.mag--; bot.scored++; bot.cool = 1.4;
+            needUI = true;
+          }
+          if (bot.mag <= 0) { bot.state = "hunt"; bot.huntT = 0; }
+        }
+      }
+      bot.x = Math.max(10, Math.min(F.size-10, bot.x));
+      bot.z = Math.max(10, Math.min(F.size-10, bot.z));
+      /* the HIVE frame legs are solid for them too */
+      const c = F.size/2, dxh = bot.x - c, dzh = bot.z - c;
+      const rr = Math.hypot(dxh, dzh);
+      if (rr < 17 && rr > 1e-3) { bot.x = c + dxh/rr*17; bot.z = c + dzh/rr*17; }
+    }
+    if (bot.mesh) { bot.mesh.position.set(bot.x, 0, bot.z); bot.mesh.rotation.y = -bot.h; }
+  });
+
+  /* Steering away is a suggestion; two 18 in. frames sharing a TILE is not allowed. Resolve
+     any remaining overlap positionally, so ROBOTS can never end a frame inside each other.
+     Your ROBOT is moved too - a real opponent pushing into you does displace you. */
+  const MIN = BOT_R*2;
+  for (let pass = 0; pass < 2; pass++) {
+    for (let i = 0; i < BOTS.length; i++) {
+      for (let j = i+1; j < BOTS.length; j++) {
+        const a = BOTS[i], b = BOTS[j];
+        const dx = b.x - a.x, dz = b.z - a.z;
+        const d = Math.hypot(dx, dz);
+        if (d >= MIN || d < 1e-4) continue;
+        const f = (MIN - d)/2/d;
+        a.x -= dx*f; a.z -= dz*f; b.x += dx*f; b.z += dz*f;
+      }
+      const a = BOTS[i];
+      const dx = S.rx - a.x, dz = S.ry - a.z;
+      const d = Math.hypot(dx, dz);
+      if (d < MIN && d > 1e-4) {
+        const f = (MIN - d)/2/d;
+        a.x -= dx*f; a.z -= dz*f;
+        S.rx = Math.max(10, Math.min(F.size-10, S.rx + dx*f));
+        S.ry = Math.max(10, Math.min(F.size-10, S.ry + dz*f));
+      }
+    }
+  }
+  BOTS.forEach(function (b) {
+    b.x = Math.max(10, Math.min(F.size-10, b.x));
+    b.z = Math.max(10, Math.min(F.size-10, b.z));
+    if (b.mesh) b.mesh.position.set(b.x, 0, b.z);
+  });
+}
+const botPoints = ally => BOTS.reduce((a, b) => a + (b.ally === ally ? b.scored*2 : 0), 0);
 
 /* ================= UI ================= */
 const $ = id => document.getElementById(id);
@@ -3993,6 +4868,19 @@ function drawPoints() {
       P.note + "</td>";
     tb.appendChild(tr);
   });
+
+  /* RANKING POINTS - Table 10-2, thresholds from Table 10-3 (All Other Events) */
+  const rpBody = $("rpBody");
+  if (rpBody) {
+    rpBody.textContent = "";
+    rankingPoints().forEach(function (r) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = "<td>" + r.nm + "</td><td>" + r.rp + " RP</td>"
+        + "<td>" + r.detail + "</td>"
+        + "<td class='" + (r.got ? "hi" : "") + "'>" + (r.got ? "earned" : "not yet") + "</td>";
+      rpBody.appendChild(tr);
+    });
+  }
 }
 
 /* ---- what the camera can see ----
@@ -4005,10 +4893,16 @@ function visibleTags(C) {
   const out = [];
   const dv = S.cell - F.pivotH;
   const dh = Math.sqrt(Math.max(1, (F.cellSpacing/2)**2 - dv*dv));
-  [["red", -12, TAGS.redAud, "audience"], ["blue", 12, TAGS.blueFar, "far"]].forEach(row => {
-    const ally = row[0], dx = row[1], ids = row[2], side = row[3];
-    const sgn = ally === "red" ? 1 : -1;
-    const tx = F.size/2 + dx, tz = F.size/2 - sgn*dh;
+  /* Each HIVE carries TWO clusters, one per CELL, and the CELLS are 18.8 in. apart on
+     opposite sides of the pivot (9.6.2). Placing both at one point made the audience-side and
+     far-side clusters report the same range and bearing, which is the whole thing the camera
+     is supposed to tell apart. */
+  [["red", -12, TAGS.redAud,  "audience side", "redAud", -1],
+   ["red", -12, TAGS.redFar,  "scoring-table side", "redFar", +1],
+   ["blue", 12, TAGS.blueAud, "audience side", "blueAud", -1],
+   ["blue", 12, TAGS.blueFar, "scoring-table side", "blueFar", +1]].forEach(row => {
+    const ally = row[0], dx = row[1], ids = row[2], side = row[3], key = row[4], face = row[5];
+    const tx = F.size/2 + dx, tz = F.size/2 + face*dh;
     const ty = F.pivotH - dv - F.cellDepth/2;
     const ddx = tx - S.rx, ddz = tz - S.ry;
     const range = Math.hypot(ddx, ddz);
@@ -4017,7 +4911,7 @@ function visibleTags(C) {
     const elev = Math.atan2(ty - S.camH, range) * 180/Math.PI - S.camPitch;
     const inH = Math.abs(off) <= cam.fovH/2;
     const inV = Math.abs(elev) <= cam.fovV/2;
-    out.push({ ally:ally, ids:ids, side:side, range:range, off:off, elev:elev,
+    out.push({ ally:ally, ids:ids, side:side, key:key, range:range, off:off, elev:elev,
                visible: inH && inV && range < 130 });
   });
   return out;
@@ -4094,6 +4988,10 @@ function drawChain(C) {
   const r3 = $("rule3"); if (r3) r3.textContent =
     A0.channels + " flywheel(s), " + (wheelInertia()*1e7).toFixed(0) + " g\u00b7cm\u00b2 each" +
     (booster().J > 0 ? " incl. booster" : "") + ".";
+  const tn = $("tiltNote");
+  if (tn) tn.textContent = "HIVE leaning " + Math.round(S.tilt) + "\u00b0 from vertical \u2192 " +
+    "raised CELL mouth " + cellMouthZ().toFixed(1) + "\u2033, cages " +
+    cellSeparation().toFixed(1) + "\u2033 apart vertically.";
   $("chainNote").textContent = k.capped
     ? "motor is maxed \u2014 ceiling " + Math.round(k.ceiling) + " rpm at the flywheel"
     : motor().nm + " \u00b7 " + wheelP().mm + "mm \u00b7 ceiling " + Math.round(k.ceiling) + " rpm";
@@ -4224,6 +5122,17 @@ function drawLandingVsRpm(C) {
 
 /* ---- the hood profile editor ---- */
 const HOOD_VIEW = { W:460, H:340, cx:196, cy:196, scale:58 };
+/* Everything in this panel is measured in WHEEL RADII, so a 32 mm wheel with a 3.6 in. NECTAR
+   puts the ball centre 3.9 radii out and the ball itself 2.9 radii across. At a fixed scale
+   that ran clean off the canvas and the two stopped looking like they touch. Refit the scale
+   to whichever wheel and ball are selected, so the contact is always visible and to scale. */
+function hoodFit() {
+  const ballU = BALL[S.ball].dia*25.4/wheelP().mm;      // ball RADIUS in wheel-radius units
+  const extent = hoodClearance() + ballU + 0.3;
+  HOOD_VIEW.scale = Math.max(12, Math.min(58,
+    (Math.min(HOOD_VIEW.W, HOOD_VIEW.H)*0.46)/extent));
+  return HOOD_VIEW.scale;
+}
 /* one ball looping through the hood, so the panel shows the ACTION and not just the shape */
 const HOOD_ANIM = { pts:[], exit:null, ang:45, ball:null, t:0 };
 function animateHood(dt) {
@@ -4253,11 +5162,13 @@ function svgTxtTo(svg, x, y, t, col, anchor, weight) {
   svg.appendChild(svgTxt(x, y, t, { fill:col, "text-anchor":anchor || "start",
     "font-size":10.5, "font-weight":weight || 500 }));
 }
-function drawHood() {
-  const svg = $("hoodEd"); if (!svg) return;
+function drawHood() { drawHoodInto($("hoodEd")); }
+function drawHoodInto(svg) {
+  if (!svg) return;
   svg.textContent = "";
   if (!S.curve) syncCurveFromSliders();
   const m = curveMetrics(S.curve);
+  hoodFit();                                  // wheel or ball may have changed since last draw
   const V = HOOD_VIEW, sc = V.scale;
 
   svg.appendChild(svgEl("rect", { x:0, y:0, width:V.W, height:V.H, fill:"var(--surface-2)" }));
@@ -4270,8 +5181,9 @@ function drawHood() {
       x2:V.cx+Math.cos(a)*sc*0.93, y2:V.cy-Math.sin(a)*sc*0.93,
       stroke:"var(--rule)", "stroke-width":1.4 }));
   }
-  svg.appendChild(svgTxt(V.cx, V.cy+4, wheelP().mm + "mm",
-    { "text-anchor":"middle", fill:"var(--ink-2)", "font-weight":600, "font-size":11 }));
+  svg.appendChild(svgTxt(V.cx, V.cy + Math.min(4, sc*0.1), wheelP().mm + "mm",
+    { "text-anchor":"middle", fill:"var(--ink-2)", "font-weight":600,
+      "font-size": Math.max(7, Math.min(11, sc*0.30)) }));
 
   /* the path the ball centre rides */
   const d = "M " + hoodXY(S.curve[0].p).join(" ") +
@@ -4488,11 +5400,25 @@ function drawStats(C) {
   set("oPicked", S.picked);
   set("oMagNow", S.magLeft + " / " + S.magSize);
   const inMatch = S.matchPhase && S.matchPhase !== "idle";
-  $("autoClk").textContent = (inMatch ? S.matchT : (S.autoT === undefined ? 30 : S.autoT)).toFixed(1);
+  /* The official FIELD timer counts the whole MATCH down from 2:30 (V1 Table 9-1), it is
+     not a per-phase count. Show that, with the tenths only inside the last 20 seconds. */
+  const fc = fieldClock();
+  $("autoClk").textContent = fc <= 20 && S.matchPhase !== "idle" ? fc.toFixed(1) : mmss(fc);
+  const cue = matchCue();
+  const cueEl = $("phaseCue");
+  if (cueEl) { cueEl.textContent = cue.txt; cueEl.style.color = cue.col; }
   $("phaseTag").textContent = inMatch ? S.matchPhase.toUpperCase() : "idle";
   $("phaseTag").style.color = S.matchPhase === "auto" ? "var(--good)"
     : S.matchPhase === "teleop" ? "var(--amber)" : "#8b97a4";
   $("scPark").textContent = S.park ? "yes +5" : "no";
+  if (typeof drawBoard === "function") drawBoard(C);
+  const botBtn = $("bBots");
+  if (botBtn) botBtn.textContent = BOTS.length ? "Clear robots" : "4-ROBOT match";
+  const playBtn = $("bPlay");
+  if (playBtn) playBtn.textContent = PLAY.on ? "\u25a0 Stop" : "\u25b6 Play AUTO";
+  const redSc = $("scRed"), blueSc = $("scBlue");
+  if (redSc) redSc.textContent = alliancePoints("red");
+  if (blueSc) blueSc.textContent = alliancePoints("blue");
   $("scSteps").textContent = REC.steps.length + (REC.on ? " rec" : "");
   $("bRec").textContent = REC.on ? "\u25a0 Stop" : "\u25cf Record";
   $("autoClk").style.color = S.autoRun ? "var(--good)" : "var(--chrome-ink)";
@@ -4674,6 +5600,258 @@ function runSweep() {
   $("sOf").textContent = "of "+total+" shots in \u00b7 drive to a spot and press SHOOT to test one";
 }
 
+/* ============================================================================================
+   THE CURVATURE AND Z PANEL, AND THE APRILTAG READOUT.
+   The hood editor used to live only in a 318 px side dock whose contents ran 771 px tall, so
+   the single most-requested control in this app was behind an internal scrollbar. These draw
+   the same state full width.
+   ============================================================================================ */
+
+/* the big hood editor - same geometry as the dock copy, drawn into its own viewBox */
+function drawHoodBig() {
+  const svg = $("hoodBig"); if (!svg) return;
+  const keep = { cx:HOOD_VIEW.cx, cy:HOOD_VIEW.cy, scale:HOOD_VIEW.scale };
+  drawHoodInto(svg);
+  HOOD_VIEW.cx = keep.cx; HOOD_VIEW.cy = keep.cy; HOOD_VIEW.scale = keep.scale;
+
+  const m = curveMetrics(S.curve);
+  const C = lastC || compute();
+  $("bgWheel").textContent = wheelP().mm + "mm";
+  $("bgBall").textContent  = BALL[S.ball].dia + "\u2033";
+  $("bgArc").textContent   = m.wrap.toFixed(0) + "\u00b0";
+  $("bgSpin").firstChild.nodeValue = Math.round(spinFor(C.exit)*60/(2*Math.PI));
+  $("bgEta").textContent   = S.eta.toFixed(2);
+  $("bgExit").firstChild.nodeValue = C.exit.toFixed(2);
+}
+
+/* the Z stack-up, drawn to scale against the CELL mouth and the R105 ceiling */
+function drawZ() {
+  const svg = $("zStack"); if (!svg) return;
+  svg.textContent = "";
+  const W = 460, H = 340, pad = 26;
+  const top = 70;                                  // inches shown
+  const Y = inch => H - pad - (inch/top)*(H - pad*2);
+  svg.appendChild(svgEl("rect", { x:0, y:0, width:W, height:H, fill:"var(--surface-2)" }));
+
+  /* the TILES */
+  svg.appendChild(svgEl("rect", { x:pad, y:Y(0), width:W-pad*2, height:4, fill:"var(--rule)" }));
+  svg.appendChild(svgTxt(pad, Y(0)+18, "TILES", { fill:"var(--muted)", "font-size":10 }));
+
+  const band = (a, b, col, label) => {
+    svg.appendChild(svgEl("rect", { x:pad+52, y:Y(b), width:96, height:Math.max(1, Y(a)-Y(b)),
+      fill:col, opacity:.85, stroke:"var(--ink)", "stroke-width":.5 }));
+    svg.appendChild(svgTxt(pad+156, (Y(a)+Y(b))/2 + 4, label,
+      { fill:"var(--ink-2)", "font-size":11 }));
+  };
+  const fb = S.zFloorBase, ba = S.zBaseAxis;
+  const wR = wheelR()/IN, bR = BALL[S.ball].dia/2;
+  band(0, fb, "var(--ramp5)", "floor \u2192 base  " + fb.toFixed(2) + "\u2033");
+  band(fb, fb+ba, "var(--ramp3)", "base \u2192 axis  " + ba.toFixed(2) + "\u2033");
+  band(fb+ba, fb+ba+wR, "var(--ramp2)", "flywheel r  " + wR.toFixed(2) + "\u2033");
+  band(fb+ba+wR, fb+ba+wR+bR, "var(--ramp1)", "ball r  " + bR.toFixed(2) + "\u2033");
+  const z = fb + ba + wR + bR;
+
+  /* the R105 ceiling and the CELL mouth */
+  const rule = (inch, col, txt, dash) => {
+    svg.appendChild(svgEl("line", { x1:pad, y1:Y(inch), x2:W-pad, y2:Y(inch),
+      stroke:col, "stroke-width":1.6, "stroke-dasharray":dash || "6 4" }));
+    svg.appendChild(svgTxt(W-pad, Y(inch)-6, txt,
+      { "text-anchor":"end", fill:col, "font-size":11, "font-weight":600 }));
+  };
+  rule(F.maxRobotH, "var(--crit)", "29\u2033 R105 ceiling");
+  rule(S.cell, "var(--good)", "CELL mouth " + S.cell.toFixed(2) + "\u2033");
+  rule(z, "var(--amber)", "LAUNCH Z " + z.toFixed(2) + "\u2033", "0");
+
+  /* the rise the ball has to make */
+  svg.appendChild(svgEl("line", { x1:pad+300, y1:Y(z), x2:pad+300, y2:Y(S.cell),
+    stroke:"var(--good)", "stroke-width":2 }));
+  svg.appendChild(svgTxt(pad+308, (Y(z)+Y(S.cell))/2 + 4,
+    "rise " + (S.cell - z).toFixed(1) + "\u2033", { fill:"var(--good)", "font-size":11 }));
+
+  $("zWheelR").textContent = wR.toFixed(2);
+  $("zBallR").textContent  = bR.toFixed(2);
+  $("zTotal").textContent  = z.toFixed(2);
+  $("zRise").textContent   = (S.cell - z).toFixed(2);
+  const head = F.maxRobotH - z;
+  $("zHead").textContent   = head.toFixed(2);
+  $("zNote").textContent = head < 0
+    ? "This stack is " + (-head).toFixed(2) + "\u2033 over the 29\u2033 expansion limit in R105. "
+      + "Lower the base plate or use a smaller flywheel."
+    : "Every inch you raise the shooter is an inch the ball does not have to climb, and a "
+      + "flatter arc is a wider scoring window. You have " + head.toFixed(2)
+      + "\u2033 of headroom left under R105.";
+  $("zNote").style.color = head < 0 ? "var(--crit)" : "var(--ink-2)";
+}
+
+/* ---- what each AprilTag cluster actually tells a ROBOT ---- */
+const TAG_MEANING = {
+  redFar:  { ally:"red",  side:"scoring-table side", ids:TAGS.redFar,
+             use:"You are looking at the RED CELL from the far side of the FIELD. If this "
+               + "cluster is the one facing up, the red HIVE is leaning away from the audience." },
+  redAud:  { ally:"red",  side:"audience side", ids:TAGS.redAud,
+             use:"The RED CELL seen from the audience side. This is the face a red ROBOT "
+               + "shooting from its own half normally sees." },
+  blueAud: { ally:"blue", side:"audience side", ids:TAGS.blueAud,
+             use:"The BLUE CELL from the audience side - an opponent target if you are red." },
+  blueFar: { ally:"blue", side:"scoring-table side", ids:TAGS.blueFar,
+             use:"The BLUE CELL from the far side of the FIELD." }
+};
+function tagCode(cluster, t) {
+  const ids = TAG_MEANING[cluster].ids;
+  return [
+"// " + TAG_MEANING[cluster].side + ", " + TAG_MEANING[cluster].ally.toUpperCase() + " CELL",
+"// Cluster IDs " + ids.join(", ") + "  (36h11, " + "3.25 in. tags, Manual 9.9)",
+"",
+"AprilTagProcessor tags = new AprilTagProcessor.Builder()",
+"        .setDrawTagID(true)",
+"        .setTagFamily(AprilTagProcessor.TagFamily.TAG_36h11)",
+"        .build();",
+"",
+"for (AprilTagDetection d : tags.getDetections()) {",
+"    if (d.metadata == null) continue;",
+"    switch (d.id) {",
+"        case " + ids[0] + ": case " + ids[1] + ":",
+"        case " + ids[2] + ": case " + ids[3] + ":",
+"            // range and bearing come straight from ftcPose",
+"            double range   = d.ftcPose.range;      // inches to the tag",
+"            double bearing = d.ftcPose.bearing;    // degrees to turn",
+"            turnDegrees(bearing);",
+"            shoot(rpmForRange(range));",
+"            break;",
+"    }",
+"}",
+"",
+"// The cluster is on the BOTTOM of the CELL facing DOWN (Manual 9.9), so point the",
+"// camera UP. At " + (t ? t.range.toFixed(0) : "--") + " in. you need about "
+  + (t ? Math.max(0, Math.atan2(S.cell - S.camH, t.range)*180/Math.PI).toFixed(0) : "--")
+  + " deg of upward pitch to hold it in frame."
+  ].join("\n");
+}
+function drawTagReadout(C) {
+  const svg = $("tagView"), info = $("tagInfo"), code = $("tagCode");
+  if (!svg || !info) return;
+  const seen = visibleTags(C).filter(t => t.visible);
+  seen.sort((a, b) => a.range - b.range);
+  const t = seen[0] || null;
+
+  svg.textContent = "";
+  svg.appendChild(svgEl("rect", { x:0, y:0, width:300, height:300, fill:"#11161b" }));
+  if (!t) {
+    svg.appendChild(svgTxt(150, 150, "no cluster in frame",
+      { "text-anchor":"middle", fill:"#8b97a4", "font-size":13 }));
+    info.innerHTML = '<p style="font-size:12.5px;color:var(--ink-2);margin:0">'
+      + 'Drive so a CELL is ahead of you and raise the camera pitch. The clusters face '
+      + 'DOWN under each CELL, so a camera looking straight forward will never see one.</p>';
+    code.textContent = "// no tag detected";
+    return;
+  }
+  /* draw the real four-tag cluster, the way the sticker is laid out (Manual Fig 9-15) */
+  const ids = t.ids;
+  for (let i = 0; i < 4; i++) {
+    const gx = 42 + (i%2)*112, gy = 46 + Math.floor(i/2)*112;
+    svg.appendChild(svgEl("rect", { x:gx, y:gy, width:96, height:96, fill:"#fff" }));
+    /* a 6x6 36h11-style payload, deterministic per id so each reads differently */
+    let h = (ids[i]*2654435761) >>> 0;
+    for (let r = 0; r < 6; r++) for (let c = 0; c < 6; c++) {
+      const edge = (r === 0 || c === 0 || r === 5 || c === 5);
+      h = (h*1103515245 + 12345) >>> 0;
+      const on = edge ? true : ((h >>> 16) & 1) === 1;
+      if (on) svg.appendChild(svgEl("rect", { x:gx+8+c*13.3, y:gy+8+r*13.3,
+        width:13.3, height:13.3, fill:"#11161b" }));
+    }
+    svg.appendChild(svgTxt(gx+48, gy+112, "ID " + ids[i],
+      { "text-anchor":"middle", fill:"#cdd6df", "font-size":11, "font-weight":600 }));
+  }
+  const M = TAG_MEANING[t.key] || { side:t.side, ally:t.ally, use:"" };
+  info.innerHTML =
+      '<div class="dstat" style="margin:0">'
+    + '<span class="k">Cluster</span><span class="v" style="color:var(--ink)">' + ids.join(", ") + '</span>'
+    + '<span class="k">Belongs to</span><span class="v" style="color:var(--ink)">' + M.ally.toUpperCase() + ' CELL</span>'
+    + '<span class="k">Which face</span><span class="v" style="color:var(--ink)">' + M.side + '</span>'
+    + '<span class="k">Range</span><span class="v" style="color:var(--ink)">' + (t.range/12).toFixed(2) + ' ft</span>'
+    + '<span class="k">Bearing</span><span class="v" style="color:var(--ink)">' + t.off.toFixed(1) + '\u00b0</span>'
+    + '<span class="k">Tag size</span><span class="v" style="color:var(--ink)">3.25\u2033 36h11</span>'
+    + '</div>'
+    + '<p style="font-size:12.5px;color:var(--ink-2);margin:12px 0 0;max-width:46ch">' + M.use + '</p>';
+  code.textContent = tagCode(t.key || "redAud", t);
+}
+
+/* ---- the live scoreboard on the FIELD itself ----
+   Point values are Table 10-2 of the V1 Competition Manual; they are unchanged from V0.9.
+   Everything here is what YOUR alliance has actually earned this MATCH, itemised, so a
+   student can see which action moved which number. */
+function drawBoard(C) {
+  const rows = $("bRows"); if (!rows) return;
+  const auto = S.matchPhase === "auto";
+  const fc = fieldClock();
+  $("bClock").textContent = fc <= 20 && S.matchPhase !== "idle" ? fc.toFixed(1) : mmss(fc);
+  const cue = matchCue();
+  $("bPhase").textContent = cue.txt;
+  $("bPhase").style.color = cue.col;
+
+  const cellsIn = (typeof cellCount === "function") ? cellCount() : 0;
+  const line = [
+    ["LEAVE",  S.left ? POINTS.leave.auto : 0,  S.left ? 1 : 0],
+    ["PARK",   S.park ? (auto ? POINTS.park.auto : POINTS.park.teleop) : 0, S.park ? 1 : 0],
+    ["HIVE TIP", (S.tips||0) * POINTS.tip.teleop, S.tips||0],
+    ["IN CELL", cellsIn * POINTS.cell.teleop, cellsIn],
+    ["GARDEN", (S.garden||0) * POINTS.garden.teleop, S.garden||0],
+    ["FLOWER", (S.flower||0) * POINTS.flower.teleop, S.flower||0]
+  ];
+  rows.textContent = "";
+  line.forEach(function (r) {
+    const d = document.createElement("div");
+    d.className = "brow" + (r[1] ? "" : " zero");
+    d.innerHTML = "<span>" + r[0] + (r[2] > 1 ? " \u00d7" + r[2] : "") + "</span><b>"
+                + r[1] + "</b>";
+    rows.appendChild(d);
+  });
+  const banked = document.createElement("div");
+  banked.className = "brow" + (S.scoreAuto ? "" : " zero");
+  banked.innerHTML = "<span>AUTO banked</span><b>" + (S.scoreAuto || 0) + "</b>";
+  rows.appendChild(banked);
+
+  $("bRed").textContent = alliancePoints("red");
+  $("bBlue").textContent = alliancePoints("blue");
+}
+
+/* ---- HOME: back to the open practice FIELD ----
+   A MATCH stages exactly what Figure 10-2 stages and no more, which is a poor place to
+   practise a shot. This puts back the loose FIELD full of balls, with no clock running. */
+function goHome() {
+  S.matchPhase = "idle";
+  S.matchT = MATCH_TOTAL;
+  S.scoreAuto = 0; S.autoRun = false; S.autoT = MATCH_CLOCK.auto;
+  S.tips = 0; S.picked = 0; S.left = false; S.park = false;
+  S.magLeft = S.magSize;
+  if (typeof PLAY !== "undefined") { PLAY.on = false; PLAY.cur = null; }
+  if (typeof cancelGoto === "function") cancelGoto();
+  if (typeof clearBots === "function") clearBots();
+
+  if (R3 && R3.cells) Object.keys(R3.cells).forEach(function (a) {
+    const st = R3.cells[a];
+    [st.a, st.b].forEach(function (cl) {
+      cl.userData.contents.forEach(o => cl.remove(o.mesh));
+      cl.userData.contents.length = 0;
+    });
+    st.ang = 0; st.w = 0; st.target = 0; st.flip = 0; st.flipFrom = 0;
+    st.releasing = false; st.upIsA = true;
+    st.rocker.rotation.x = 0;
+    if (st.qA) { st.a.quaternion.copy(st.qA); st.b.quaternion.copy(st.qB); }
+  });
+  if (typeof clearFalling === "function") clearFalling();
+
+  if (T2 && T2.on) { scatter2D(); }
+  else if (typeof scatterBalls === "function") { scatterBalls(); }
+
+  S.rx = 30; S.ry = 30;
+  S.heading = Math.atan2(F.size/2 - S.ry, F.size/2 - S.rx);
+  if (typeof keepOutOfHive === "function") keepOutOfHive();
+  if (typeof aimAtHive === "function") aimAtHive();
+  needUI = true;
+  if (typeof save === "function") save();
+}
+
 /* ================= wiring ================= */
 const C_MAP = [
   ["cAngle","angle","vAngle", v => v.toFixed(1)+"\u00b0"],
@@ -4690,7 +5868,7 @@ const C_MAP = [
   ["cTip","tip","vTip", v => (v>0?"+":"")+v.toFixed(2)+"\u00b0"],
   ["cLaunch","launch","vLaunch", v => v.toFixed(1)+"\u2033"],
   ["cGear","gear","vGear", v => v.toFixed(1)+":1"],
-  ["cCell","cell","vCell", v => v.toFixed(1)+"\u2033"],
+  ["cTilt","tilt","vTilt", v => Math.round(v)+"\u00b0 from vertical"],
   ["cEta","eta","vEta", v => v.toFixed(2)],
   ["cCd","cd","vCd", v => v.toFixed(2)],
   ["cRpm","rpm","vRpm", v => Math.round(v)+" rpm"],
@@ -4736,7 +5914,8 @@ function refreshPanels(C) {
     case "range": drawTestRange(); break;
     case "chan":  drawChannels(); break;
     case "auto":  drawRec(); break;
-    case "vision": drawVision(C); break;
+    case "shooter": drawHoodBig(); drawZ(); break;
+    case "vision": drawVision(C); drawTagReadout(C); break;
     case "spec":  drawSpec(); drawPoints(); break;
     case "phys":  drawChain(C); drawCompare(C); drawLandingVsRpm(C); break;
     case "resp":  drawRange(C); drawTable(C); break;
@@ -4757,6 +5936,7 @@ C_MAP.forEach(([id,key,out,fmt]) => { const e = $(id); if (!e) return;
   e.addEventListener("input", ev => {
     S[key] = parseFloat(ev.target.value); $(out).textContent = fmt(S[key]);
     if (key === "magSize") S.magLeft = Math.min(S.magLeft, S.magSize);
+    if (key === "tilt") { S.cell = cellMouthZ(); rowKey = ""; bestKey = ""; }
     if (key === "wrap" || key === "angle") {
       syncCurveFromSliders();
       if (key === "wrap") { S.eta = suggestedEta();
@@ -4785,6 +5965,67 @@ const hoodPreset = (id, ang, wrap) => $(id).addEventListener("click", () => {
 hoodPreset("bHoodStraight", 55, 40);
 hoodPreset("bHoodHook", 55, 135);
 hoodPreset("bHoodDeep", 55, 175);
+/* ---- the measured stack-up: floor -> base -> axis -> wheel -> ball = LAUNCH HEIGHT ---- */
+function launchFromMeasurements() {
+  const fb = parseFloat($("mFloorBase").value);
+  const ba = parseFloat($("mBaseAxis").value);
+  if (isNaN(fb) || isNaN(ba)) return;
+  const wR = wheelR()/IN;                       // flywheel radius, inches
+  const bR = BALL[S.ball].dia/2;
+  const tot = fb + ba + wR + bR;
+  $("mWheelR").textContent = wR.toFixed(2) + "\u2033";
+  $("mBallR").textContent  = bR.toFixed(2) + "\u2033";
+  $("mLaunch").textContent = tot.toFixed(2) + "\u2033";
+  $("mTotal").textContent  = tot.toFixed(1) + "\u2033";
+  const over = tot > F.maxRobotH;
+  $("mNote").textContent = over
+    ? "That is " + (tot - F.maxRobotH).toFixed(1) + "\u2033 over the 29\u2033 R105 expansion limit."
+    : "Rise to the CELL mouth: " + (S.cell - tot).toFixed(1) + "\u2033.";
+  $("mNote").style.color = over ? "#e35a78" : "#8b97a4";
+  S.launch = Math.max(6, Math.min(29, tot));
+  $("cLaunch").value = S.launch; $("vLaunch").textContent = S.launch.toFixed(1) + "\u2033";
+  refreshAll();
+}
+["mFloorBase","mBaseAxis"].forEach(id =>
+  $(id).addEventListener("input", launchFromMeasurements));
+
+/* ---- the full-width Curvature & Z panel ---- */
+function zApply() {
+  S.zFloorBase = Math.max(0, Math.min(29, parseFloat($("zFloorBase").value) || 0));
+  S.zBaseAxis  = Math.max(0, Math.min(29, parseFloat($("zBaseAxis").value)  || 0));
+  const z = S.zFloorBase + S.zBaseAxis + wheelR()/IN + BALL[S.ball].dia/2;
+  S.launch = Math.max(6, Math.min(29, z));
+  refreshAll();
+  drawZ(); drawHoodBig();
+}
+["zFloorBase","zBaseAxis"].forEach(id => {
+  const e = $(id); if (e) e.addEventListener("input", zApply);
+});
+[["cWrap2","wrap","vWrap2", v => Math.round(v)+"\u00b0"],
+ ["cAngle2","angle","vAngle2", v => v.toFixed(1)+"\u00b0"]].forEach(row => {
+  const e = $(row[0]); if (!e) return;
+  e.addEventListener("input", ev => {
+    S[row[1]] = parseFloat(ev.target.value);
+    $(row[2]).textContent = row[3](S[row[1]]);
+    syncCurveFromSliders();                 // also re-derives the transfer efficiency
+    refreshAll(); drawHoodBig(); drawZ();
+  });
+});
+const bigPreset = (id, ang, wrap) => { const e = $(id); if (!e) return;
+  e.addEventListener("click", () => {
+    S.angle = ang; S.wrap = wrap; syncCurveFromSliders();
+    refreshAll(); drawHoodBig(); drawZ();
+  }); };
+bigPreset("bHoodStraight2", 55, 40);
+bigPreset("bHoodHook2", 40, 135);
+bigPreset("bHoodDeep2", 55, 175);
+bigPreset("bHoodReset2", 40, 135);
+
+$("bHoodReset").addEventListener("click", () => {
+  S.angle = 40; S.wrap = 135;
+  syncCurveFromSliders();                 // this also re-derives the transfer efficiency
+  refreshAll();
+});
 
 /* drag the three nodes and their handles */
 (function () {
@@ -4821,6 +6062,15 @@ hoodPreset("bHoodDeep", 55, 175);
     const m = syncSlidersFromCurve();
     S.eta = suggestedEta();
     ["cAngle","cWrap","cEta"].forEach(id => { const el = $(id); if (el) el.value = S[{cAngle:"angle",cWrap:"wrap",cEta:"eta"}[id]]; });
+    [["cWrap2","wrap","vWrap2"],["cAngle2","angle","vAngle2"]].forEach(r => {
+      const el = $(r[0]); if (!el) return;
+      el.value = S[r[1]];
+      const o = $(r[2]); if (o) o.textContent = r[1] === "wrap"
+        ? Math.round(S.wrap) + "\u00b0" : S.angle.toFixed(1) + "\u00b0";
+    });
+    [["zFloorBase","zFloorBase"],["zBaseAxis","zBaseAxis"]].forEach(r => {
+      const el = $(r[0]); if (el && document.activeElement !== el) el.value = S[r[1]];
+    });
     $("vAngle").textContent = S.angle.toFixed(1) + "\u00b0";
     $("vWrap").textContent = Math.round(S.wrap) + "\u00b0";
     $("vEta").textContent = S.eta.toFixed(2);
@@ -4908,6 +6158,16 @@ $("bMatch").addEventListener("click", () => {
   else startMatch();
   refreshAll();
 });
+$("bPlay").addEventListener("click", () => {
+  if (PLAY.on) { recPlayStop(); return; }
+  if (!recPlay()) { $("copyMsg").textContent = "record something first"; return; }
+  refreshAll();
+});
+$("bHome").addEventListener("click", () => { goHome(); refreshAll(); });
+$("bBots").addEventListener("click", () => {
+  if (BOTS.length) clearBots(); else makeBots();
+  refreshAll();
+});
 const toggleRec = () => { REC.on ? recStop() : recStart(); drawRec(); refreshAll(); };
 $("bRec").addEventListener("click", toggleRec);
 $("bRec2").addEventListener("click", toggleRec);
@@ -4984,7 +6244,7 @@ const chip = (id,key) => $(id).addEventListener("click", () => {
 chip("chipTraj","showTraj"); chip("chipTags","showTags"); chip("chipMini","miniCam");
 chip("chipHud","showHud"); chip("chipFollow","chase");
 
-const TABS = ["build","aim","range","auto","vision","spec","chan","phys","game","resp","data","code","notes"];
+const TABS = ["build","shooter","aim","range","auto","vision","spec","chan","phys","game","resp","data","code","notes"];
 function showTab(t) {
   S.tab = t;
   TABS.forEach(k => { $("pg-"+k).hidden = k !== t;
@@ -5069,9 +6329,15 @@ TABS.forEach(t => $("tb-"+t).addEventListener("click", () => showTab(t)));
         const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
         const hit = new THREE.Vector3();
         if (ray.ray.intersectPlane(plane, hit)) {
-          S.rx = Math.max(10, Math.min(F.size-10, hit.x));
-          S.ry = Math.max(10, Math.min(F.size-10, hit.z));
-          keepOutOfHive(); aimAtHive();
+          /* Drive there. Teleporting hid how long a move actually costs, which is the one
+             thing AUTO planning is about. Shift-click still jumps, for quick aiming tests. */
+          if (e.shiftKey) {
+            S.rx = Math.max(10, Math.min(F.size-10, hit.x));
+            S.ry = Math.max(10, Math.min(F.size-10, hit.z));
+            keepOutOfHive(); aimAtHive();
+          } else {
+            gotoPoint(hit.x, hit.z);
+          }
           needUI = true;
         }
       }
@@ -5155,6 +6421,8 @@ function boot() {
 
   if (!S.pts || !S.pts.length) S.pts = seedPoints();
   if (S.magLeft === undefined || S.magLeft > S.magSize) S.magLeft = S.magSize;
+  /* the opening height is always derived from the lean, so a saved value can never go stale */
+  S.cell = cellMouthZ();
   compileCode();
   syncCurveFromSliders();
   if (R3) scatterBalls();
@@ -5174,6 +6442,3 @@ function boot() {
 if (document.readyState === "complete") boot();
 else window.addEventListener("load", boot);
 </script>
-
-</body>
-</html>

@@ -26,6 +26,19 @@ working autonomous OpMode.
   variable, and a least-squares / interpolation / model comparison on your own measured shots.
 - **Autonomous recorder → Java.** Record a run and export a `LinearOpMode`. The generated file
   compiles (verified with `javac` against the SDK interfaces).
+- **Curvature & Z tab.** The hood editor full width, with the wheel and ball drawn to true
+  relative size and always in contact. Beside it the launch-height stack-up — floor to base
+  plate, base to flywheel axis, plus the flywheel and ball radii — measured off *your* robot
+  and checked against the 29″ R105 ceiling.
+- **Play a match.** Your robot plus three that drive themselves, two per alliance. They hunt
+  POLLEN, carry it to their own lane in front of their CELL, and shoot, steering around each
+  other — two 18″ frames never share a tile.
+- **Official clock.** 2:30 → 0:00 across the match, holding at 2:00 through the transition
+  (V1 Table 9-1), with the AUTO buzzer, the 1:00 FLOWER unlock and the final-20 warning.
+  Live scoring on the field itself, itemised against Table 10-2, plus ranking points.
+- **Tag readout.** Point a camera at a CELL and it names the cluster, which CELL and face it
+  belongs to, range and bearing — and prints the Java that switches on those IDs.
+- **⌂ Home** puts back the open practice field full of balls whenever you want to just shoot.
 
 ## Where the numbers come from
 
