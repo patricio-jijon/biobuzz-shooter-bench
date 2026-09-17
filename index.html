@@ -1333,8 +1333,30 @@ const F = { size:144, pivotH:43.95,
             cellSpan:14,            /* opening height, 9.6.2 - confirmed by 12.10/cos(30) */
             cellDepth:12.04,        /* cage depth, Fig 9-9 */
             flowerH:21.5, flowerDia:4, maxRobotH:29, tile:24 };
-const BALL = { pollen:{ dia:2.8, mass:0.055*0.45359237, label:"POLLEN", col:0xe8c21c },
-               nectar:{ dia:3.6, mass:0.091*0.45359237, label:"NECTAR", col:0x2f6fd0 } };
+/* ===== SCORING ELEMENT masses =====
+   WEIGHED, not derived. These replace the figures I had worked back from the AndyMark
+   listing's pound values, which were light: POLLEN by 2.3%, and the listing gave one mass
+   for NECTAR when red and blue are not in fact identical.
+
+     POLLEN  25.52 g    (was 24.95)
+     NECTAR  41.44 g red, 41.26 g blue    (was 41.28 for both)
+
+   Mass sets the ballistic coefficient and how much the ball takes off the flywheel, so it is
+   worth being exact: a red NECTAR is 0.44% heavier than a blue one and leaves fractionally
+   slower from the same wheel at the same rpm. NECTAR.mass follows the ALLIANCE you are
+   playing, because a ROBOT launches its OWN NECTAR. */
+const BALL = {
+  pollen:{ dia:2.8, mass:0.02552, label:"POLLEN", col:0xe8c21c, measured:true },
+  nectar:{ dia:3.6, massRed:0.04144, massBlue:0.04126, label:"NECTAR", col:0x2f6fd0,
+           measured:true,
+           get mass() { return (typeof S !== "undefined" && S.ally === "blue")
+                               ? this.massBlue : this.massRed; } }
+};
+/* the mass of one element of a known colour, for anything that tracks colour per ball */
+function ballMass(kind, blue) {
+  if (kind !== "nectar") return BALL.pollen.mass;
+  return blue ? BALL.nectar.massBlue : BALL.nectar.massRed;
+}
 
 /* ===== goBILDA catalogue =====
    Motor specs from goBILDA product pages. Wheel SKUs/prices from the catalogue listing.
@@ -1515,7 +1537,7 @@ const S = {
   trDist:71, trRpm:2320, autoT:30, autoRun:false, left:false,
   angle:40, tip:0, wrap:135, launch:24, zFloorBase:9, zBaseAxis:13, hub:"h1309", ally:"red", airT:20, airP:1017, airRH:35, gear:1, cell:59.55, tilt:30, eta:0.45, cd:0.75, rpm:3900,
   wheelMass:85, robotMass:12, magSize:4, magLeft:4,
-  ballCount:80, intakeOn:true, rejectBlue:false, tipMass:187, tipBalls:8,
+  ballCount:80, intakeOn:true, rejectBlue:false, tipMass:191, tipBalls:8,
   scored:{red:0, blue:0}, tips:0, picked:0, curve:null, miniCam:true, waitAtSpeed:true,
   src:"fixed", ball:"pollen", magnus:true, drag:true, holes:true, cmp:"wheel",
   rx:22, ry:22, heading:Math.PI/4,
@@ -1535,8 +1557,11 @@ try {
      half a ball below it, and a saved value beats a changed default. Recompute those; leave a
      deliberately chosen lighter or heavier setting alone. */
   try {
-    if (S && S.tipBalls && S.tipMass >= S.tipBalls*BALL.pollen.mass*1000 - 1)
-      S.tipMass = Math.round((S.tipBalls - 0.5) * BALL.pollen.mass * 1000);
+    /* Recompute anything set from the OLD lighter POLLEN. 187, 199 and 200 all came from
+       24.95 g; the weighed 25.52 g puts the half-ball point at 191. */
+    const want = Math.round((S.tipBalls - 0.5) * BALL.pollen.mass * 1000);
+    if (S && S.tipBalls && S.tipMass >= (S.tipBalls - 0.75)*24.948 && S.tipMass !== want)
+      S.tipMass = want;
   } catch (e) {}
 } catch (e) {}
 let saveT = null;
@@ -1568,7 +1593,10 @@ const wheelInertia = () =>
 const massFactor = () => {
   const R = wheelR(), J = wheelInertia();
   const kFor = m => J / (J + m*R*R);
-  return kFor(BALL[S.ball].mass) / kFor(BALL.nectar.mass);
+  /* Normalise against a FIXED reference, not BALL.nectar.mass - that now follows the ALLIANCE,
+     so dividing by it cancelled itself out and a red NECTAR and a blue one came off the wheel
+     at identical speed however much they differ. eta is calibrated for red NECTAR. */
+  return kFor(BALL[S.ball].mass) / kFor(BALL.nectar.massRed);
 };
 /* Base transfer efficiency by durometer. A harder tread deforms less around the ball, so it
    grips it for less of the contact arc and hands over less of the rim speed. 15A and 30A are
@@ -1591,6 +1619,9 @@ const SPEC = [
     ["Playing field", "144 x 144 in (365.75 cm)", "Manual 9.2"],
     ["Soft foam TILE", "24 x 24 x 0.59 in", "Manual 9.2"],
     ["Tiles per side", "6", "derived: 144 / 24"],
+    ["POLLEN mass", "25.52 g", "WEIGHED"],
+    ["NECTAR mass", "41.44 g red, 41.26 g blue", "WEIGHED"],
+    ["TIP threshold", "191 g \u2014 fits every observed load", "calibrated"],
     ["ROBOT ball capacity", "4 SCORING ELEMENTS at a time", "V1 G407"],
     ["Pre-load", "4 POLLEN in each ROBOT", "V1 10.3.1"],
     ["ALLIANCE AREA", "97 in wide x 54 in deep", "Manual 9.5"],
@@ -3107,7 +3138,7 @@ function scoreIntoCell(kind) {
   const v = new THREE.Vector3((Math.random()-.5)*8, -34, (Math.random()-.5)*8);
   m.position.copy(p);
   up.add(m);
-  up.userData.contents.push({ mesh:m, kind:kind, p:p, v:v, r:dia/2 });
+  up.userData.contents.push({ mesh:m, kind:kind, blue: ally === "blue", p:p, v:v, r:dia/2 });
   S.scored[ally] += 1;
   checkTip(st, up);
   needUI = true;
@@ -3152,7 +3183,8 @@ function raisedCell(st) {
 /* The TIP threshold is a MASS threshold: the manual says the HIVE holds "until enough POLLEN
    or NECTAR are LAUNCHED", never a count, because it is a balance. */
 function checkTip(st, up) {
-  const grams = up.userData.contents.reduce((a, o) => a + BALL[o.kind].mass*1000, 0);
+  /* weigh each element by its own colour - red and blue NECTAR are not the same mass */
+  const grams = up.userData.contents.reduce((a, o) => a + ballMass(o.kind, o.blue)*1000, 0);
   /* A pure MASS test, which is what 9.6.2 and 10.5.1 describe - the HIVE holds "until enough
      POLLEN or NECTAR are LAUNCHED" and the TIP is defined by the damper reaching the frame.
      One threshold reproduces every combination observed on a real HIVE:
@@ -3388,7 +3420,7 @@ function shoot() {
       v: new THREE.Vector3(Math.cos(bdir)*exit*Math.cos(a)*IPS,
                            exit*Math.sin(a)*IPS,
                            Math.sin(bdir)*exit*Math.cos(a)*IPS),
-      spin: spinFor(exit), dir: bdir, t: 0, bounces: 0
+      spin: spinFor(exit), dir: bdir, t: 0, bounces: 0, blue: S.ally === "blue"
     });
   }
   /* Each ball comes off its OWN flywheel, so the volley costs one ball's worth of sag on
@@ -3655,7 +3687,7 @@ function dropIntoCell(cell, st, f) {
     ballMaterialFor(f.kind, S.holes));
   m.castShadow = true; m.position.copy(lp);
   cell.add(m);
-  cell.userData.contents.push({ mesh:m, kind:f.kind, p:lp, v:lv, r:f.r });
+  cell.userData.contents.push({ mesh:m, kind:f.kind, blue:!!f.blue, p:lp, v:lv, r:f.r });
   const up = raisedCell(st);
   if (cell === up) { S.scored[S.ally] = (S.scored[S.ally]||0) + 1; checkTip(st, up); }
   needUI = true;
@@ -3983,7 +4015,7 @@ function stage2D() {
   needUI = true;
 }
 
-const cellMass2D = () => T2.cell.reduce((a,o) => a + BALL[o.kind].mass*1000, 0);
+const cellMass2D = () => T2.cell.reduce((a,o) => a + ballMass(o.kind, o.blue)*1000, 0);
 
 function shoot2D() {
   const now = performance.now()/1000;
