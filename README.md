@@ -39,6 +39,10 @@ working autonomous OpMode.
 - **Tag readout.** Point a camera at a CELL and it names the cluster, which CELL and face it
   belongs to, range and bearing — and prints the Java that switches on those IDs.
 - **⌂ Home** puts back the open practice field full of balls whenever you want to just shoot.
+- **Venue air.** Drag scales with air density, and a heated hall in New York between October
+  and February is not the textbook 1.225 kg/m³. Set temperature, humidity and pressure and
+  watch the landing point move — about 4 in. between a cold hall and a warm one, which is
+  wider than the scoring window.
 
 ## Where the numbers come from
 

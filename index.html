@@ -736,6 +736,37 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
         </div>
       </div>
       <div class="panel">
+        <div class="panel-head"><span class="panel-title">Venue air</span>
+          <span class="panel-note" id="airNote">density is what multiplies drag</span></div>
+        <div class="ctlwrap">
+          <div class="ctl-grid">
+            <div class="ctl"><label class="ctl-lab" for="cAirT"><span>Hall temperature</span><output id="vAirT"></output></label>
+              <input type="range" id="cAirT" min="5" max="32" step="0.5" value="20"></div>
+            <div class="ctl"><label class="ctl-lab" for="cAirRH"><span>Relative humidity</span><output id="vAirRH"></output></label>
+              <input type="range" id="cAirRH" min="5" max="95" step="1" value="35"></div>
+            <div class="ctl"><label class="ctl-lab" for="cAirP"><span>Pressure</span><output id="vAirP"></output></label>
+              <input type="range" id="cAirP" min="975" max="1045" step="1" value="1017"></div>
+          </div>
+          <div class="foot">
+            <button class="linkbtn" id="bAirNYC">NYC gym, Oct&ndash;Feb</button>
+            <button class="linkbtn" id="bAirCold">Cold hall, 10&deg;C</button>
+            <button class="linkbtn" id="bAirWarm">Warm hall, 28&deg;C</button>
+            <button class="linkbtn" id="bAirISA">Textbook ISA (15&deg;C dry)</button>
+          </div>
+        </div>
+        <div class="spec">
+          <div class="stat"><span class="k">Air density</span><span class="v" id="oRho">&mdash;<span class="u">kg/m&sup3;</span></span></div>
+          <div class="stat"><span class="k">vs ISA 1.225</span><span class="v" id="oRhoRel">&mdash;<span class="u">%</span></span></div>
+          <div class="stat"><span class="k">Range shift</span><span class="v" id="oRhoRange">&mdash;<span class="u">in</span></span></div>
+        </div>
+        <p style="font-size:12px; color:var(--ink-2); padding:12px 14px; margin:0; max-width:78ch">
+          Humid air is <b>lighter</b>, not heavier: a water molecule is 18 g/mol and displaces
+          nitrogen and oxygen at about 29 g/mol. So a muggy hall gives slightly less drag than a
+          dry one at the same temperature. Cold air is the one that really costs you &mdash; it is
+          denser, so the ball slows more and lands short.
+        </p>
+      </div>
+      <div class="panel">
         <div class="panel-head"><span class="panel-title">What the curvature buys</span>
           <span class="panel-note">wrap arc sets spin, transfer and contact force</span></div>
         <div class="spec">
@@ -1260,7 +1291,29 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
 </div>
 <script>
 "use strict";
-const IN = 0.0254, G = 9.80665, RHO = 1.225, DT = 0.002;
+const IN = 0.0254, G = 9.80665, DT = 0.002;
+/* ===== the air the ball actually flies through =====
+   1.225 kg/m^3 is the ISA sea-level value at 15 C and bone-dry. A heated gym in New York
+   between October and February is not that. Density is what multiplies drag, so it moves
+   every trajectory, and it is worth being able to see the difference between a cold hall in
+   January and a warm one in October.
+
+   rho = Pd/(Rd T) + Pv/(Rv T)   - dry air plus water vapour, each by its own gas constant.
+   Humid air is LIGHTER than dry air at the same temperature and pressure, because a water
+   molecule (18 g/mol) weighs less than the N2 and O2 it displaces (~29 g/mol). That surprises
+   people, so it is worth watching the number while you drag the humidity.
+   Saturation vapour pressure by Tetens, good to a few tenths of a percent over 0-40 C. */
+const R_DRY = 287.058, R_VAP = 461.495;
+function satVapourPa(tC) { return 610.78*Math.exp(17.27*tC/(tC + 237.3)); }
+function airDensity() {
+  const tC = S.airT, hPa = S.airP, rh = S.airRH/100;
+  const T = tC + 273.15;
+  const Pv = rh*satVapourPa(tC);
+  const Pd = hPa*100 - Pv;
+  return Pd/(R_DRY*T) + Pv/(R_VAP*T);
+}
+/* every drag and Magnus term reads this, so the whole flight follows the venue */
+const RHO = () => airDensity();
 const GB = "https://www.gobilda.com/";
 const sku = s => GB + "search.php?search_query=" + encodeURIComponent(s);
 
@@ -1459,9 +1512,9 @@ const S = {
   park:false, rec:null,
   rpmSlow:2050, rpmMid:2320, rpmFull:2650, trackL:0, trackR:0, strafeX:0, padName:"",
   trDist:71, trRpm:2320, autoT:30, autoRun:false, left:false,
-  angle:40, tip:0, wrap:135, launch:24, zFloorBase:9, zBaseAxis:13, hub:"h1309", ally:"red", gear:1, cell:59.55, tilt:30, eta:0.45, cd:0.75, rpm:3900,
+  angle:40, tip:0, wrap:135, launch:24, zFloorBase:9, zBaseAxis:13, hub:"h1309", ally:"red", airT:20, airP:1017, airRH:35, gear:1, cell:59.55, tilt:30, eta:0.45, cd:0.75, rpm:3900,
   wheelMass:85, robotMass:12, magSize:4, magLeft:4,
-  ballCount:80, intakeOn:true, rejectBlue:false, tipMass:200, tipBalls:8,
+  ballCount:80, intakeOn:true, rejectBlue:false, tipMass:199, tipBalls:8,
   scored:{red:0, blue:0}, tips:0, picked:0, curve:null, miniCam:true, waitAtSpeed:true,
   src:"fixed", ball:"pollen", magnus:true, drag:true, holes:true, cmp:"wheel",
   rx:22, ry:22, heading:Math.PI/4,
@@ -1473,7 +1526,7 @@ const DEFAULTS = JSON.parse(JSON.stringify(S));
    from last time is a terrible way to open, and the match state should always start clean. */
 const TRANSIENT = ["rx","ry","heading","magLeft","tips","picked","scored",
                    "trackL","trackR","strafeX","autoT","autoRun","left","padName",
-                   "matchPhase","matchT","scoreAuto","park","recCount","zFloorBase","zBaseAxis","hub","ally"];
+                   "matchPhase","matchT","scoreAuto","park","recCount","zFloorBase","zBaseAxis","hub","ally","airT","airP","airRH"];
 try {
   const v = localStorage.getItem("biobuzz-bench-v7");
   if (v) { const o = JSON.parse(v); TRANSIENT.forEach(k => delete o[k]); Object.assign(S, o); }
@@ -1796,10 +1849,10 @@ function deriv(s, spin, P) {
   const vx = s[2], vy = s[3], v = Math.hypot(vx, vy);
   let ax = 0, ay = -G;
   if (v > 1e-6) {
-    if (S.drag) { const k = 0.5*RHO*S.cd*P.A*v/P.m; ax -= k*vx; ay -= k*vy; }
+    if (S.drag) { const k = 0.5*RHO()*S.cd*P.A*v/P.m; ax -= k*vx; ay -= k*vy; }
     if (spin !== 0) {
       const cl = Math.min(0.45, 0.25*(Math.abs(spin)*P.r/v));
-      const fm = 0.5*RHO*cl*P.A*v*v/P.m, sg = Math.sign(spin);
+      const fm = 0.5*RHO()*cl*P.A*v*v/P.m, sg = Math.sign(spin);
       ax += sg*fm*(-vy/v); ay += sg*fm*(vx/v);
     }
   }
@@ -3090,7 +3143,10 @@ function raisedCell(st) {
    or NECTAR are LAUNCHED", never a count, because it is a balance. */
 function checkTip(st, up) {
   const grams = up.userData.contents.reduce((a, o) => a + BALL[o.kind].mass*1000, 0);
-  if (grams >= S.tipMass && !st.releasing && Math.abs((st.ang||0) - (st.target||0)) < 0.05) {
+  /* Compare with half a gram of slack. The threshold is a whole number of grams but the
+     load is not: eight POLLEN weigh 199.58 g, so against a threshold of 200 the eighth ball
+     fell 0.42 g short and it took nine. Rounding a threshold must never cost you a ball. */
+  if (grams >= S.tipMass - 0.5 && !st.releasing && Math.abs((st.ang||0) - (st.target||0)) < 0.05) {
     st.flipFrom = st.target || 0;
     /* Over to the other stable state. It has to be a half turn: each CELL's mouth opens
        radially outward from the pivot, so only a half turn actually swaps which one faces
@@ -3337,10 +3393,10 @@ function ballAccel(f, out) {
   const sp = f.v.length()*IN;
   out.set(0, -G_IN, 0);
   if (sp > 1e-4) {
-    if (S.drag) out.addScaledVector(f.v, -(0.5*RHO*S.cd*P.A*sp/P.m));
+    if (S.drag) out.addScaledVector(f.v, -(0.5*RHO()*S.cd*P.A*sp/P.m));
     if (f.spin) {
       const cl = Math.min(0.45, 0.25*(Math.abs(f.spin)*P.r/sp));
-      const fm = 0.5*RHO*cl*P.A*sp*sp/P.m / IN;
+      const fm = 0.5*RHO()*cl*P.A*sp*sp/P.m / IN;
       const hx = Math.cos(f.dir), hz = Math.sin(f.dir);
       const along = f.v.x*hx + f.v.z*hz;
       _perp.set(-hx*f.v.y, along, -hz*f.v.y);
@@ -5671,7 +5727,28 @@ function drawStats(C) {
     " = " + (CHASSIS_MOTORS + AA.motors) + " of the 8 motors R503 allows.";
   $("archNote").textContent = used + " of 8 used \u00b7 " + (MOTOR_LIMIT-used) + " spare";
   $("motorNote").textContent = motor().enc ? motor().ppr + " ppr at the output shaft" : "no encoder";
-  $("aimNote").textContent = hood().servo ? "hood angle solved per shot" : "fixed hood";
+  const rho = airDensity();
+  const oR = $("oRho"); if (oR) oR.firstChild.nodeValue = rho.toFixed(4);
+  const oRel = $("oRhoRel");
+  if (oRel) oRel.firstChild.nodeValue = ((rho/1.225 - 1)*100).toFixed(1);
+  const oRng = $("oRhoRange");
+  if (oRng) {
+    /* Fly the SAME shot at ISA density and compare where it crosses, so this is the real
+       difference this hall makes rather than a rule of thumb. */
+    const keepAir = { t:S.airT, rh:S.airRH, p:S.airP };
+    S.airT = 15; S.airRH = 0; S.airP = 1013.25;
+    const isa = fly(C.exit, C.angle, (S.cell - S.launch)*IN);
+    S.airT = keepAir.t; S.airRH = keepAir.rh; S.airP = keepAir.p;
+    const d = (C.shot && C.shot.cross && isa && isa.cross)
+      ? (C.shot.cross.x - isa.cross.x)/IN : NaN;
+    oRng.firstChild.nodeValue = isFinite(d) ? (d >= 0 ? "+" : "") + d.toFixed(1) : "\u2014";
+  }
+  const aN = $("airNote");
+  if (aN) aN.textContent = rho > 1.225 ? "denser than ISA \u2014 the ball lands shorter"
+                         : "thinner than ISA \u2014 the ball carries further";
+  /* say which CELL is live - a ball in the opponent's scores nobody anything */
+  $("aimNote").textContent = (hood().servo ? "hood angle solved per shot" : "fixed hood")
+    + " \u00b7 shooting at the " + S.ally.toUpperCase() + " CELL";
   $("modeWarn").textContent = S.src === "solve"
     ? "Solve mode back-calculates the rpm, so the arc cannot change when you swap parts."
     : "";
@@ -6146,7 +6223,8 @@ C_MAP.forEach(([id,key,out,fmt]) => { const e = $(id); if (!e) return;
     }
     if (key === "ballCount") { if (T2.on) scatter2D(); else if (R3) scatterBalls(); }
     if (key === "tipBalls") {            // balls in -> grams, the way the HIVE actually decides
-      S.tipMass = Math.round(S.tipBalls * BALL.pollen.mass * 1000);
+      /* floor, not round - the threshold must sit at or below the mass of that many balls */
+      S.tipMass = Math.floor(S.tipBalls * BALL.pollen.mass * 1000);
       $("cTipMass").value = S.tipMass; $("vTipMass").textContent = S.tipMass + " g";
     }
     if (key === "tipMass") {
