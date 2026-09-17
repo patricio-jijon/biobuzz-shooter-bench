@@ -1121,7 +1121,8 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
             <div class="ctl"><label class="ctl-lab" for="cWheelMass"><span>Flywheel mass &#9650;</span><output id="vWheelMass"></output></label>
               <input type="range" id="cWheelMass" min="5" max="140" step="1" value="85"></div>
             <div class="ctl"><label class="ctl-lab" for="cMagSize"><span>Magazine</span><output id="vMagSize"></output></label>
-              <input type="range" id="cMagSize" min="1" max="12" step="1" value="4"></div>
+              <input type="range" id="cMagSize" min="1" max="12" step="1" value="4">
+              <span id="magRule" style="font-size:10.5px; font-family:var(--f-mono)"></span></div>
           </div>
         </div>
       </div>
@@ -1514,7 +1515,7 @@ const S = {
   trDist:71, trRpm:2320, autoT:30, autoRun:false, left:false,
   angle:40, tip:0, wrap:135, launch:24, zFloorBase:9, zBaseAxis:13, hub:"h1309", ally:"red", airT:20, airP:1017, airRH:35, gear:1, cell:59.55, tilt:30, eta:0.45, cd:0.75, rpm:3900,
   wheelMass:85, robotMass:12, magSize:4, magLeft:4,
-  ballCount:80, intakeOn:true, rejectBlue:false, tipMass:199, tipBalls:8,
+  ballCount:80, intakeOn:true, rejectBlue:false, tipMass:187, tipBalls:8,
   scored:{red:0, blue:0}, tips:0, picked:0, curve:null, miniCam:true, waitAtSpeed:true,
   src:"fixed", ball:"pollen", magnus:true, drag:true, holes:true, cmp:"wheel",
   rx:22, ry:22, heading:Math.PI/4,
@@ -1530,6 +1531,13 @@ const TRANSIENT = ["rx","ry","heading","magLeft","tips","picked","scored",
 try {
   const v = localStorage.getItem("biobuzz-bench-v7");
   if (v) { const o = JSON.parse(v); TRANSIENT.forEach(k => delete o[k]); Object.assign(S, o); }
+  /* Anyone who ran an earlier build has a threshold saved AT the mass of N POLLEN rather than
+     half a ball below it, and a saved value beats a changed default. Recompute those; leave a
+     deliberately chosen lighter or heavier setting alone. */
+  try {
+    if (S && S.tipBalls && S.tipMass >= S.tipBalls*BALL.pollen.mass*1000 - 1)
+      S.tipMass = Math.round((S.tipBalls - 0.5) * BALL.pollen.mass * 1000);
+  } catch (e) {}
 } catch (e) {}
 let saveT = null;
 const save = () => { clearTimeout(saveT); saveT = setTimeout(() => {
@@ -1583,6 +1591,8 @@ const SPEC = [
     ["Playing field", "144 x 144 in (365.75 cm)", "Manual 9.2"],
     ["Soft foam TILE", "24 x 24 x 0.59 in", "Manual 9.2"],
     ["Tiles per side", "6", "derived: 144 / 24"],
+    ["ROBOT ball capacity", "4 SCORING ELEMENTS at a time", "V1 G407"],
+    ["Pre-load", "4 POLLEN in each ROBOT", "V1 10.3.1"],
     ["ALLIANCE AREA", "97 in wide x 54 in deep", "Manual 9.5"],
     ["Shooter wheels", "Gecko 15A/30A, Hogback 50A, Boot-Wheel", "goBILDA listings"],
     ["Hogback mass", "96mm = 82 g published; 72mm estimated", "goBILDA product page"],
@@ -3143,10 +3153,16 @@ function raisedCell(st) {
    or NECTAR are LAUNCHED", never a count, because it is a balance. */
 function checkTip(st, up) {
   const grams = up.userData.contents.reduce((a, o) => a + BALL[o.kind].mass*1000, 0);
-  /* Compare with half a gram of slack. The threshold is a whole number of grams but the
-     load is not: eight POLLEN weigh 199.58 g, so against a threshold of 200 the eighth ball
-     fell 0.42 g short and it took nine. Rounding a threshold must never cost you a ball. */
-  if (grams >= S.tipMass - 0.5 && !st.releasing && Math.abs((st.ang||0) - (st.target||0)) < 0.05) {
+  /* A pure MASS test, which is what 9.6.2 and 10.5.1 describe - the HIVE holds "until enough
+     POLLEN or NECTAR are LAUNCHED" and the TIP is defined by the damper reaching the frame.
+     One threshold reproduces every combination observed on a real HIVE:
+         8 POLLEN               199.58 g   tips
+         3 NECTAR + 3 POLLEN    198.67 g   tips
+         5 NECTAR               206.38 g   tips
+         7 POLLEN               174.63 g   holds
+         4 NECTAR               165.11 g   holds
+     so the threshold has to land in 174.63 < T <= 198.67, and it sits near the middle. */
+  if (grams >= S.tipMass - 0.25 && !st.releasing && Math.abs((st.ang||0) - (st.target||0)) < 0.05) {
     st.flipFrom = st.target || 0;
     /* Over to the other stable state. It has to be a half turn: each CELL's mouth opens
        radially outward from the pivot, so only a half turn actually swaps which one faces
@@ -5645,6 +5661,17 @@ function drawStats(C) {
   set("oLoose", R3 ? R3.fieldBalls.length : 0);
   set("oPicked", S.picked);
   set("oMagNow", S.magLeft + " / " + S.magSize);
+  /* G407: "A ROBOT may not simultaneously CONTROL more than 4 SCORING ELEMENTS."
+     That is the real ceiling on a magazine, and it is exactly why 10.3.1 pre-loads four.
+     A four-channel shooter holding four balls is legal and sits right on the limit. */
+  const mr = $("magRule");
+  if (mr) {
+    const over = S.magSize > 4;
+    mr.textContent = over
+      ? "\u26a0 G407: a ROBOT may CONTROL at most 4 \u2014 " + S.magSize + " is a MAJOR FOUL if STRATEGIC"
+      : "G407 limit is 4 \u00b7 10.3.1 pre-loads 4";
+    mr.style.color = over ? "var(--crit)" : "var(--muted)";
+  }
   const inMatch = S.matchPhase && S.matchPhase !== "idle";
   /* The official FIELD timer counts the whole MATCH down from 2:30 (V1 Table 9-1), it is
      not a per-phase count. Show that, with the tenths only inside the last 20 seconds. */
@@ -6223,8 +6250,11 @@ C_MAP.forEach(([id,key,out,fmt]) => { const e = $(id); if (!e) return;
     }
     if (key === "ballCount") { if (T2.on) scatter2D(); else if (R3) scatterBalls(); }
     if (key === "tipBalls") {            // balls in -> grams, the way the HIVE actually decides
-      /* floor, not round - the threshold must sit at or below the mass of that many balls */
-      S.tipMass = Math.floor(S.tipBalls * BALL.pollen.mass * 1000);
+      /* Put the threshold HALF A BALL below the Nth POLLEN, not at it. Sitting right on the
+         mass of N balls leaves no margin, and a mixed load lands within a gram of it:
+         3 NECTAR + 3 POLLEN is 198.67 g against 8 POLLEN at 199.58 g. Half a ball below
+         puts it near the middle of the window that satisfies every observed combination. */
+      S.tipMass = Math.round((S.tipBalls - 0.5) * BALL.pollen.mass * 1000);
       $("cTipMass").value = S.tipMass; $("vTipMass").textContent = S.tipMass + " g";
     }
     if (key === "tipMass") {
