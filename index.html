@@ -351,6 +351,13 @@ footer b{color:var(--ink-2); font-weight:600}
 footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
 .flag{border-left:2px solid var(--warn); background:var(--surface); padding:9px 13px;
   border-radius:0 4px 4px 0; margin:10px 0 4px; max-width:78ch; color:var(--ink-2)}
+.typein{display:flex; align-items:center; gap:6px; margin-top:6px}
+.typein label{font-size:9.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted)}
+.typein input{width:72px; font-family:var(--f-mono); font-size:12.5px; text-align:right;
+  color:var(--ink); background:var(--surface-2); border:1px solid var(--rule);
+  border-radius:4px; padding:3px 6px}
+.typein input:focus-visible{outline:2px solid var(--amber); outline-offset:1px}
+.typein span{font-family:var(--f-mono); font-size:12px; color:var(--ink-2)}
 /* ---------- the measured stack-up ---------- */
 .measure{margin-top:11px; padding:9px 10px; background:rgba(255,255,255,.05);
   border:1px solid rgba(255,255,255,.10); border-radius:6px}
@@ -370,6 +377,24 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
   color:#fff}
 .measure .mrow.tot b{color:var(--amber); font-size:13px; font-weight:600}
 .measure .mnote{font-size:10px; color:#8b97a4; margin:7px 0 0; line-height:1.45}
+/* ---------- what the recorder is capturing, live, while you drive ---------- */
+.reclive{position:absolute; left:12px; bottom:168px; width:268px;
+  background:rgba(10,14,18,.80); backdrop-filter:blur(3px); border-radius:7px;
+  border:1px solid rgba(255,255,255,.12); padding:7px 9px 8px; pointer-events:none}
+.reclive.off{display:none}
+.reclive .rh{display:flex; align-items:center; gap:7px; font-family:var(--f-mono);
+  font-size:9.5px; letter-spacing:.12em; color:#8b97a4; margin-bottom:6px}
+.reclive .rh b{margin-left:auto; color:#fff; font-size:11px}
+.reclive .dot{width:7px; height:7px; border-radius:50%; background:#e35a78;
+  animation:recpulse 1.1s ease-in-out infinite}
+@keyframes recpulse{0%,100%{opacity:1}50%{opacity:.25}}
+.reclive .rr{display:grid; grid-template-columns:1fr 1fr; gap:5px; margin-bottom:4px;
+  align-items:center}
+.reclive .blk{font-family:var(--f-mono); font-size:9.5px; color:#fff; border-radius:3px;
+  padding:3px 6px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.reclive .jv{font-family:var(--f-mono); font-size:9.5px; color:#cdd6df;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+@media (max-width:760px){ .reclive{display:none} }
 /* ---------- live scoreboard on the FIELD ---------- */
 .board{position:absolute; right:12px; top:52px; width:186px;
   background:rgba(10,14,18,.74); backdrop-filter:blur(3px); border-radius:7px;
@@ -444,6 +469,10 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
         <div class="brows" id="bRows"></div>
         <div class="btot"><span>RED</span><b id="bRed">0</b><span>BLUE</span><b id="bBlue">0</b></div>
       </div>
+      <div class="reclive off" id="recLiveBox">
+        <div class="rh"><span class="dot"></span>RECORDING<b id="rlCount">0</b></div>
+        <div class="rl" id="rlRows"></div>
+      </div>
       <button class="shootbtn" id="bShoot">SHOOT</button>
     </div>
       <aside class="dock">
@@ -464,7 +493,7 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
           </div>
           <div class="dslider">
             <label for="cAngle"><span>Hood angle</span><b><output id="vAngle"></output></b></label>
-            <input type="range" id="cAngle" min="20" max="70" step="0.5" value="55">
+            <input type="range" id="cAngle" min="-40" max="70" step="0.5" value="40">
           </div>
           <div class="dslider">
             <label for="cTip"><span>Tip / direction</span><b><output id="vTip"></output></b></label>
@@ -545,7 +574,7 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
       <button id="tb-shooter" aria-pressed="false">Curvature &amp; Z</button>
       <button id="tb-aim" aria-pressed="false">Aim &amp; hood</button>
       <button id="tb-range" aria-pressed="false">Test range</button>
-      <button id="tb-auto" aria-pressed="false">Auto &amp; Java</button>
+      <button id="tb-auto" aria-pressed="false">Auto, Java &amp; Blocks</button>
       <button id="tb-vision" aria-pressed="false">Vision</button>
       <button id="tb-spec" aria-pressed="false">Spec sheet</button>
       <button id="tb-chan" aria-pressed="false">Channels</button>
@@ -644,7 +673,9 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
               <div class="ctl"><label class="ctl-lab" for="cWrap2"><span>Curvature / wrap</span><output id="vWrap2"></output></label>
                 <input type="range" id="cWrap2" min="20" max="180" step="1" value="135"></div>
               <div class="ctl"><label class="ctl-lab" for="cAngle2"><span>Hood angle</span><output id="vAngle2"></output></label>
-                <input type="range" id="cAngle2" min="20" max="70" step="0.5" value="40"></div>
+                <input type="range" id="cAngle2" min="-40" max="70" step="0.5" value="40">
+                <div class="typein"><label for="nAngle2">type an exact angle</label>
+                  <input type="number" id="nAngle2" min="-40" max="70" step="0.1" value="40"><span>&deg;</span></div></div>
             </div>
             <div class="spec" style="margin-top:14px">
               <div class="stat"><span class="k">Wheel</span><span class="v" id="bgWheel">&mdash;</span></div>
@@ -699,7 +730,7 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
               <input type="range" id="cLaunch" min="6" max="29" step="0.5" value="24"></div>
             <div class="ctl"><label class="ctl-lab" for="cGear"><span>Motor : flywheel</span><output id="vGear"></output></label>
               <input type="range" id="cGear" min="0.5" max="4" step="0.1" value="1"></div>
-            <div class="ctl"><label class="ctl-lab" for="cTilt"><span>HIVE tilt &#9650;</span><output id="vTilt"></output></label>
+            <div class="ctl"><label class="ctl-lab" for="cTilt"><span>CELL opening tilt</span><output id="vTilt"></output></label>
               <input type="range" id="cTilt" min="5" max="60" step="1" value="30"></div>
             <div class="ctl"><label class="ctl-lab" for="cEta"><span>Transfer eff.</span><output id="vEta"></output></label>
               <input type="range" id="cEta" min="0.25" max="0.75" step="0.01" value="0.45"></div>
@@ -821,6 +852,17 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
     <!-- ======== AUTO & JAVA ======== -->
     <section class="page" id="pg-auto" hidden>
       <div class="panel">
+        <div class="panel-head"><span class="panel-title">Drivetrain</span>
+          <span class="panel-note" id="dtNote">changes how it drives and what the Java looks like</span></div>
+        <div class="ctlwrap" style="padding:12px 14px">
+          <div class="seg" role="group" aria-label="Drivetrain">
+            <button id="dtMecanum" aria-pressed="true">Mecanum</button>
+            <button id="dtTank" aria-pressed="false">Tank</button>
+          </div>
+          <p style="font-size:12.5px; color:var(--ink-2); margin:11px 0 0; max-width:78ch" id="dtExplain"></p>
+        </div>
+      </div>
+      <div class="panel">
         <div class="panel-head"><span class="panel-title">Recorded sequence</span>
           <span class="panel-note" id="recNote"></span></div>
         <div class="ctlwrap" style="padding:11px 14px">
@@ -836,6 +878,70 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
           <table><thead><tr><th>t</th><th>Step</th><th>Value</th><th></th></tr></thead>
             <tbody id="recBody"></tbody></table>
         </div>
+      </div>
+      <div class="cols c2">
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">Your AUTO, as Blocks</span>
+            <span class="panel-note" id="blkNote">the same program you recorded</span></div>
+          <div class="foot" style="margin:0; padding:10px 12px; border:0; border-bottom:1px solid var(--grid)">
+            <button class="linkbtn" id="bBlkRun" style="font-weight:600">&#9654; Run on the field</button>
+            <button class="linkbtn" id="bBlkFromRec">Build from my recording</button>
+            <button class="linkbtn" id="bBlkClear">Clear</button>
+            <span style="font-size:11px; font-family:var(--f-mono); color:var(--muted)" id="blkRunMsg"></span>
+          </div>
+          <div id="blkWorkspace" style="width:100%; height:520px; background:var(--surface-2)"></div>
+          <div id="blkLoading" style="padding:40px 14px; text-align:center; color:var(--muted);
+               font-family:var(--f-mono); font-size:12px">loading the block editor&hellip;</div>
+        </div>
+        <div class="panel">
+          <div class="panel-head"><span class="panel-title">The same thing in Java</span>
+            <span class="panel-note">line for line</span></div>
+          <pre id="blkJava" style="margin:0; padding:14px; overflow:auto; font-family:var(--f-mono);
+            font-size:11.5px; line-height:1.55; color:var(--ink); background:var(--surface-2);
+            max-height:560px"></pre>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">Blocks and Java are the same program</span>
+          <span class="panel-note">two ways of writing it, not two languages</span></div>
+        <div style="padding:14px">
+          <div class="scroll"><table>
+            <thead><tr><th>In Blocks you drag</th><th>In Java you type</th><th>What it does</th></tr></thead>
+            <tbody id="blkMapBody"></tbody></table></div>
+          <p style="font-size:12.5px; color:var(--ink-2); margin:14px 0 0; max-width:80ch">
+            Every Block is one Java statement wearing a different coat. The Blocks editor saves your
+            program and the Robot Controller runs it the same way it runs Java &mdash; there is no
+            speed penalty and nothing you give up. What Blocks costs you is reach: when you want
+            something the toolbox has no Block for, you have to write it in Java.
+            <b>That is exactly what myBlocks are for.</b>
+          </p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head"><span class="panel-title">myBlocks &mdash; your own Block, written in Java</span>
+          <span class="panel-note">FtcRobotController wiki, Custom FTC Blocks</span></div>
+        <div style="padding:14px 14px 0">
+          <p style="font-size:12.5px; color:var(--ink-2); margin:0 0 12px; max-width:80ch">
+            A myBlock is a Java method that shows up in the Blocks toolbox as a Block you can drag.
+            It is how a team keeps programming in Blocks while still using maths the toolbox cannot
+            express &mdash; like the shot solver in this app. Four rules:
+          </p>
+          <ol style="font-size:12.5px; color:var(--ink-2); margin:0 0 12px 18px; max-width:80ch">
+            <li>New Java file in <code>org.firstinspires.ftc.teamcode</code>, choose <b>Not an OpMode</b></li>
+            <li>The class must be <code>public</code> and <code>extends BlocksOpModeCompanion</code></li>
+            <li>Each method must be <code>public static</code>, with <code>@ExportToBlocks</code> above it</li>
+            <li>Press the wrench, <b>Build Everything</b>, then find it under <b>Java Classes</b> in the toolbox</li>
+          </ol>
+          <div class="foot" style="margin:0 0 12px; padding:0; border:0">
+            <button class="linkbtn" id="bCopyBlocks">Copy the myBlocks file</button>
+            <span style="font-size:11px; color:var(--muted); font-family:var(--f-mono)" id="blkMsg"></span>
+          </div>
+        </div>
+        <pre id="blkMyBlocks" style="margin:0; padding:14px; overflow:auto; font-family:var(--f-mono);
+          font-size:11.5px; line-height:1.55; color:var(--ink); background:var(--surface-2);
+          border-top:1px solid var(--grid); max-height:460px"></pre>
       </div>
       <div class="panel">
         <div class="panel-head"><span class="panel-title">Exported OpMode</span>
@@ -892,10 +998,19 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
           swings, each CELL is handed the other&rsquo;s pose, the ridge stays up throughout and
           only the MOUTH rolls from facing up to facing down, which is what empties it.
           <br><br>
-          One number still does not reconcile: Figure 9-9&rsquo;s 42.91&Prime; CELL span implies a
-          mouth about 62.5&Prime; up, while the 53.5&Prime; and 65.6&Prime; opening heights in
-          &sect;9.6.2 put it at 59.55&Prime;. This app uses 59.55&Prime;, because that is stated in
-          text and it is the number ballistics depends on. Check the CAD.
+          <b>Two angles, not one.</b> Figure 9-9&rsquo;s 42.91&Prime; span and &sect;9.6.2&rsquo;s
+          59.55&Prime; opening height look like they disagree, and this app once had them
+          conflated. They are different angles. The <b>arm angle</b> is <i>where</i> the opening
+          sits: half the span, 21.455&Prime;, swung
+          acos((59.55&minus;43.95)/21.455) = <b>43.4&deg;</b> from vertical &mdash; which matches
+          Figure 9-10, where the four CELLS read 40&ndash;59&deg; off vertical. The <b>opening
+          tilt</b> is <i>how</i> it is oriented: the <b>30&deg;</b> labelled in Figure 9-10, and
+          the one the tilt slider drives. It checks out on its own &mdash; a 14&Prime; opening
+          leaning 30&deg; projects to 12.12&Prime; of height, against the 65.6 &minus; 53.5 =
+          12.10&Prime; stated in &sect;9.6.2. Using 30&deg; for both reproduced the right opening
+          <i>height</i> while putting the target <b>5.7&Prime; out of place horizontally</b>
+          (9.00&Prime; from the centreline instead of 14.73&Prime;), which is why it went
+          unnoticed for so long.
           <br><br>
           Amber sources are <b>not</b> settled facts. The manual states a &plusmn;1&Prime; tolerance
           on its own illustrations (&sect;9.1) and names the <b>3D CAD model</b> as the official
@@ -1535,7 +1650,7 @@ const S = {
   park:false, rec:null,
   rpmSlow:2050, rpmMid:2320, rpmFull:2650, trackL:0, trackR:0, strafeX:0, padName:"",
   trDist:71, trRpm:2320, autoT:30, autoRun:false, left:false,
-  angle:40, tip:0, wrap:135, launch:24, zFloorBase:9, zBaseAxis:13, hub:"h1309", ally:"red", airT:20, airP:1017, airRH:35, gear:1, cell:59.55, tilt:30, eta:0.45, cd:0.75, rpm:3900,
+  angle:40, tip:0, wrap:135, launch:24, zFloorBase:9, zBaseAxis:13, hub:"h1309", ally:"red", drive:"mecanum", airT:20, airP:1017, airRH:35, gear:1, cell:59.55, tilt:30, eta:0.45, cd:0.75, rpm:3900,
   wheelMass:85, robotMass:12, magSize:4, magLeft:4,
   ballCount:80, intakeOn:true, rejectBlue:false, tipMass:191, tipBalls:8,
   scored:{red:0, blue:0}, tips:0, picked:0, curve:null, miniCam:true, waitAtSpeed:true,
@@ -1549,7 +1664,7 @@ const DEFAULTS = JSON.parse(JSON.stringify(S));
    from last time is a terrible way to open, and the match state should always start clean. */
 const TRANSIENT = ["rx","ry","heading","magLeft","tips","picked","scored",
                    "trackL","trackR","strafeX","autoT","autoRun","left","padName",
-                   "matchPhase","matchT","scoreAuto","park","recCount","zFloorBase","zBaseAxis","hub","ally","airT","airP","airRH"];
+                   "matchPhase","matchT","scoreAuto","park","recCount","zFloorBase","zBaseAxis","hub","ally","airT","airP","airRH","drive"];
 try {
   const v = localStorage.getItem("biobuzz-bench-v7");
   if (v) { const o = JSON.parse(v); TRANSIENT.forEach(k => delete o[k]); Object.assign(S, o); }
@@ -1619,6 +1734,8 @@ const SPEC = [
     ["Playing field", "144 x 144 in (365.75 cm)", "Manual 9.2"],
     ["Soft foam TILE", "24 x 24 x 0.59 in", "Manual 9.2"],
     ["Tiles per side", "6", "derived: 144 / 24"],
+    ["CELL opening tilt", "30\u00b0 from horizontal", "V1 Fig 9-10"],
+    ["\u2514 verified", "14\u2033 \u00d7 cos30 = 12.12\u2033 vs 65.6-53.5 = 12.10\u2033", "V1 9.6.2"],
     ["POLLEN mass", "25.52 g", "WEIGHED"],
     ["NECTAR mass", "41.44 g red, 41.26 g blue", "WEIGHED"],
     ["TIP threshold", "191 g \u2014 fits every observed load", "calibrated"],
@@ -1652,9 +1769,9 @@ const SPEC = [
   ]],
   ["SCORING ELEMENTS", [
     ["POLLEN diameter", "2.8 in (7.1 cm)", "Manual 9.8"],
-    ["POLLEN mass", "24.9 g (0.055 lb)", "AndyMark - VERIFY"],
+    ["POLLEN mass", "25.52 g", "WEIGHED - the physics uses this"],
     ["NECTAR diameter", "3.6 in (9.1 cm)", "Manual 9.8"],
-    ["NECTAR mass", "41.3 g (0.091 lb)", "AndyMark - VERIFY"],
+    ["NECTAR mass", "41.44 g red, 41.26 g blue", "WEIGHED - the physics uses this"],
     ["Material", "Gopher ResisDent polyethylene, perforated", "Manual 9.8"],
     ["Counts", "40 POLLEN, 8 red + 8 blue NECTAR", "Manual 9.8"],
     ["Roundness", "not perfectly spherical, varies", "Manual 9.8"]
@@ -1668,7 +1785,10 @@ const SPEC = [
     ["Opening, bottom edge", "53.5 in (135.90 cm)", "Manual Fig 9-10"],
     ["Opening, top edge", "65.6 in (166.60 cm)", "Manual Fig 9-10"],
     ["Opening CENTRE (the target)", "59.55 in", "derived: midpoint of Fig 9-10"],
-    ["HIVE tilt", "30 deg", "Manual Fig 9-10"],
+    ["Opening TILT (how it leans)", "30 deg", "Manual Fig 9-10"],
+    ["Rocker arm, pivot to opening", "21.455 in = half the 42.91 in span", "derived: Fig 9-9"],
+    ["ARM ANGLE (where it sits)", "43.36 deg from vertical", "derived: acos((59.55-43.95)/21.455)"],
+    ["Opening offset from centreline", "14.73 in", "derived: 21.455 x sin(43.36 deg)"],
     ["Bottom of HIVE", "25.5 in (64.75 cm)", "Manual Fig 9-10"],
     ["HIVE centre to centre", "25.5 in (64.75 cm)", "Manual Fig 9-10"],
     ["Gap between the two cages", "18.84 in (47.85 cm)", "Manual Fig 9-9"],
@@ -1765,10 +1885,31 @@ const camera = () => CAMERAS[S.camera] || CAMERAS.none;
    30 deg lean. The arm length that puts it there follows, and then any other tilt is a
    consistent what-if rather than a guess. */
 const OPEN_CENTRE = (F.openBottom + F.openTop)/2;                       // 59.55 in
-const ARM_TO_OPENING = (OPEN_CENTRE - F.pivotH) / Math.cos(F.hiveTilt*Math.PI/180);
+/* ===== TWO ANGLES, NOT ONE =====
+   This had them conflated, and because both reproduce the stated 59.55 in. opening height the
+   mistake was invisible in every test I ran - while putting the TARGET 5.7 in. out of place.
+
+     ARM ANGLE      where the opening IS. Measured from Figure 9-9, which draws the HIVE level
+                    with a 42.91 in. span outer face to outer face, so the arm from the pivot
+                    to a CELL's outer face is half of that. Scaled off that figure, each CELL
+                    runs 9.3 in. to 21.2 in. from the pivot, its 11.9 in. depth matching the
+                    stated 12.04, and the 18.65 in. gap matching the stated 18.8.
+     OPENING TILT   how the opening is ORIENTED - the 30 degrees labelled in Figure 9-10, and
+                    the one the tilt slider drives. Verified independently: a 14 in. opening at
+                    30 degrees projects to 12.12 in. of height, and 9.6.2 states the opening
+                    spans 53.5 to 65.6 in. = 12.10 in.
+
+   The arm angle then follows from the two stated heights rather than being chosen:
+     cos(arm) = (59.55 - 43.95) / 21.455  ->  43.4 degrees from vertical
+   which agrees with Figure 9-10, where the four CELLS sit 40 to 59 degrees off vertical. The
+   old 30 degree arm put the opening 9.00 in. from the HIVE centreline; it is 14.73 in. */
+const HIVE_SPAN = 42.91;                       // Fig 9-9, outer face to outer face
+const ARM_TO_OPENING = HIVE_SPAN/2;            // 21.455 in. from the pivot
+const ARM_ANGLE = Math.acos(Math.max(-1, Math.min(1,
+                    (OPEN_CENTRE - F.pivotH) / ARM_TO_OPENING)));   // radians from vertical
 const rockerArm = () => ARM_TO_OPENING;
-const cellMouthZ = () => F.pivotH + ARM_TO_OPENING*Math.cos(S.tilt*Math.PI/180);
-const cellSeparation = () => 2*ARM_TO_OPENING*Math.cos(S.tilt*Math.PI/180);
+const cellMouthZ = () => F.pivotH + ARM_TO_OPENING*Math.cos(ARM_ANGLE);
+const cellSeparation = () => 2*ARM_TO_OPENING*Math.cos(ARM_ANGLE);
 
 /* ===== the hood profile =====
    Three anchor points, each with an in- and out-handle, so two cubic segments describe the
@@ -1837,7 +1978,9 @@ function syncCurveFromSliders() {
 function syncSlidersFromCurve() {
   const m = curveMetrics(S.curve);
   S.wrap = Math.max(20, Math.min(180, m.wrap));
-  S.angle = Math.max(20, Math.min(70, m.angle));
+  /* A hood can point DOWN - a dump into a low goal, or a deliberate bank off the floor -
+     so the range runs to -40, not just the upward quadrant. */
+  S.angle = Math.max(-40, Math.min(70, m.angle));
   /* Wrap is not just a number on a readout: a longer contact arc both spins the ball harder
      and hands it more of the wheel's surface speed. That coupling used to live only in the
      wrap SLIDER's handler, so dragging the hood nodes - the whole point of the curve editor -
@@ -2112,7 +2255,7 @@ function targetXZ() {
     return { x:w.x, z:w.z };
   }
   /* no 3D scene to ask, so work the raised red CELL out from the same rocker geometry */
-  const dh = ARM_TO_OPENING*Math.sin(S.tilt*Math.PI/180);
+  const dh = ARM_TO_OPENING*Math.sin(ARM_ANGLE);
   return { x:F.size/2 - F.hiveCtoC/2, z:F.size/2 - dh };
 }
 /* Both raised CELLS, so a side elevation can show the goal you are shooting at AND the one
@@ -2160,7 +2303,8 @@ function compute() {
   else {
     /* the preview IS the shot: same integration, same cage, same answer */
     const pred = (typeof predictShot === "function") ? predictShot(exit, angle, S.heading + S.tip*Math.PI/180) : null;
-    if (pred) {
+    if (pred && pred.result === "TOO LOW") { verdict = pred.result; why = pred.why; }
+    else if (pred) {
       verdict = pred.result; why = pred.why;
       missR = pred.miss; missL = pred.lateral;
     } else if (!cr) { verdict = "NO ARC"; why = "never falls to CELL height"; }
@@ -2377,10 +2521,11 @@ function buildScene() {
      hangs half its depth below that. The rocker still has to satisfy the 18.8 in. CELL spacing
      (9.6.2), which fixes dh once dv is known. */
   /* the rocker leans by S.tilt from vertical; everything else follows from that */
-  const tiltRad = S.tilt*Math.PI/180;
+  const tiltRad = S.tilt*Math.PI/180;          // how the OPENING is oriented
   const halfLen = rockerArm();
-  const armY = halfLen*Math.cos(tiltRad);      // vertical half-offset
-  const armZ = halfLen*Math.sin(tiltRad);      // fore-aft half-offset
+  /* WHERE the opening sits is the arm angle, which is not the opening tilt */
+  const armY = halfLen*Math.cos(ARM_ANGLE);    // vertical half-offset
+  const armZ = halfLen*Math.sin(ARM_ANGLE);    // fore-aft half-offset
   const dv = armY, dh = armZ;
   const cells = {};
   [["red", -F.hiveCtoC/2, 0xa3122b, TAGS.redFar, TAGS.redAud],
@@ -2488,8 +2633,8 @@ function buildScene() {
          opening 5.2 in. above the height the solver aims at, and every ball sailed under the
          rim and through a side wall. */
       const out = 0;
-      g.position.set(0, sign*(armY + out*Math.cos(tiltRad)),
-                        sign*side*(armZ + out*Math.sin(tiltRad)));
+      g.position.set(0, sign*(armY + out*Math.cos(ARM_ANGLE)),
+                        sign*side*(armZ + out*Math.sin(ARM_ANGLE)));
       /* Figure 9-9 shows BOTH CELLS of a HIVE built identically - same house, ridge up,
          neither one inverted. Only their MOUTHS face opposite ways, because each opens
          radially outward from the pivot.
@@ -2742,6 +2887,8 @@ function recStop() {
   recMove();
   S.recCount = REC.steps.length;
   REC.on = false; needUI = true;
+  const _b = (typeof $ === "function") ? $("recLiveBox") : null;
+  if (_b) _b.classList.add("off");      /* after the final fold, or recLive re-shows it */
 }
 const recT = () => REC.on ? (performance.now()/1000 - REC.t0) : 0;
 
@@ -2765,6 +2912,7 @@ function recMove() {
       REC.steps.push({ t:recT(), type:"turn", deg: turn*180/Math.PI });
   }
   REC.last = { x:S.rx, y:S.ry, h:S.heading };
+  if (typeof recLive === "function") recLive();
 }
 function recAction(step) {
   if (!REC.on) return;
@@ -2773,6 +2921,66 @@ function recAction(step) {
   REC.steps.push(step);
   S.recCount = REC.steps.length;
   needUI = true;
+  recLive();
+}
+
+/* Blocks and Java are two views of ONE program, so they have to grow TOGETHER as you drive -
+   seeing a tile and a line of Java appear at the same instant is the whole lesson. Redraw on
+   every recorded step rather than waiting for someone to open the tab. */
+let _blkNewest = -1;
+function recLive() {
+  _blkNewest = REC.steps.length - 1;
+  /* While you are driving you are watching the FIELD, not a tab - so the two views also run
+     as a strip over the field. A drive makes a green tile and a line of Java appear together,
+     which is the point. */
+  const box = $("recLiveBox");
+  if (box) {
+    box.classList.toggle("off", !REC.on);
+    if (REC.on) {
+      const rows = blocksFromRec().filter(b => b.recIdx !== undefined && b.recIdx >= 0);
+      const last = rows.slice(-3);
+      $("rlCount").textContent = REC.steps.length;
+      $("rlRows").textContent = "";
+      last.forEach(function (b) {
+        const d = document.createElement("div");
+        d.className = "rr";
+        d.innerHTML = '<span class="blk" style="background:' + b.c + '">'
+                    + b.t.replace(/\s+/g," ") + '</span>'
+                    + '<span class="jv">' + b.j + '</span>';
+        $("rlRows").appendChild(d);
+      });
+      /* The recorder folds driving into a step only when an action fires, so without this
+         you could drive half the FIELD and the strip would still read empty. Show the travel
+         that is accumulating - it becomes a real block the moment you shoot. */
+      if (REC.last) {
+        const dx = S.rx - REC.last.x, dy = S.ry - REC.last.y;
+        const dist = Math.hypot(dx, dy);
+        const turn = Math.abs(norm(S.heading - REC.last.h))*180/Math.PI;
+        if (dist > 0.5 || turn > 1.5) {
+          const d = document.createElement("div");
+          d.className = "rr";
+          d.style.opacity = ".62";
+          d.innerHTML = '<span class="blk" style="background:#3b4450">'
+              + (dist > 0.5 ? "driving " + dist.toFixed(1) + "\u2033" : "turning "
+                 + turn.toFixed(0) + "\u00b0") + ' \u2026</span>'
+              + '<span class="jv">not captured yet</span>';
+          $("rlRows").appendChild(d);
+        }
+      }
+    }
+  }
+  const pg = $("pg-auto");
+  if (pg && !pg.hidden && BLK.ready) {
+    /* Recording should fill the blocks as well as the table and the Java - but only while the
+       workspace is still empty. Once a student has built something by hand, driving must not
+       wipe it; the "Build from my recording" button is there for a deliberate rebuild. */
+    const proc = ftcRunOpMode();
+    const untouched = !proc || !proc.getInputTargetBlock("STACK");
+    if (untouched && REC.steps.length) blocksFromRecording();
+    blkRefreshJava();
+  }
+  const rb = $("recBody");
+  if (rb && typeof drawRec === "function") drawRec();
 }
 
 /* ---- the exported OpMode ---- */
@@ -2833,7 +3041,7 @@ function toJava() {
   p("    static final double RPM_MID  = " + Math.round(S.rpmMid) + ";");
   p("    static final double RPM_FULL = " + Math.round(S.rpmFull) + ";");
   p("");
-  p("    // ---- drivetrain, tune these to your robot ----");
+  p("    // ---- drivetrain: " + (S.drive === "mecanum" ? "MECANUM, 4 independent wheels" : "TANK, left and right sides") + " ----");
   p("    static final double DRIVE_TICKS_PER_IN  = 43.0;   // MEASURE THIS");
   p("    static final double TURN_TICKS_PER_DEG  = 9.6;    // MEASURE THIS");
   p("    static final double DRIVE_POWER         = 0.55;");
@@ -2907,6 +3115,15 @@ function toJava() {
   p("");
   p("    private void setIntake(boolean on) { intake.setPower(on ? 1.0 : 0.0); }");
   p("");
+  if (S.drive === "mecanum") {
+    p("    /** Mecanum: all four wheels forward. Strafing is left/right on the sticks. */");
+    p("    private void strafeInches(double inches) {");
+    p("        int t = (int) Math.round(inches * DRIVE_TICKS_PER_IN);");
+    p("        // front-left and back-right one way, front-right and back-left the other");
+    p("        runToFour(t, -t, -t, t);");
+    p("    }");
+    p("");
+  }
   p("    private void driveInches(double inches) {");
   p("        runToRelative((int) Math.round(inches * DRIVE_TICKS_PER_IN),");
   p("                      (int) Math.round(inches * DRIVE_TICKS_PER_IN));");
@@ -2917,6 +3134,23 @@ function toJava() {
   p("        runToRelative(-t, t);");
   p("    }");
   p("");
+  if (S.drive === "mecanum") {
+    p("    private void runToFour(int fl, int bl, int fr, int br) {");
+    p("        DcMotor[] all = { this.fl, this.bl, this.fr, this.br };");
+    p("        int[] target = { this.fl.getCurrentPosition() + fl,");
+    p("                         this.bl.getCurrentPosition() + bl,");
+    p("                         this.fr.getCurrentPosition() + fr,");
+    p("                         this.br.getCurrentPosition() + br };");
+    p("        for (int i = 0; i < 4; i++) {");
+    p("            all[i].setTargetPosition(target[i]);");
+    p("            all[i].setMode(DcMotor.RunMode.RUN_TO_POSITION);");
+    p("            all[i].setPower(DRIVE_POWER);");
+    p("        }");
+    p("        while (opModeIsActive() && (this.fl.isBusy() || this.fr.isBusy())) { idle(); }");
+    p("        for (DcMotor m : all) { m.setPower(0); m.setMode(DcMotor.RunMode.RUN_USING_ENCODER); }");
+    p("    }");
+    p("");
+  }
   p("    private void runToRelative(int leftTicks, int rightTicks) {");
   p("        DcMotor[] all = { fl, bl, fr, br };");
   p("        int[] target = { fl.getCurrentPosition() + leftTicks,");
@@ -3604,6 +3838,20 @@ function predictShot(exit, angleDeg, dir) {
 
     if (f.p.y <= r) break;
   }
+  /* A ball fired flat or downward from 24 in. cannot climb to a 59.55 in. CELL - it is not
+     LONG or SHORT, it simply never gets there, and saying "63.8 in. of range" about it is
+     nonsense. Report the real reason.
+     Only when it flew CLEAN, though: a ball that bounced off the cage also ends up with a low
+     apex, but that is the consequence of the strike, not the reason it missed - calling that
+     TOO LOW hid every HIT THE CAGE in the useful part of the range. */
+  if (apex < S.cell - 0.5 && !struck) {
+    _predKey = key;
+    _predVal = { result:"TOO LOW", t:t, apex:apex, miss:NaN, lateral:NaN, entry:NaN,
+                 why:"apex " + apex.toFixed(0) + "\u2033, the CELL mouth is "
+                     + S.cell.toFixed(0) + "\u2033" };
+    return _predVal;
+  }
+
   /* where did it end up relative to the opening? */
   const dx = f.p.x - mouth.x, dz = f.p.z - mouth.z;
   const along = dx*Math.cos(dir) + dz*Math.sin(dir);      // near / far
@@ -3762,6 +4010,9 @@ function drive(dt) {
   L = Math.max(-1, Math.min(1, L));
   R = Math.max(-1, Math.min(1, R));
   strafe = Math.max(-1, Math.min(1, strafe));
+  /* A tank drive has no sideways degree of freedom - the wheels only roll forward and back.
+     Letting it strafe would teach exactly the wrong thing about why teams pay for mecanums. */
+  if (S.drive === "tank") strafe = 0;
   if (!L && !R && !strafe) return false;
 
   const v = (L + R)/2 * TOP_SPEED;
@@ -3934,7 +4185,7 @@ function loop(t) {
   stepMatch(dt);
   servicePending();
   stepFlywheel(dt, lastC && !isNaN(lastC.flyRpm) ? lastC.flyRpm : 0);
-  if (moved) { needUI = true; save(); }
+  if (moved) { needUI = true; save(); if (REC.on) recLive(); }
   const C = (moved || needUI) ? compute() : lastC;
   lastC = C;
   syncScene(C);
@@ -4301,9 +4552,22 @@ function stepGoto(dt) {
 
 /* ---- replay a recorded AUTO, so the exported Java can be watched before it is trusted ---- */
 const PLAY = { on:false, i:0, cur:null, rem:0 };
+/* Any list of steps can be played, not just the recorder's - which is how a program built
+   out of Blocks drives the same robot on the same FIELD. */
+function playSteps(list) {
+  if (!list || !list.length) return false;
+  stageAuto();
+  PLAY.list = list;
+  PLAY.on = true; PLAY.i = 0; PLAY.cur = null; PLAY.rem = 0;
+  S.matchPhase = "auto"; S.matchT = PHASE.auto;
+  S.scoreAuto = 0; S.autoRun = true; S.autoT = PHASE.auto;
+  cancelGoto(); needUI = true;
+  return true;
+}
 function recPlay() {
   if (!REC.steps.length) return false;
   stageAuto();
+  PLAY.list = REC.steps;
   PLAY.on = true; PLAY.i = 0; PLAY.cur = null; PLAY.rem = 0;
   S.matchPhase = "auto"; S.matchT = PHASE.auto;
   S.scoreAuto = 0; S.autoRun = true; S.autoT = PHASE.auto;
@@ -4315,8 +4579,9 @@ function recPlayStop() { PLAY.on = false; PLAY.cur = null; needUI = true; }
 function stepPlay(dt) {
   if (!PLAY.on) return false;
   if (!PLAY.cur) {
-    if (PLAY.i >= REC.steps.length) { PLAY.on = false; S.autoRun = false; needUI = true; return false; }
-    PLAY.cur = REC.steps[PLAY.i++];
+    const list = PLAY.list || REC.steps;
+    if (PLAY.i >= list.length) { PLAY.on = false; S.autoRun = false; needUI = true; return false; }
+    PLAY.cur = list[PLAY.i++];
     PLAY.rem = PLAY.cur.type === "drive" ? PLAY.cur.inches
              : PLAY.cur.type === "turn"  ? PLAY.cur.deg*Math.PI/180 : 0;
   }
@@ -5230,6 +5495,500 @@ function drawVision(C) {
       '<span class="ld">' + (t.visible ? "in view" : "not in view") + '</span>';
     box.appendChild(row);
   });
+}
+
+/* ============================================================================================
+   BLOCKS.
+   FTC Blocks is Blockly: every Block is one Java statement in a coloured, notched tile. Drawing
+   the recorded AUTO both ways side by side is the quickest way to see that they are the same
+   program - which is the thing students most often doubt.
+   Colours follow the FTC toolbox: motion green, actuators blue, control orange, telemetry grey.
+   ============================================================================================ */
+const BLK_COL = { motion:"#5ba55b", act:"#4a7fd4", ctl:"#e0922c", tel:"#8a8f97", my:"#9b59b6" };
+
+/* one recorded step -> the Block that would do it, and the Java line beside it */
+function blocksFromRec() {
+  const out = [{ c:BLK_COL.ctl, t:"call waitForStart", j:"waitForStart();", recIdx:-99 }];
+  REC.steps.forEach(function (st, idx) {
+    if (st.type === "drive")
+      out.push({ c:BLK_COL.motion, t:"call driveInches  " + st.inches.toFixed(1),
+                 j:"driveInches(" + st.inches.toFixed(1) + ");", recIdx:idx });
+    else if (st.type === "turn")
+      out.push({ c:BLK_COL.motion, t:"call turnDegrees  " + st.deg.toFixed(0),
+                 j:"turnDegrees(" + st.deg.toFixed(0) + ");", recIdx:idx });
+    else if (st.type === "shoot")
+      out.push({ c:BLK_COL.my, t:"call shoot  " + Math.round(st.rpm || S.rpm) + " rpm",
+                 j:"shoot(" + Math.round(st.rpm || S.rpm) + ");", my:true, recIdx:idx });
+    else if (st.type === "intake")
+      out.push({ c:BLK_COL.act, t:"call setIntake  " + (st.on ? "true" : "false"),
+                 j:"setIntake(" + (st.on ? "true" : "false") + ");", recIdx:idx });
+  });
+  out.push({ c:BLK_COL.tel, t:"call telemetry.update", j:"telemetry.update();" });
+  return out;
+}
+
+/* ============================================================================================
+   A REAL BLOCK EDITOR.
+   Blockly is the same library FTC Blocks is built on, so these drag, snap, undo and serialise
+   exactly the way the real editor does. Loaded only when the tab is first opened - it is 1 MB,
+   and most sessions never come here.
+
+   Honest limit: these are FTC-FLAVOURED blocks I define, not a byte-copy of the official FTC
+   toolbox, so a program built here will not import into the real Blocks editor as a .blk. It
+   teaches the same thinking and it RUNS on this field, which is what it is for. The bridge to
+   a real robot is the myBlocks file below.
+   ============================================================================================ */
+let BLK = { ws:null, loading:false, ready:false };
+
+/* ============================================================================================
+   THE REAL FTC BLOCKS EDITOR.
+   ftc/blocks/*.js are the genuine block definitions out of org.firstinspires.ftc:Blocks
+   (Apache 2.0, Google LLC), and ftc/ftcblockly/generators/ftcjava*.js is the genuine generator
+   that turns them into FTC Java. Nothing here is an imitation: dcMotor_setProperty_Number is
+   the same block, with the same dropdowns, that a student sees on a Control Hub.
+
+   Four helper functions normally come from the Robot Controller's own web server rather than
+   from the Blocks library; ftc/ftc-shim.js stands in for those and feeds the blocks this
+   robot's device names. See ftc/NOTICE.md.
+   ============================================================================================ */
+const FTC_SRC = [
+  "ftc/blockly/blockly_compressed.js",
+  "ftc/blockly/msg/messages.js",
+  "ftc/blockly/blocks_compressed.js",
+  "ftc/blockly/javascript_compressed.js",
+  "ftc/ftc-shim.js",
+  "ftc/ftcblockly/generators/javascript.js",
+  "ftc/ftcblockly/generators/ftcjava.js",
+  "ftc/ftcblockly/generators/ftcjava/lists.js",
+  "ftc/ftcblockly/generators/ftcjava/logic.js",
+  "ftc/ftcblockly/generators/ftcjava/loops.js",
+  "ftc/ftcblockly/generators/ftcjava/math.js",
+  "ftc/ftcblockly/generators/ftcjava/procedures.js",
+  "ftc/ftcblockly/generators/ftcjava/text.js",
+  "ftc/ftcblockly/generators/ftcjava/variables.js",
+  "ftc/blocks/vars.js",          /* defines the field helpers the others use */
+  "ftc/blocks/misc.js",
+  "ftc/blocks/linear_op_mode.js",
+  "ftc/blocks/dc_motor.js",
+  "ftc/blocks/servo.js",
+  "ftc/blocks/telemetry.js",
+  "ftc/blocks/gamepad.js",
+  "ftc/blocks/elapsed_time2.js",
+  "ftc/blocks/color_sensor.js",
+  "ftc/blocks/imu.js"
+];
+
+/* The toolbox. The Blockly bundled with the FTC SDK wants XML, not the newer JSON form -
+   getToolbox() on a real Robot Controller is generated per-robot and is not in the .aar, so
+   this is ours. Only block types that actually loaded are included, so a missing optional
+   file leaves a smaller toolbox rather than a broken one. */
+function ftcToolboxXml() {
+  const has = t => typeof Blockly !== "undefined" && Blockly.Blocks && Blockly.Blocks[t];
+  const cat = (name, colour, types) => {
+    const kept = types.filter(has);
+    if (!kept.length) return "";
+    return '<category name="' + name + '" colour="' + colour + '">'
+         + kept.map(t => '<block type="' + t + '"></block>').join("")
+         + '</category>';
+  };
+  const num = '<block type="math_number"><field name="NUM">0</field></block>';
+  return '<xml id="ftcToolbox" style="display:none">'
+    + cat("LinearOpMode", "#c2185b", ["linearOpMode_waitForStart","linearOpMode_opModeIsActive",
+          "linearOpMode_idle","linearOpMode_sleep_Number","linearOpMode_isStopRequested",
+          "linearOpMode_isStarted"])
+    + cat("DcMotor", "#5ba55b", ["dcMotor_setProperty_Number","dcMotor_getProperty_Number",
+          "dcMotor_setDualProperty_Number","dcMotor_setProperty_RunMode",
+          "dcMotor_getProperty_RunMode","dcMotor_setProperty_Direction",
+          "dcMotor_setProperty_ZeroPowerBehavior","dcMotor_getProperty_Boolean"])
+    + cat("Servo", "#4a7fd4", ["servo_setProperty_Number","servo_getProperty_Number",
+          "servo_setProperty_Direction"])
+    + cat("Telemetry", "#8a8f97", ["telemetry_addTextData_All","telemetry_addNumericData_All",
+          "telemetry_update","telemetry_speak_Text"])
+    + cat("Gamepad", "#7e57c2", ["gamepad_getProperty_Boolean","gamepad_getProperty_Number"])
+    + cat("Sensors", "#00897b", ["colorSensor_getProperty_Number","imu_getProperty_YawPitchRollAngles"])
+    + cat("Timer", "#795548", ["elapsedTime2_create","elapsedTime2_getProperty_Number",
+          "elapsedTime2_reset"])
+    + '<sep></sep>'
+    + '<category name="Logic" colour="#5b80a5">'
+      + '<block type="controls_if"></block><block type="logic_compare"></block>'
+      + '<block type="logic_operation"></block><block type="logic_boolean"></block>'
+      + '<block type="logic_negate"></block></category>'
+    + '<category name="Loops" colour="#5ba55b">'
+      + '<block type="controls_repeat_ext"><value name="TIMES">' + num + '</value></block>'
+      + '<block type="controls_whileUntil"></block><block type="controls_for"></block></category>'
+    + '<category name="Math" colour="#5b67a5">'
+      + '<block type="math_number"><field name="NUM">0</field></block>'
+      + '<block type="math_arithmetic"></block><block type="math_single"></block>'
+      + '<block type="math_trig"></block><block type="math_round"></block></category>'
+    + '<category name="Text" colour="#5ba58c">'
+      + '<block type="text"></block><block type="text_join"></block></category>'
+    + '<category name="Variables" colour="#a55b80" custom="VARIABLE"></category>'
+    + '<category name="Functions" colour="#9a5ba5" custom="PROCEDURE"></category>'
+    + '</xml>';
+}
+
+function loadFtcScripts(done) {
+  let i = 0;
+  const next = () => {
+    if (i >= FTC_SRC.length) { done(null); return; }
+    const src = FTC_SRC[i++];
+    const sc = document.createElement("script");
+    sc.src = src;
+    sc.onload = next;
+    /* a missing optional block file must not stop the editor from opening */
+    sc.onerror = () => {
+      if (/blockly_compressed|ftcjava\.js|ftc-shim/.test(src)) { done("could not load " + src); return; }
+      next();
+    };
+    document.head.appendChild(sc);
+  };
+  next();
+}
+
+/* An FTC Blocks program lives inside a procedure called runOpMode - that is what the FtcJava
+   generator looks for, and it is why an empty workspace produces a class with nothing in it.
+   The real editor starts you with that block already on the canvas; so does this. */
+function ftcRunOpMode() {
+  if (!BLK.ws) return null;
+  return BLK.ws.getTopBlocks(false).filter(b =>
+    b.type === "procedures_defnoreturn" && b.getFieldValue("NAME") === "runOpMode")[0] || null;
+}
+function ftcEnsureRunOpMode() {
+  if (!BLK.ws || ftcRunOpMode()) return ftcRunOpMode();
+  const b = BLK.ws.newBlock("procedures_defnoreturn");
+  b.setFieldValue("runOpMode", "NAME");
+  b.initSvg(); b.render(); b.moveBy(26, 22);
+  return b;
+}
+/* the statement connection a student (or we) drop blocks into */
+function ftcBodyTail() {
+  const proc = ftcEnsureRunOpMode();
+  if (!proc) return null;
+  let last = proc.getInputTargetBlock("STACK");
+  if (!last) return { connect: c => proc.getInput("STACK").connection.connect(c) };
+  while (last.getNextBlock()) last = last.getNextBlock();
+  const tail = last;
+  return { connect: c => tail.nextConnection.connect(c) };
+}
+
+/* real FTC Java, straight from the real generator */
+function blkRefreshJava() {
+  const out = $("blkJava"); if (!out || !BLK.ws) return;
+  let body = "";
+  try {
+    if (Blockly.FtcJava && Blockly.FtcJava.workspaceToCode) {
+      Blockly.FtcJava.INDENT = "    ";
+      body = Blockly.FtcJava.workspaceToCode(BLK.ws);
+    }
+  } catch (e) { body = "// " + e.message; }
+  out.textContent = body.trim()
+    ? body
+    : "// drag blocks in from the toolbox\n// the FTC Java generator writes this pane";
+  const n = BLK.ws.getAllBlocks(false).length;
+  const note = $("blkNote");
+  if (note) note.textContent = n + " block" + (n===1?"":"s")
+    + " \u00b7 real FTC toolbox \u00b7 Java by the FTC generator";
+}
+
+/* Map the real FTC blocks onto this simulator. A dcMotor block that sets "shooter" power is
+   a shot here; one that sets a drive motor is motion. Blocks the bench has no robot for are
+   skipped rather than faked. */
+function blocksToSteps() {
+  if (!BLK.ws) return [];
+  const steps = [];
+  const DRIVE = ["front_left_drive","back_left_drive","front_right_drive","back_right_drive"];
+  BLK.ws.getTopBlocks(true).forEach(function walk(b) {
+    while (b) {
+      const t = b.type || "";
+      try {
+        if (t.indexOf("dcMotor_setProperty") === 0 || t.indexOf("dcMotor_setDualProperty") === 0) {
+          const id = b.getFieldValue("IDENTIFIER") || b.getFieldValue("IDENTIFIER1") || "";
+          const prop = b.getFieldValue("PROP") || "";
+          const v = ftcNumberFrom(b, "VALUE") || ftcNumberFrom(b, "VALUE1") || 0;
+          if (id === "shooter" && (prop === "Velocity" || prop === "Power")) {
+            steps.push({ type:"shoot", rpm: prop === "Velocity" ? Math.abs(v)*60/28
+                                            : Math.abs(v)*maxFlyRpm() });
+          } else if (id === "intake") {
+            steps.push({ type:"intake", on: Math.abs(v) > 0.05 });
+          } else if (DRIVE.indexOf(id) >= 0 && prop === "TargetPosition") {
+            steps.push({ type:"drive", inches: v/43.0 });   // DRIVE_TICKS_PER_IN in the export
+          } else if (DRIVE.indexOf(id) >= 0 && prop === "Power" && Math.abs(v) > 0.05) {
+            steps.push({ type:"drive", inches: 12*Math.sign(v) });
+          }
+        } else if (t === "linearOpMode_sleep_Number") {
+          steps.push({ type:"wait", sec:(ftcNumberFrom(b, "MILLISECONDS") || 0)/1000 });
+        }
+      } catch (e) { /* a block we cannot read is simply not a step */ }
+      const inner = b.getInputTargetBlock && (b.getInputTargetBlock("DO") || b.getInputTargetBlock("STACK"));
+      if (inner) walk(inner);
+      b = b.getNextBlock ? b.getNextBlock() : null;
+    }
+  });
+  return steps;
+}
+function ftcNumberFrom(block, inputName) {
+  try {
+    const t = block.getInputTargetBlock(inputName);
+    if (t && t.type === "math_number") return parseFloat(t.getFieldValue("NUM"));
+    const f = block.getFieldValue(inputName);
+    if (f !== null && f !== undefined && f !== "") return parseFloat(f);
+  } catch (e) {}
+  return 0;
+}
+
+function blkRun() {
+  const steps = blocksToSteps().filter(x => x.type !== "telemetry");
+  if (!steps.length) {
+    $("blkRunMsg").textContent =
+      "nothing to run — set a drive motor's TargetPosition, or the shooter's Velocity";
+    return;
+  }
+  playSteps(steps);
+  $("blkRunMsg").textContent = "running " + steps.length + " step"
+    + (steps.length===1?"":"s") + " on the field";
+}
+
+/* a recorded AUTO, rebuilt out of REAL FTC blocks */
+/* A recording becomes the blocks that drivetrain would really use.
+
+   TANK pairs the two sides, which is exactly what dcMotor_setDualProperty_Number is for - one
+   block, two motors, one value each. MECANUM has to address all four wheels independently,
+   so it takes two dual blocks and the signs differ when it strafes. Showing the same drive as
+   two or as four blocks is the clearest way to see what the extra wheels cost you in code. */
+function blocksFromRecording() {
+  if (!BLK.ws || !REC.steps.length) return 0;
+  BLK.ws.clear();
+  ftcEnsureRunOpMode();
+  let made = 0;
+  const TICKS = 43.0;                         // DRIVE_TICKS_PER_IN in the export
+  const mk = t => { const b = BLK.ws.newBlock(t); b.initSvg(); b.render(); return b; };
+  const num = v => { const n = mk("math_number"); n.setFieldValue(String(v), "NUM"); return n; };
+  const put = b => { const tail = ftcBodyTail(); if (tail) tail.connect(b.previousConnection); made++; };
+
+  const dual = (idA, idB, prop, vA, vB) => {
+    if (!Blockly.Blocks["dcMotor_setDualProperty_Number"]) return null;
+    const b = mk("dcMotor_setDualProperty_Number");
+    b.setFieldValue(prop, "PROP");
+    b.setFieldValue(idA, "IDENTIFIER1");
+    b.setFieldValue(idB, "IDENTIFIER2");
+    b.getInput("VALUE1").connection.connect(num(vA).outputConnection);
+    b.getInput("VALUE2").connection.connect(num(vB).outputConnection);
+    return b;
+  };
+  const single = (id, prop, v) => {
+    if (!Blockly.Blocks["dcMotor_setProperty_Number"]) return null;
+    const b = mk("dcMotor_setProperty_Number");
+    b.setFieldValue(id, "IDENTIFIER");
+    b.setFieldValue(prop, "PROP");
+    b.getInput("VALUE").connection.connect(num(v).outputConnection);
+    return b;
+  };
+
+  const start = mk("linearOpMode_waitForStart");
+  if (start) put(start);
+
+  REC.steps.forEach(function (st) {
+    if (st.type === "drive") {
+      const t = Math.round(st.inches*TICKS);
+      if (S.drive === "tank") {
+        const b = dual("front_left_drive", "front_right_drive", "TargetPosition", t, t);
+        if (b) put(b);
+      } else {
+        const b1 = dual("front_left_drive", "back_left_drive",  "TargetPosition", t, t);
+        const b2 = dual("front_right_drive","back_right_drive", "TargetPosition", t, t);
+        if (b1) put(b1); if (b2) put(b2);
+      }
+    } else if (st.type === "turn") {
+      /* a turn is the two sides in opposition, on either drivetrain */
+      const t = Math.round(st.deg*9.6);       // TURN_TICKS_PER_DEG in the export
+      if (S.drive === "tank") {
+        const b = dual("front_left_drive", "front_right_drive", "TargetPosition", -t, t);
+        if (b) put(b);
+      } else {
+        const b1 = dual("front_left_drive", "back_left_drive",  "TargetPosition", -t, -t);
+        const b2 = dual("front_right_drive","back_right_drive", "TargetPosition",  t,  t);
+        if (b1) put(b1); if (b2) put(b2);
+      }
+    } else if (st.type === "shoot") {
+      const b = single("shooter", "Velocity", Math.round((st.rpm || S.rpm)*28/60));
+      if (b) put(b);
+    } else if (st.type === "intake") {
+      const b = single("intake", "Power", st.on ? 1 : 0);
+      if (b) put(b);
+    }
+  });
+  blkRefreshJava();
+  return made;
+}
+
+/* With nothing recorded there is nothing drivetrain-specific to look at, so choosing mecanum
+   appeared to do nothing at all. Each drivetrain now opens with a short worked example of
+   ITS OWN driving - which is also the clearest statement of the difference between them:
+   mecanum has a strafe step and tank simply cannot. Driving replaces this the moment you
+   record something, and the Clear button wipes it. */
+function blocksStarter() {
+  if (!BLK.ws) return 0;
+  BLK.ws.clear();
+  ftcEnsureRunOpMode();
+  const TICKS = 43.0, TURN = 9.6;
+  const mk = t => { const b = BLK.ws.newBlock(t); b.initSvg(); b.render(); return b; };
+  const num = v => { const n = mk("math_number"); n.setFieldValue(String(v), "NUM"); return n; };
+  const put = b => { const tail = ftcBodyTail(); if (b && tail) tail.connect(b.previousConnection); };
+  const dual = (a, bb, prop, va, vb) => {
+    if (!Blockly.Blocks["dcMotor_setDualProperty_Number"]) return null;
+    const b = mk("dcMotor_setDualProperty_Number");
+    b.setFieldValue(prop, "PROP");
+    b.setFieldValue(a, "IDENTIFIER1"); b.setFieldValue(bb, "IDENTIFIER2");
+    b.getInput("VALUE1").connection.connect(num(va).outputConnection);
+    b.getInput("VALUE2").connection.connect(num(vb).outputConnection);
+    return b;
+  };
+  put(mk("linearOpMode_waitForStart"));
+
+  const fwd = Math.round(24*TICKS);           // drive 24 in
+  const spin = Math.round(90*TURN);           // turn 90 deg
+  if (S.drive === "tank") {
+    put(dual("front_left_drive", "front_right_drive", "TargetPosition", fwd, fwd));
+    put(dual("front_left_drive", "front_right_drive", "TargetPosition", -spin, spin));
+  } else {
+    const side = Math.round(12*TICKS);        // strafe 12 in - no tank equivalent
+    put(dual("front_left_drive", "back_left_drive",   "TargetPosition", fwd, fwd));
+    put(dual("front_right_drive","back_right_drive",  "TargetPosition", fwd, fwd));
+    /* strafing right: front-left and back-right one way, the other pair the other */
+    put(dual("front_left_drive", "back_right_drive",  "TargetPosition",  side,  side));
+    put(dual("front_right_drive","back_left_drive",   "TargetPosition", -side, -side));
+    put(dual("front_left_drive", "back_left_drive",   "TargetPosition", -spin, -spin));
+    put(dual("front_right_drive","back_right_drive",  "TargetPosition",  spin,  spin));
+  }
+  blkRefreshJava();
+  return BLK.ws.getAllBlocks(false).length;
+}
+
+function initBlockly() {
+  if (BLK.ready) { if (BLK.ws) Blockly.svgResize(BLK.ws); return; }
+  if (BLK.loading) return;
+  BLK.loading = true;
+  $("blkLoading").textContent = "loading the real FTC block definitions\u2026";
+  loadFtcScripts(function (err) {
+    BLK.loading = false;
+    if (err) { $("blkLoading").textContent = err; return; }
+    try {
+      BLK.ws = Blockly.inject("blkWorkspace", {
+        toolbox: ftcToolboxXml(), trashcan:true,
+        grid:{ spacing:22, length:3, colour:"rgba(128,128,128,.25)", snap:true },
+        zoom:{ controls:true, wheel:true, startScale:0.85 }
+      });
+      BLK.ready = true;
+      $("blkLoading").style.display = "none";
+      ftcEnsureRunOpMode();
+      BLK.ws.addChangeListener(function () { blkRefreshJava(); });
+      if (REC.steps.length) blocksFromRecording(); else blocksStarter();
+      blkRefreshJava();
+    } catch (e) {
+      $("blkLoading").textContent = "could not start the editor: " + e.message;
+    }
+  });
+}
+
+function drawBlocks() {
+  initBlockly();
+  if (BLK.ws) { Blockly.svgResize(BLK.ws); blkRefreshJava(); }
+  $("blkMyBlocks").textContent = myBlocksJava();
+  drawBlockMap();
+}
+
+/* the Blocks <-> Java table */
+const BLK_MAP = [
+  ["when AUTO starts", "@Autonomous  class ... extends LinearOpMode", "names the program and lists it on the Driver Station"],
+  ["call waitForStart", "waitForStart();", "hold until the referee starts the MATCH"],
+  ["set motor power", "motor.setPower(0.5);", "run a motor open-loop"],
+  ["set motor target", "motor.setTargetPosition(1200);", "drive a measured distance on the encoder"],
+  ["repeat while opModeIsActive", "while (opModeIsActive()) { }", "keep going until the MATCH ends"],
+  ["call telemetry.addData", "telemetry.addData(\"rpm\", v);", "print a number to the Driver Station"],
+  ["a myBlock you wrote", "@ExportToBlocks public static void shoot(double rpm)", "anything the toolbox has no Block for"]
+];
+function drawBlockMap() {
+  const b = $("blkMapBody"); if (!b || b.dataset.done) return;
+  b.dataset.done = "1";
+  BLK_MAP.forEach(function (r) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = "<td>" + r[0] + "</td><td><code>" + r[1].replace(/</g,"&lt;")
+                 + "</code></td><td>" + r[2] + "</td>";
+    b.appendChild(tr);
+  });
+}
+
+/* ---- the myBlocks file: this team's shot solver, as a draggable Block ----
+   Signature rules are from the FtcRobotController wiki: public static, @ExportToBlocks above
+   each method, class extends BlocksOpModeCompanion, stored in org.firstinspires.ftc.teamcode
+   and declared "Not an OpMode". */
+function myBlocksJava() {
+  const W = wheelP(), M = motor();
+  return [
+"package org.firstinspires.ftc.teamcode;",
+"",
+"import org.firstinspires.ftc.robotcore.external.ExportToBlocks;",
+"import org.firstinspires.ftc.robotcore.external.BlocksOpModeCompanion;",
+"",
+"/**",
+" * Drop this in the teamcode folder as \"Not an OpMode\", press the wrench and Build",
+" * Everything, then find it under Java Classes in the Blocks toolbox.",
+" *",
+" * Built for: " + W.mm + "mm " + W.nm + ", " + M.nm,
+" * These are YOUR numbers from the bench - re-export if you change the shooter.",
+" */",
+"public class BioBuzzMyBlocks extends BlocksOpModeCompanion {",
+"",
+"    static final double WHEEL_DIA_MM  = " + W.mm + ";",
+"    static final double GEAR_RATIO    = " + S.gear.toFixed(2) + ";",
+"    static final double TRANSFER_EFF  = " + S.eta.toFixed(3) + ";",
+"    static final double LAUNCH_Z_IN   = " + S.launch.toFixed(2) + ";",
+"    static final double CELL_Z_IN     = " + S.cell.toFixed(2) + ";",
+"    static final double HOOD_DEG      = " + S.angle.toFixed(1) + ";",
+"",
+"    @ExportToBlocks(",
+"        comment = \"Flywheel rpm for a shot at this range, from the Shooter Bench.\",",
+"        tooltip = \"Range in inches to the CELL, returns flywheel rpm\",",
+"        parameterLabels = {\"range (in)\"},",
+"        parameterDefaultValues = {\"48\"}",
+"    )",
+"    public static double rpmForRange(double rangeIn) {",
+"        double rise = (CELL_Z_IN - LAUNCH_Z_IN) * 0.0254;",
+"        double d    = rangeIn * 0.0254;",
+"        double a    = Math.toRadians(HOOD_DEG);",
+"        double den  = 2.0 * Math.pow(Math.cos(a), 2) * (d * Math.tan(a) - rise);",
+"        if (den <= 0) return 0;                       // cannot reach at this hood angle",
+"        double v    = Math.sqrt(9.80665 * d * d / den);",
+"        double rim  = v / TRANSFER_EFF;               // ball speed -> rim speed",
+"        double rpm  = rim * 60.0 / (Math.PI * WHEEL_DIA_MM / 1000.0);",
+"        return rpm * GEAR_RATIO;",
+"    }",
+"",
+"    @ExportToBlocks(",
+"        comment = \"True when the flywheel is within tolerance of the target rpm.\",",
+"        tooltip = \"Measured rpm, target rpm, tolerance\",",
+"        parameterLabels = {\"measured\", \"target\", \"tolerance\"},",
+"        parameterDefaultValues = {\"0\", \"3000\", \"40\"}",
+"    )",
+"    public static boolean atSpeed(double measured, double target, double tol) {",
+"        return Math.abs(measured - target) <= tol;",
+"    }",
+"",
+"    @ExportToBlocks(",
+"        comment = \"Degrees to turn to face the CELL, from the robot pose and the CELL pose.\",",
+"        tooltip = \"Robot x,y and heading, CELL x,y - all in inches and degrees\",",
+"        parameterLabels = {\"robot x\", \"robot y\", \"heading\", \"cell x\", \"cell y\"}",
+"    )",
+"    public static double bearingToCell(double rx, double ry, double headingDeg,",
+"                                       double cx, double cy) {",
+"        double want = Math.toDegrees(Math.atan2(cy - ry, cx - rx));",
+"        double err  = want - headingDeg;",
+"        while (err > 180)  err -= 360;",
+"        while (err < -180) err += 360;",
+"        return err;",
+"    }",
+"}"
+  ].join("\n");
 }
 
 /* ---- the verified spec sheet ---- */
@@ -6203,7 +6962,7 @@ const C_MAP = [
   ["cTip","tip","vTip", v => (v>0?"+":"")+v.toFixed(2)+"\u00b0"],
   ["cLaunch","launch","vLaunch", v => v.toFixed(1)+"\u2033"],
   ["cGear","gear","vGear", v => v.toFixed(1)+":1"],
-  ["cTilt","tilt","vTilt", v => Math.round(v)+"\u00b0 from vertical"],
+  ["cTilt","tilt","vTilt", v => Math.round(v)+"\u00b0 opening from horizontal"],
   ["cEta","eta","vEta", v => v.toFixed(2)],
   ["cCd","cd","vCd", v => v.toFixed(2)],
   ["cRpm","rpm","vRpm", v => Math.round(v)+" rpm"],
@@ -6215,6 +6974,19 @@ function syncInputs() {
   C_MAP.forEach(([id,key,out,fmt]) => { const e = $(id); if (!e) return;
     e.value = S[key]; $(out).textContent = fmt(S[key]); });
   const lock = S.src !== "fixed";
+  /* the typed angle box and both sliders are three views of ONE number, so they are synced
+     here in syncInputs - which every refresh calls - rather than in a drag handler, where
+     the previous version only ran if you happened to drag a curve node. */
+  const nAng = $("nAngle2");
+  if (nAng && document.activeElement !== nAng) nAng.value = S.angle.toFixed(1);
+  /* the Curvature & Z sliders live outside C_MAP's list, so sync them here too - otherwise
+     typing an angle moved the number but left the slider sitting where it was */
+  [["cWrap2","wrap","vWrap2",  v => Math.round(v)+"\u00b0"],
+   ["cAngle2","angle","vAngle2", v => v.toFixed(1)+"\u00b0"]].forEach(function (r) {
+    const el = $(r[0]); if (!el) return;
+    if (document.activeElement !== el) el.value = S[r[1]];
+    const o = $(r[2]); if (o) o.textContent = r[3](S[r[1]]);
+  });
   $("cRpm").disabled = lock; $("cRpm").style.opacity = lock ? .4 : 1;
   $("cAngle").disabled = hood().servo; $("cAngle").style.opacity = hood().servo ? .4 : 1;
   $("cMagnus").checked = S.magnus; $("cDrag").checked = S.drag;
@@ -6232,6 +7004,20 @@ function syncInputs() {
   $("bNectar").setAttribute("aria-pressed", S.ball === "nectar");
   $("bSmooth").setAttribute("aria-pressed", !S.holes);
   $("bHoles").setAttribute("aria-pressed", !!S.holes);
+  const dm = $("dtMecanum"), dtk = $("dtTank");
+  if (dm)  dm.setAttribute("aria-pressed", S.drive === "mecanum");
+  if (dtk) dtk.setAttribute("aria-pressed", S.drive === "tank");
+  const dx = $("dtExplain");
+  if (dx) dx.textContent = S.drive === "mecanum"
+    ? "Four wheels, each driven independently, with rollers at 45\u00b0. It can go sideways: "
+      + "J and L strafe. The exported OpMode gets strafeInches() and drives all four wheels "
+      + "separately, which is why a mecanum program is longer than a tank one."
+    : "Two sides, left and right. No sideways travel - to move right you turn, drive, and "
+      + "turn back, which costs time in AUTO. The exported OpMode drives the two sides "
+      + "together and has no strafe. Simpler, cheaper, and faster in a straight line.";
+  const dn = $("dtNote");
+  if (dn) dn.textContent = S.drive === "mecanum" ? "mecanum \u00b7 can strafe"
+                                                 : "tank \u00b7 no strafe";
   const ar = $("allyRed"), ab = $("allyBlue");
   if (ar) ar.setAttribute("aria-pressed", S.ally === "red");
   if (ab) ab.setAttribute("aria-pressed", S.ally === "blue");
@@ -6251,7 +7037,7 @@ function refreshPanels(C) {
     case "aim":   drawSide(C); break;
     case "range": drawTestRange(); break;
     case "chan":  drawChannels(); break;
-    case "auto":  drawRec(); break;
+    case "auto":  drawRec(); drawBlocks(); break;
     case "shooter": drawHoodBig(); drawZ(); break;
     case "vision": drawVision(C); drawTagReadout(C); break;
     case "spec":  drawSpec(); drawPoints(); break;
@@ -6353,6 +7139,18 @@ function zApply() {
     refreshAll(); drawHoodBig(); drawZ();
   });
 });
+/* Typing beats dragging when you want an exact figure - a hood cut at 38.5 degrees is not
+   something you can find on a slider. The two stay in step in both directions. */
+const nA = $("nAngle2");
+if (nA) nA.addEventListener("input", ev => {
+  const v = parseFloat(ev.target.value);
+  if (isNaN(v)) return;
+  S.angle = Math.max(-40, Math.min(70, v));
+  syncCurveFromSliders();
+  refreshAll();
+  if (typeof drawHoodBig === "function") { drawHoodBig(); drawZ(); }
+});
+
 const bigPreset = (id, ang, wrap) => { const e = $(id); if (!e) return;
   e.addEventListener("click", () => {
     S.angle = ang; S.wrap = wrap; syncCurveFromSliders();
@@ -6436,6 +7234,17 @@ $("bPollen").addEventListener("click", () => { S.ball = "pollen"; refreshAll(); 
 $("bNectar").addEventListener("click", () => { S.ball = "nectar"; refreshAll(); });
 $("bSmooth").addEventListener("click", () => { S.holes = false; S.cd = 0.50; refreshAll(); });
 $("bHoles").addEventListener("click", () => { S.holes = true; S.cd = 0.75; refreshAll(); });
+[["dtMecanum","mecanum"],["dtTank","tank"]].forEach(function (r) {
+  const e = $(r[0]); if (!e) return;
+  e.addEventListener("click", function () {
+    S.drive = r[1];
+    /* both panes have to follow the choice - the exported OpMode and the blocks */
+    if (BLK.ready) { if (REC.steps.length) blocksFromRecording(); else blocksStarter(); }
+    if (typeof drawRec === "function") drawRec();
+    refreshAll();
+  });
+});
+
 ["red","blue"].forEach(function (a) {
   const el = $("ally" + a.charAt(0).toUpperCase() + a.slice(1));
   if (el) el.addEventListener("click", () => { S.ally = a; aimAtHive(); refreshAll(); });
@@ -6510,6 +7319,29 @@ $("bPlay").addEventListener("click", () => {
   refreshAll();
 });
 $("bHome").addEventListener("click", () => { goHome(); refreshAll(); });
+["bBlkRun","bBlkFromRec","bBlkClear"].forEach(function (id) {
+  const e = $(id); if (!e) return;
+  e.addEventListener("click", function () {
+    if (!BLK.ready) { $("blkRunMsg").textContent = "editor still loading"; return; }
+    if (id === "bBlkRun") blkRun();
+    else if (id === "bBlkFromRec") {
+      const n = blocksFromRecording();
+      $("blkRunMsg").textContent = n ? "built " + n + " block" + (n===1?"":"s") + " from your recording"
+                                     : "record an AUTO first";
+    } else {
+      BLK.ws.clear(); ftcEnsureRunOpMode();
+      blkRefreshJava(); $("blkRunMsg").textContent = "cleared \u2014 drag blocks in, or press Build from my recording";
+    }
+  });
+});
+
+const bcb = $("bCopyBlocks");
+if (bcb) bcb.addEventListener("click", () => {
+  const t = $("blkMyBlocks").textContent;
+  navigator.clipboard.writeText(t).then(
+    () => { $("blkMsg").textContent = "copied \u2014 paste into a new Java file"; },
+    () => { $("blkMsg").textContent = "could not copy; select it by hand"; });
+});
 $("bBots").addEventListener("click", () => {
   if (BOTS.length) clearBots(); else makeBots();
   refreshAll();
@@ -6596,6 +7428,10 @@ function showTab(t) {
   TABS.forEach(k => { $("pg-"+k).hidden = k !== t;
     $("tb-"+k).setAttribute("aria-pressed", k === t); });
   needUI = true; save();
+  /* Draw the newly shown tab NOW rather than waiting for the next animation frame. The block
+     editor has 1.4 MB to fetch before it can show anything, and a tab that sits blank until
+     some other event happens to tick the loop reads as broken. */
+  try { lastC = compute(); refreshPanels(lastC); needUI = false; } catch (e) {}
 }
 TABS.forEach(t => $("tb-"+t).addEventListener("click", () => showTab(t)));
 
