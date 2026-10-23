@@ -14,16 +14,22 @@
 
 /* The device names this simulated robot answers to. They match the names the exported OpMode
    uses, so a program written here refers to the same hardware as the Java the bench emits. */
+/* The devices a BIOBUZZ StarterBot actually has, named as goBILDA's own example code names
+   them - 3200-2627-0004 (mecanum) and 3200-2627-0003 (drop-centre 6WD). On a real Robot
+   Controller this list is generated from the team's configuration file; here it has to match
+   what a student following goBILDA's guide would have typed in, or the Blocks they drag will
+   name devices that do not exist on their ROBOT. Both drivetrains' motors are offered,
+   because the app lets you switch between the two bots. */
 var FTC_DEVICES = {
-  dcMotor:   ["front_left_drive", "back_left_drive", "front_right_drive", "back_right_drive",
-              "shooter", "intake"],
-  dcMotorEx: ["shooter"],
-  servo:     ["feeder"],
-  crServo:   [],
+  dcMotor:   ["left_front_drive", "right_front_drive", "left_back_drive", "right_back_drive",
+              "left_drive", "right_drive", "intake", "launcher"],
+  dcMotorEx: ["launcher"],
+  servo:     [],
+  /* the windmill feeder is spelled differently in the two guides - both are offered */
+  crServo:   ["windmillServo", "windmill", "left_intake_servo", "right_intake_servo"],
   colorSensor:    ["color_sensor"],
   touchSensor:    [],
-  distanceSensor: [],
-  imu:       ["imu"]
+  distanceSensor: []
 };
 
 function ftcDropdown(list, emptyLabel) {

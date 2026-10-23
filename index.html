@@ -53,6 +53,9 @@ body{margin:0; background:var(--plane); color:var(--ink);
   padding:9px 14px; background:var(--chrome-2); color:var(--chrome-ink)}
 .brand{display:flex; align-items:baseline; gap:10px; min-width:0}
 .brand .n{font-family:var(--f-display); font-size:19px; font-weight:700; letter-spacing:.045em}
+.build{font-family:var(--f-mono); font-size:9.5px; letter-spacing:.04em; color:#0b0e12;
+  background:var(--amber); border-radius:4px; padding:2px 7px; white-space:nowrap;
+  margin-left:10px; align-self:center}
 .brand .t{font-family:var(--f-mono); font-size:10.5px; color:#8b97a4; white-space:nowrap;
   overflow:hidden; text-overflow:ellipsis}
 .chips{display:flex; gap:6px; flex:none}
@@ -65,6 +68,19 @@ body{margin:0; background:var(--plane); color:var(--ink);
 .work{display:grid; grid-template-columns:minmax(0,1fr) 318px; gap:0; background:var(--chrome)}
 @media (max-width:1000px){ .work{grid-template-columns:1fr} }
 .stage{position:relative; width:100%; height:min(52vh,460px); min-height:300px; background:#0b0e12}
+/* The count-in, as a corner badge. It was a full-screen curtain, which blacked out the one
+   thing you are meant to be looking at during those three seconds - the FIELD, and where
+   your ROBOT is standing on it. It only ever appears while a MATCH is counting in; the
+   practice FIELD has no clock and never shows it. */
+.cdown{position:absolute; top:10px; right:12px; z-index:4; pointer-events:none;
+  display:flex; align-items:center; gap:9px; padding:7px 13px 7px 11px; border-radius:9px;
+  background:rgba(11,14,18,.84); border:1px solid rgba(255,255,255,.14);
+  box-shadow:0 6px 22px rgba(0,0,0,.5)}
+.cdown span{font-family:var(--f-display); font-size:30px; font-weight:700; line-height:1;
+  color:#fff; font-variant-numeric:tabular-nums; min-width:20px; text-align:center}
+.cdown.go span{color:var(--good); font-size:23px; letter-spacing:.05em}
+.cdown small{font-family:var(--f-mono); font-size:9.5px; letter-spacing:.06em; color:#aab6c2;
+  max-width:112px; line-height:1.35}
 .dock{background:var(--chrome); border-left:1px solid rgba(255,255,255,.08);
   display:flex; flex-direction:column; min-width:0; max-height:min(52vh,460px); overflow-y:auto}
 .dock-head{display:flex; justify-content:space-between; align-items:baseline; gap:8px;
@@ -88,7 +104,7 @@ body{margin:0; background:var(--plane); color:var(--ink);
 .dpreset button:focus-visible{outline:2px solid var(--amber); outline-offset:2px}
 
 /* ---------- gamepad ---------- */
-.pad{display:grid; grid-template-columns:auto 1fr auto; gap:16px; align-items:center;
+.pad{display:grid; grid-template-columns:auto auto 1fr auto auto; gap:16px; align-items:center;
   padding:12px 16px; background:var(--chrome-2); border-top:1px solid rgba(255,255,255,.07)}
 @media (max-width:760px){ .pad{grid-template-columns:1fr; justify-items:center} }
 .stick{width:96px; height:96px; border-radius:50%; background:rgba(255,255,255,.055);
@@ -113,6 +129,42 @@ body{margin:0; background:var(--plane); color:var(--ink);
 .gbtn input{width:58px; font-family:var(--f-mono); font-size:10.5px; text-align:center;
   color:var(--chrome-ink); background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14);
   border-radius:4px; padding:2px 3px}
+
+/* ---------- drivetrain picker ----------
+   The SAME control in two places: beside the sticks where you drive, and at the top of the
+   coding tab where you read what that driving produces. It is one choice, not two, because
+   the drivetrain decides how the ROBOT moves AND what the Java and the Blocks say. The name
+   is written on the button rather than abbreviated, so nobody has to learn which letter is
+   which. The drivetrain you are NOT using is dimmed rather than hidden, so the live one is
+   always obvious at a glance. */
+.drvpick{display:flex; align-items:center; gap:12px}
+.drvset{display:flex; flex-direction:column; gap:8px; justify-content:center}
+/* the StarterBot you are choosing, drawn beside the buttons */
+.drvart{display:flex; flex-direction:column; align-items:center; gap:2px;
+  text-decoration:none; padding:4px 6px; border-radius:7px;
+  border:1px solid rgba(255,255,255,.10); background:rgba(255,255,255,.035)}
+.drvart:hover{border-color:rgba(255,255,255,.3); background:rgba(255,255,255,.07)}
+.drvart small{font-family:var(--f-mono); font-size:8.5px; letter-spacing:.03em; color:#8b97a4}
+.drvart:hover small{color:#cdd6df}
+.drvart svg{display:block}
+@media (max-width:1180px){ .drvart{display:none} }
+.drv{font-family:var(--f-display); font-size:16px; font-weight:700; letter-spacing:.045em;
+  min-width:108px; padding:9px 17px; border-radius:19px; cursor:pointer;
+  border:2px solid rgba(255,255,255,.2); box-shadow:0 3px 9px rgba(0,0,0,.45);
+  transition:filter .12s, transform .08s, opacity .12s, box-shadow .12s}
+.drv.mec{background:#f2c010; color:#b81414}        /* yellow button, red letters */
+.drv.tnk{background:#2f6fd0; color:#fff}           /* blue button, white letters  */
+.drv.red{background:#d8203c; color:#fff}           /* RED ALLIANCE,  white letters */
+.drv.blu{background:#2f6fd0; color:#fff}           /* BLUE ALLIANCE, white letters */
+.drv[aria-pressed=false]{filter:saturate(.3) brightness(.72); opacity:.5}
+.drv[aria-pressed=true]{box-shadow:0 0 0 2.5px #fff, 0 3px 12px rgba(0,0,0,.5)}
+.drv:hover{filter:none; opacity:1; transform:translateY(-1px)}
+.drv:active{transform:translateY(1px)}
+.drv:focus-visible{outline:2px solid var(--amber); outline-offset:3px}
+/* the coding tab is a light panel, where a white ring would disappear; and there is room
+   there to sit them side by side */
+.panel .drvset{flex-direction:row}
+.panel .drv[aria-pressed=true]{box-shadow:0 0 0 2.5px var(--ink), 0 3px 11px rgba(0,0,0,.22)}
 
 /* ---------- auto bar ---------- */
 .gauges{display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:6px;
@@ -426,6 +478,12 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
       <div class="brand">
         <span class="n">BIOBUZZ SHOOTER BENCH</span>
         <span class="t">FTC 2026-27 &middot; field geometry from the V1 Competition Manual &sect;9</span>
+        <!-- A visible build stamp. Three versions of this app were in play at once - a live
+             site ten commits behind, a cached localhost page from the middle, and the real
+             one - and there was no way to tell them apart by looking. Now there is: if the
+             stamp does not say what you expect, you are not looking at the build you think
+             you are. Bump BUILD_ID whenever something visible changes. -->
+        <span class="build" id="buildTag" title="which build you are looking at">&mdash;</span>
       </div>
       <div class="chips">
         <button class="chip" id="chipFollow" aria-pressed="false">Chase cam</button>
@@ -442,6 +500,8 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
       <div class="loading" id="loading">building the field&hellip;</div>
       <div class="hint" id="hint">click the field to place the robot &middot; drag to orbit &middot; W A S D / I J K L drive &middot; 1 2 3 4 buttons &middot; Space shoots</div>
       <div class="verdictpill" id="pill" style="color:#8b97a4">&mdash;</div>
+      <div class="cdown" id="cdown" hidden><span id="cdownN">3</span>
+        <small id="cdownT">ROBOTS set</small></div>
       <div class="hud" id="hud">
         <div><b>distance</b><span class="vd" id="hDist">&mdash;</span></div>
         <div><b>flywheel</b><span class="vd" id="hRpm">&mdash;</span></div>
@@ -457,6 +517,7 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
         <div><b>hive tips</b><span class="vd" id="hTips">&mdash;</span></div>
         <div><b>field</b><span class="vd" id="hLoose">&mdash;</span></div>
         <div><b>pickup</b><span class="vd" id="hCatch">&mdash;</span></div>
+        <div><b>size R102</b><span class="vd" id="hSize">&mdash;</span></div>
       </div>
       <div class="minis">
         <div class="mini"><span class="ml">TOP &middot; click to place</span>
@@ -525,6 +586,20 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
     <div class="pad">
       <div class="stick" id="stickL" role="slider" aria-label="Left track" aria-valuenow="0"
            tabindex="0"><div class="kn"></div><span class="lbl">LEFT TRACK &middot; W/S</span></div>
+      <div class="drvpick">
+        <div class="drvset" role="group" aria-label="Drivetrain">
+          <button class="drv mec" id="gbMec" aria-pressed="true"
+                  title="Mecanum - four wheels driven separately, can strafe sideways">Mecanum</button>
+          <button class="drv tnk" id="gbTank" aria-pressed="false"
+                  title="Tank - two sides, no strafe; turn, drive, turn back">Tank</button>
+        </div>
+        <a class="drvart" id="drvArtLink" target="_blank" rel="noopener"
+           href="https://www.gobilda.com/ftc-starterbot-with-mecanum-wheels-resource-guide-2026-2027/"
+           title="goBILDA FTC StarterBot 2026-27 resource guide">
+          <span id="drvArt"></span>
+          <small id="drvArtCap">goBILDA Mecanum</small>
+        </a>
+      </div>
       <div class="btns">
         <button class="gbtn" id="gbSlow"><span class="c" style="background:#5596ea">X</span>
           <span class="t">SLOW</span><input type="number" id="inSlow" step="10" value="2050"></button>
@@ -536,6 +611,12 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
           <span class="t">AIM (F)</span></button>
         <button class="gbtn" id="gbIntake"><span class="c" style="background:#9aa7b4">LB</span>
           <span class="t">INTAKE</span></button>
+      </div>
+      <div class="drvset" role="group" aria-label="Starting position">
+        <button class="drv red" id="gbParkRed" aria-pressed="true"
+                title="Place the ROBOT where RED starts a MATCH - in the red LOADING ZONE, against the red ALLIANCE wall (G304)">Red Parking</button>
+        <button class="drv blu" id="gbParkBlue" aria-pressed="false"
+                title="Place the ROBOT where BLUE starts a MATCH - in the blue LOADING ZONE, against the blue ALLIANCE wall (G304)">Blue Parking</button>
       </div>
       <div class="stick" id="stickR" role="slider" aria-label="Right track" aria-valuenow="0"
            tabindex="0"><div class="kn"></div><span class="lbl">RIGHT TRACK &middot; &uarr;/&darr;</span></div>
@@ -698,9 +779,9 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
               <thead><tr><th>Measured on your robot</th><th>inches</th></tr></thead>
               <tbody>
                 <tr><td>Floor &rarr; shooter base plate</td>
-                    <td><input type="number" id="zFloorBase" step="0.25" min="0" max="29" value="9"></td></tr>
+                    <td><input type="number" id="zFloorBase" step="0.25" min="0" max="29" value="3.5"></td></tr>
                 <tr><td>Base plate &rarr; flywheel axis</td>
-                    <td><input type="number" id="zBaseAxis" step="0.25" min="0" max="29" value="13"></td></tr>
+                    <td><input type="number" id="zBaseAxis" step="0.25" min="0" max="29" value="3"></td></tr>
                 <tr><td>+ flywheel radius</td><td id="zWheelR">&mdash;</td></tr>
                 <tr><td>+ ball radius at the exit</td><td id="zBallR">&mdash;</td></tr>
                 <tr><td class="hi">= LAUNCH Z</td><td class="hi" id="zTotal">&mdash;</td></tr>
@@ -855,9 +936,10 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
         <div class="panel-head"><span class="panel-title">Drivetrain</span>
           <span class="panel-note" id="dtNote">changes how it drives and what the Java looks like</span></div>
         <div class="ctlwrap" style="padding:12px 14px">
-          <div class="seg" role="group" aria-label="Drivetrain">
-            <button id="dtMecanum" aria-pressed="true">Mecanum</button>
-            <button id="dtTank" aria-pressed="false">Tank</button>
+          <div class="drvset" role="group" aria-label="Drivetrain"
+               style="justify-content:flex-start">
+            <button class="drv mec" id="dtMecanum" aria-pressed="true">Mecanum</button>
+            <button class="drv tnk" id="dtTank" aria-pressed="false">Tank</button>
           </div>
           <p style="font-size:12.5px; color:var(--ink-2); margin:11px 0 0; max-width:78ch" id="dtExplain"></p>
         </div>
@@ -1434,6 +1516,12 @@ const GB = "https://www.gobilda.com/";
 const sku = s => GB + "search.php?search_query=" + encodeURIComponent(s);
 
 /* ===== BIOBUZZ field, V1 Competition Manual section 9 ===== */
+/* Half an 18 in. STARTING CONFIGURATION frame. Every ROBOT centre is clamped to this far
+   from a wall, so the frame can sit AGAINST the wall and no further. It used to be 10, which
+   held every ROBOT a full inch off the perimeter - G304.C asks the ROBOT to be TOUCHING the
+   wall at the start, and LEAVE is defined as stopping that contact, so with a 10 in. floor
+   neither could ever literally be true. */
+const BOT_HALF = 9;
 const F = { size:144, pivotH:43.95,
             /* Figure 9-9 / 9-10, measured rather than estimated:
                opening spans 53.5 to 65.6 in above the TILES, tilted 30 deg.
@@ -1650,19 +1738,21 @@ const S = {
   park:false, rec:null,
   rpmSlow:2050, rpmMid:2320, rpmFull:2650, trackL:0, trackR:0, strafeX:0, padName:"",
   trDist:71, trRpm:2320, autoT:30, autoRun:false, left:false,
-  angle:40, tip:0, wrap:135, launch:24, zFloorBase:9, zBaseAxis:13, hub:"h1309", ally:"red", drive:"mecanum", airT:20, airP:1017, airRH:35, gear:1, cell:59.55, tilt:30, eta:0.45, cd:0.75, rpm:3900,
+  angle:40, tip:0, wrap:135, launch:9.8, zFloorBase:3.5, zBaseAxis:3, hub:"h1309", ally:"red", drive:"mecanum", airT:20, airP:1017, airRH:35, gear:1, cell:59.55, tilt:30, eta:0.45, cd:0.75, rpm:3900,
   wheelMass:85, robotMass:12, magSize:4, magLeft:4,
   ballCount:80, intakeOn:true, rejectBlue:false, tipMass:191, tipBalls:8,
+  claw:null, armT:0, clawMsg:"",
   scored:{red:0, blue:0}, tips:0, picked:0, curve:null, miniCam:true, waitAtSpeed:true,
   src:"fixed", ball:"pollen", magnus:true, drag:true, holes:true, cmp:"wheel",
   rx:22, ry:22, heading:Math.PI/4,
   showTraj:true, showTags:true, showHud:true, chase:false,
   tab:"build", predict:5.5, pts:[], code:STARTER
 };
+const BUILD_ID = "2026-10-23 \u00b7 goBILDA CAD robot, embedded";
 const DEFAULTS = JSON.parse(JSON.stringify(S));
 /* Settings persist between visits; the robot pose, magazine and score do not - a stale pose
    from last time is a terrible way to open, and the match state should always start clean. */
-const TRANSIENT = ["rx","ry","heading","magLeft","tips","picked","scored",
+const TRANSIENT = ["rx","ry","heading","magLeft","tips","picked","scored","claw","armT","clawMsg",
                    "trackL","trackR","strafeX","autoT","autoRun","left","padName",
                    "matchPhase","matchT","scoreAuto","park","recCount","zFloorBase","zBaseAxis","hub","ally","airT","airP","airRH","drive"];
 try {
@@ -1679,6 +1769,28 @@ try {
       S.tipMass = want;
   } catch (e) {}
 } catch (e) {}
+/* LAUNCH Z is not a free number - it is floor-to-base plus base-to-axis plus the wheel
+   radius plus half a ball, and those measurements are transient. A saved launch height could
+   therefore outlive the measurements it came from, which is exactly what happened: the old
+   24 in. default sat in localStorage while the Z boxes showed the new figures.
+
+   The height is not a guess any more. goBILDA's CAD has the launcher in it: the 96 mm
+   GripForce Gecko flywheel is a 1.77 in. radius disc with its axis 6.54 in. above the TILES.
+   A ball squeezed between that wheel and the hood leaves at roughly
+
+       6.54 axis  +  1.77 wheel radius  +  1.40 ball radius  =  9.7 in.
+
+   so floor-to-base is 3.5 and base-to-axis 3.0. It was 24, then 14; the real answer is under
+   ten, which is why the ROBOT kept coming out too tall however the bodywork was trimmed -
+   the shooter was holding the roof up. Their whole ROBOT is 12.18 in. tall, and nothing on
+   it can be higher than that. */
+function syncLaunchFromMeasurements() {
+  try {
+    const z0 = S.zFloorBase + S.zBaseAxis + wheelR()/IN + BALL[S.ball].dia/2;
+    if (Math.abs(S.launch - z0) > 0.3) S.launch = Math.max(6, Math.min(29, z0));
+  } catch (e) {}
+}
+
 let saveT = null;
 const save = () => { clearTimeout(saveT); saveT = setTimeout(() => {
   try { localStorage.setItem("biobuzz-bench-v7", JSON.stringify(S)); } catch (e) {} }, 300); };
@@ -2003,6 +2115,8 @@ const MATCH_TOTAL = MATCH_CLOCK.auto + MATCH_CLOCK.teleop;        // 150 s shown
 
 /* seconds remaining on the official FIELD timer */
 function fieldClock() {
+  /* the count-in is before the FIELD timer starts, so it still reads a full 2:30 */
+  if (S.matchPhase === "countdown")  return MATCH_TOTAL;
   if (S.matchPhase === "auto")       return MATCH_CLOCK.teleop + Math.max(0, S.matchT);
   if (S.matchPhase === "transition") return MATCH_CLOCK.teleop;   // timer holds at 2:00
   if (S.matchPhase === "teleop")     return Math.max(0, S.matchT);
@@ -2015,6 +2129,8 @@ const mmss = s => Math.floor(s/60) + ":" + String(Math.floor(s%60)).padStart(2, 
 function matchCue() {
   const t = fieldClock();
   if (S.matchPhase === "idle") return { txt:"ready \u00b7 2:30", col:"#8b97a4" };
+  if (S.matchPhase === "countdown")
+    return { txt:"counting in \u00b7 " + Math.max(1, Math.ceil(S.matchT)), col:"var(--warn)" };
   if (S.matchPhase === "done") return { txt:"MATCH end", col:"#8b97a4" };
   if (S.matchPhase === "transition")
     return { txt:"transition \u00b7 drivers pick up", col:"var(--warn)" };
@@ -2336,6 +2452,99 @@ function tex(draw, w, h) {
   t.anisotropy = 4;
   return t;
 }
+/* ===== THE REAL STARTERBOT, FROM goBILDA'S OWN CAD =====
+   Everything before this was me placing about twenty boxes by eye against a photograph, and
+   it was never going to look like a machine built from hundreds of extrusions. It also hid a
+   real error: hand-built, the ROBOT came out 17.6 in. tall. goBILDA's CAD says 12.18. Five
+   and a half inches too tall, which is why it kept looking wrong however the proportions
+   were nudged.
+
+   So the ROBOT is now goBILDA's, read out of the STEP files in their Resource Guides
+   (3200-2627-0004 mecanum, 3200-2627-0003 drop-centre 6WD) with OpenCascade. Shipping their
+   mesh is not an option - 5.8 million triangles and 419 MB, because every goBILDA part is
+   mostly holes - so what is shipped is each part's ORIENTED BOUNDING BOX: real position,
+   real size, real orientation, real colour, 303 parts in 35 KB. Fasteners under 28 mm are
+   dropped. Most goBILDA stock IS box-shaped, so for the channel, the plates and the hubs
+   this is close to exact; round parts read as their envelope.
+
+   The boxes are the ROBOT's body. The shooter, the plow and the NECTAR arm stay as app
+   geometry on top, because those have to move. */
+/* The two bodies are EMBEDDED, not fetched. They started as robot/*.json next to the page,
+   which works over http but not over file:// - Chrome blocks fetch there, so double-clicking
+   the file gave a ROBOT with no body at all and no error anyone would notice. Inlining them
+   costs about 54 KB and buys a page that works wherever it is opened, and one less folder to
+   upload. */
+const BOT_DATA = {"mecanum":{"src":"goBILDA 3200-2627-0004","unit":"in","scale":0.9356,"size":{"L":17.8,"W":16.93,"H":11.72},"boxes":[{"p":[-0.801,2.119,-5.741],"h":[0.884,7.072,0.884],"x":[0.0,0.0,-1.0],"y":[-1.0,0.0,0.0],"k":[0.93,0.965,1.0]},{"p":[-0.801,2.119,5.752],"h":[0.884,7.072,0.884],"x":[0.0,0.0,-1.0],"y":[-1.0,0.0,0.0],"k":[0.93,0.965,1.0]},{"p":[-7.611,2.119,4.648],"h":[0.209,0.25,0.792],"x":[-0.98,0.0,0.197],"y":[0.197,0.0,0.98],"k":[0.93,0.965,1.0]},{"p":[-7.611,2.119,-4.637],"h":[0.209,0.25,0.792],"x":[-0.98,0.0,-0.197],"y":[-0.197,0.0,0.98],"k":[0.93,0.965,1.0]},{"p":[-4.042,1.562,4.648],"h":[0.209,0.25,0.792],"x":[0.0,0.98,0.197],"y":[0.0,0.197,-0.98],"k":[0.93,0.965,1.0]},{"p":[-4.042,1.562,-4.637],"h":[0.209,0.25,0.792],"x":[0.0,0.98,-0.197],"y":[0.0,-0.197,-0.98],"k":[0.93,0.965,1.0]},{"p":[-4.042,1.603,0.006],"h":[4.862,0.884,0.221],"x":[0.0,0.0,-1.0],"y":[-1.0,0.0,0.0],"k":[0.93,0.965,1.0]},{"p":[-7.652,2.119,0.006],"h":[4.862,0.221,0.884],"x":[0.0,0.0,-1.0],"y":[-1.0,0.0,0.0],"k":[0.93,0.965,1.0]},{"p":[-5.221,3.114,-5.741],"h":[0.111,0.737,0.737],"x":[0.0,1.0,0.0],"y":[0.0,0.0,-1.0],"k":[0.93,0.965,1.0]},{"p":[-5.221,3.114,5.752],"h":[0.111,0.737,0.737],"x":[0.0,1.0,0.0],"y":[0.0,0.0,-1.0],"k":[0.93,0.965,1.0]},{"p":[3.398,2.119,5.752],"h":[0.221,1.053,1.053],"x":[-1.0,0.0,0.0],"y":[0.0,-0.63,0.777],"k":[0.93,0.965,1.0]},{"p":[3.398,2.119,-5.741],"h":[0.221,1.053,1.053],"x":[-1.0,0.0,0.0],"y":[0.0,-0.63,0.777],"k":[0.93,0.965,1.0]},{"p":[-5.221,4.655,-5.741],"h":[0.101,0.588,0.588],"x":[0.0,1.0,0.0],"y":[-0.05,0.0,-0.999],"k":[0.665,0.694,0.716]},{"p":[-5.221,4.204,-5.741],"h":[0.553,0.662,0.662],"x":[0.0,1.0,0.0],"y":[0.7,0.0,-0.714],"k":[0.102,0.102,0.102]},{"p":[-5.221,3.539,-5.741],"h":[0.315,0.588,0.663],"x":[0.0,1.0,0.0],"y":[-0.001,0.0,-1.0],"k":[0.665,0.694,0.716]},{"p":[-5.221,3.106,-5.741],"h":[0.165,0.165,0.748],"x":[0.023,0.0,-1.0],"y":[-1.0,0.0,-0.023],"k":[0.694,0.694,0.694]},{"p":[-5.221,5.722,-5.74],"h":[0.663,0.656,1.139],"x":[0.707,-0.007,-0.707],"y":[-0.707,0.0,-0.707],"k":[0.617,0.665,0.708]},{"p":[-5.218,5.533,-5.738],"h":[0.629,0.687,0.691],"x":[0.0,1.0,0.0],"y":[0.808,0.0,0.589],"k":[0.617,0.665,0.708]},{"p":[-5.23,7.157,-5.749],"h":[0.484,0.739,0.69],"x":[0.14,0.98,0.138],"y":[0.78,-0.195,0.595],"k":[0.045,0.045,0.045]},{"p":[-5.23,6.768,-5.732],"h":[0.018,0.632,0.644],"x":[0.0,1.0,0.0],"y":[0.707,0.0,0.707],"k":[0.597,0.597,0.597]},{"p":[-5.218,5.533,-5.738],"h":[0.629,0.69,0.694],"x":[0.0,1.0,0.0],"y":[0.808,0.0,0.589],"k":[0.922,0.922,0.896]},{"p":[-5.221,4.655,5.752],"h":[0.101,0.588,0.588],"x":[0.0,1.0,0.0],"y":[-0.05,0.0,-0.999],"k":[0.665,0.694,0.716]},{"p":[-5.221,4.204,5.752],"h":[0.553,0.662,0.662],"x":[0.0,1.0,0.0],"y":[0.7,0.0,-0.714],"k":[0.102,0.102,0.102]},{"p":[-5.221,3.539,5.752],"h":[0.315,0.588,0.663],"x":[0.0,1.0,0.0],"y":[-0.001,0.0,-1.0],"k":[0.665,0.694,0.716]},{"p":[-5.221,3.106,5.752],"h":[0.165,0.165,0.748],"x":[0.023,0.0,-1.0],"y":[-1.0,0.0,-0.023],"k":[0.694,0.694,0.694]},{"p":[-5.221,5.722,5.751],"h":[0.663,0.656,1.139],"x":[0.707,0.007,-0.707],"y":[-0.707,0.0,-0.707],"k":[0.617,0.665,0.708]},{"p":[-5.224,5.533,5.749],"h":[0.629,0.687,0.691],"x":[0.0,1.0,0.0],"y":[0.808,0.0,0.589],"k":[0.617,0.665,0.708]},{"p":[-5.213,7.157,5.76],"h":[0.484,0.739,0.69],"x":[-0.14,0.98,-0.138],"y":[0.78,0.195,0.595],"k":[0.045,0.045,0.045]},{"p":[-5.213,6.768,5.743],"h":[0.018,0.632,0.644],"x":[0.0,1.0,0.0],"y":[0.707,0.0,0.707],"k":[0.597,0.597,0.597]},{"p":[-5.224,5.532,5.749],"h":[0.629,0.69,0.694],"x":[0.0,1.0,0.0],"y":[0.808,0.0,0.589],"k":[0.922,0.922,0.896]},{"p":[2.041,2.119,5.752],"h":[0.101,0.588,0.588],"x":[-1.0,0.0,0.0],"y":[0.0,0.05,0.999],"k":[0.665,0.694,0.716]},{"p":[2.492,2.119,5.752],"h":[0.553,0.662,0.662],"x":[-1.0,0.0,0.0],"y":[0.0,-0.7,0.714],"k":[0.102,0.102,0.102]},{"p":[3.157,2.119,5.752],"h":[0.315,0.588,0.663],"x":[-1.0,0.0,0.0],"y":[0.0,0.001,1.0],"k":[0.665,0.694,0.716]},{"p":[3.59,2.119,5.752],"h":[0.165,0.165,0.748],"x":[0.0,1.0,0.023],"y":[0.0,0.023,-1.0],"k":[0.694,0.694,0.694]},{"p":[0.974,2.119,5.751],"h":[0.663,0.656,1.139],"x":[-0.007,0.707,-0.707],"y":[0.0,-0.707,-0.707],"k":[0.617,0.665,0.708]},{"p":[1.163,2.116,5.749],"h":[0.629,0.687,0.691],"x":[-1.0,0.0,0.0],"y":[0.0,0.808,0.589],"k":[0.617,0.665,0.708]},{"p":[-0.46,2.127,5.76],"h":[0.484,0.739,0.69],"x":[-0.98,-0.14,-0.138],"y":[-0.195,0.78,0.595],"k":[0.045,0.045,0.045]},{"p":[-0.072,2.127,5.743],"h":[0.018,0.632,0.644],"x":[-1.0,0.0,0.0],"y":[0.0,0.707,0.707],"k":[0.597,0.597,0.597]},{"p":[1.163,2.116,5.749],"h":[0.629,0.69,0.694],"x":[-1.0,0.0,0.0],"y":[0.0,0.808,0.589],"k":[0.922,0.922,0.896]},{"p":[2.041,2.119,-5.741],"h":[0.101,0.588,0.588],"x":[-1.0,0.0,0.0],"y":[0.0,0.05,0.999],"k":[0.665,0.694,0.716]},{"p":[2.492,2.119,-5.741],"h":[0.553,0.662,0.662],"x":[-1.0,0.0,0.0],"y":[0.0,-0.7,0.714],"k":[0.102,0.102,0.102]},{"p":[3.157,2.119,-5.741],"h":[0.315,0.588,0.663],"x":[-1.0,0.0,0.0],"y":[0.0,0.001,1.0],"k":[0.665,0.694,0.716]},{"p":[3.59,2.119,-5.741],"h":[0.165,0.165,0.748],"x":[0.0,1.0,0.023],"y":[0.0,0.023,-1.0],"k":[0.694,0.694,0.694]},{"p":[0.974,2.119,-5.741],"h":[0.663,0.656,1.139],"x":[-0.007,0.707,-0.707],"y":[0.0,-0.707,-0.707],"k":[0.617,0.665,0.708]},{"p":[1.164,2.116,-5.743],"h":[0.629,0.687,0.691],"x":[-1.0,0.0,0.0],"y":[0.0,0.808,0.589],"k":[0.617,0.665,0.708]},{"p":[-0.46,2.127,-5.732],"h":[0.484,0.739,0.69],"x":[-0.98,-0.14,-0.138],"y":[-0.195,0.78,0.595],"k":[0.045,0.045,0.045]},{"p":[-0.072,2.127,-5.749],"h":[0.018,0.632,0.644],"x":[-1.0,0.0,0.0],"y":[0.0,0.707,0.707],"k":[0.597,0.597,0.597]},{"p":[1.163,2.116,-5.743],"h":[0.629,0.69,0.694],"x":[-1.0,0.0,0.0],"y":[0.0,0.808,0.589],"k":[0.922,0.922,0.896]},{"p":[-5.221,2.119,-6.146],"h":[0.589,0.589,1.326],"x":[0.015,1.0,0.0],"y":[1.0,-0.015,0.0],"k":[0.72,0.74,0.76]},{"p":[4.503,2.119,-6.157],"h":[0.589,0.589,1.326],"x":[0.015,1.0,0.0],"y":[1.0,-0.015,0.0],"k":[0.72,0.74,0.76]},{"p":[-5.221,2.119,6.157],"h":[0.589,0.589,1.326],"x":[-0.015,1.0,0.0],"y":[1.0,0.015,0.0],"k":[0.72,0.74,0.76]},{"p":[4.503,2.119,6.157],"h":[0.589,0.589,1.326],"x":[-0.015,1.0,0.0],"y":[1.0,0.015,0.0],"k":[0.72,0.74,0.76]},{"p":[4.503,2.119,-7.63],"h":[0.221,0.961,0.961],"x":[0.0,0.0,-1.0],"y":[0.218,-0.976,0.0],"k":[0.045,0.045,0.045]},{"p":[4.49,2.14,-8.089],"h":[0.238,1.782,1.786],"x":[0.0,0.0,-1.0],"y":[0.006,-1.0,0.0],"k":[0.956,0.631,0.0]},{"p":[4.517,2.14,-7.172],"h":[0.238,1.782,1.786],"x":[0.0,0.0,-1.0],"y":[-0.006,-1.0,0.0],"k":[0.956,0.631,0.0]},{"p":[4.51,0.52,-7.624],"h":[0.092,0.092,0.864],"x":[0.702,-0.126,-0.702],"y":[-0.089,-0.992,0.089],"k":[0.597,0.597,0.597]},{"p":[4.503,0.52,-7.63],"h":[0.262,0.262,0.737],"x":[0.0,1.0,0.0],"y":[0.707,0.0,-0.707],"k":[0.045,0.045,0.045]},{"p":[4.503,0.52,-7.63],"h":[0.317,0.316,0.737],"x":[0.58,0.572,-0.58],"y":[0.405,-0.82,-0.405],"k":[0.061,0.061,0.061]},{"p":[5.373,0.778,-7.624],"h":[0.092,0.092,0.864],"x":[-0.325,0.919,-0.223],"y":[0.735,0.097,-0.671],"k":[0.597,0.597,0.597]},{"p":[5.368,0.774,-7.63],"h":[0.262,0.262,0.737],"x":[-0.541,0.841,0.0],"y":[0.595,0.382,-0.707],"k":[0.045,0.045,0.045]},{"p":[5.368,0.774,-7.63],"h":[0.317,0.316,0.737],"x":[0.178,0.795,-0.58],"y":[0.784,-0.471,-0.405],"k":[0.061,0.061,0.061]},{"p":[5.96,1.461,-7.624],"h":[0.092,0.092,0.864],"x":[-0.912,-0.034,0.41],"y":[-0.287,0.765,-0.576],"k":[0.597,0.597,0.597]},{"p":[5.958,1.455,-7.63],"h":[0.262,0.262,0.737],"x":[-0.91,0.415,0.0],"y":[0.294,0.643,-0.707],"k":[0.045,0.045,0.045]},{"p":[5.958,1.455,-7.63],"h":[0.317,0.316,0.737],"x":[-0.28,0.765,-0.58],"y":[0.914,0.028,-0.405],"k":[0.061,0.061,0.061]},{"p":[6.085,2.353,-7.624],"h":[0.092,0.092,0.864],"x":[-0.993,-0.027,-0.115],"y":[0.061,0.714,-0.698],"k":[0.597,0.597,0.597]},{"p":[6.086,2.347,-7.63],"h":[0.262,0.262,0.737],"x":[-0.99,-0.142,0.0],"y":[-0.101,0.7,-0.707],"k":[0.045,0.045,0.045]},{"p":[6.086,2.347,-7.63],"h":[0.317,0.316,0.737],"x":[-0.649,0.492,-0.58],"y":[0.754,0.517,-0.405],"k":[0.061,0.061,0.061]},{"p":[5.707,3.171,-7.624],"h":[0.092,0.092,0.864],"x":[-0.048,0.782,-0.622],"y":[0.885,0.322,0.336],"k":[0.597,0.597,0.597]},{"p":[5.712,3.166,-7.63],"h":[0.262,0.262,0.737],"x":[0.756,0.655,0.0],"y":[0.463,-0.534,0.707],"k":[0.045,0.045,0.045]},{"p":[5.712,3.166,-7.63],"h":[0.317,0.316,0.737],"x":[-0.812,0.063,-0.58],"y":[0.355,0.843,-0.405],"k":[0.061,0.061,0.061]},{"p":[4.948,3.655,-7.624],"h":[0.092,0.092,0.864],"x":[-0.734,-0.149,-0.662],"y":[0.026,0.968,-0.248],"k":[0.597,0.597,0.597]},{"p":[4.954,3.653,-7.63],"h":[0.262,0.262,0.737],"x":[0.282,0.96,0.0],"y":[0.678,-0.199,0.707],"k":[0.045,0.045,0.045]},{"p":[4.954,3.653,-7.63],"h":[0.317,0.316,0.737],"x":[-0.718,-0.386,-0.58],"y":[-0.157,0.901,-0.405],"k":[0.061,0.061,0.061]},{"p":[4.047,3.651,-7.624],"h":[0.092,0.092,0.864],"x":[-0.721,-0.002,-0.693],"y":[-0.14,0.98,0.142],"k":[0.597,0.597,0.597]},{"p":[4.053,3.653,-7.63],"h":[0.262,0.262,0.737],"x":[-0.282,0.96,0.0],"y":[0.678,0.199,0.707],"k":[0.045,0.045,0.045]},{"p":[4.053,3.653,-7.63],"h":[0.317,0.316,0.737],"x":[0.395,0.712,0.58],"y":[0.619,-0.673,0.405],"k":[0.061,0.061,0.061]},{"p":[3.291,3.161,-7.624],"h":[0.092,0.092,0.864],"x":[-0.252,0.844,0.473],"y":[0.85,-0.041,0.525],"k":[0.597,0.597,0.597]},{"p":[3.295,3.166,-7.63],"h":[0.262,0.262,0.737],"x":[-0.756,0.655,0.0],"y":[0.463,0.534,0.707],"k":[0.045,0.045,0.045]},{"p":[3.295,3.166,-7.63],"h":[0.317,0.316,0.737],"x":[-0.053,0.813,0.58],"y":[0.885,-0.231,0.405],"k":[0.061,0.061,0.061]},{"p":[2.92,2.34,-7.624],"h":[0.092,0.092,0.864],"x":[0.292,0.659,0.694],"y":[0.951,-0.276,-0.138],"k":[0.597,0.597,0.597]},{"p":[2.921,2.347,-7.63],"h":[0.262,0.262,0.737],"x":[-0.99,0.142,0.0],"y":[0.101,0.7,0.707],"k":[0.045,0.045,0.045]},{"p":[2.921,2.347,-7.63],"h":[0.317,0.316,0.737],"x":[-0.484,0.655,0.58],"y":[0.869,0.284,0.405],"k":[0.061,0.061,0.061]},{"p":[3.052,1.449,-7.624],"h":[0.092,0.092,0.864],"x":[-0.933,-0.03,0.36],"y":[0.21,0.765,0.609],"k":[0.597,0.597,0.597]},{"p":[3.049,1.455,-7.63],"h":[0.262,0.262,0.737],"x":[-0.91,-0.415,0.0],"y":[-0.294,0.643,0.707],"k":[0.045,0.045,0.045]},{"p":[3.049,1.455,-7.63],"h":[0.317,0.316,0.737],"x":[-0.762,0.29,0.58],"y":[0.578,0.709,0.405],"k":[0.061,0.061,0.061]},{"p":[3.644,0.77,-7.624],"h":[0.092,0.092,0.864],"x":[0.204,0.923,0.327],"y":[0.778,0.05,-0.627],"k":[0.597,0.597,0.597]},{"p":[3.639,0.774,-7.63],"h":[0.262,0.262,0.737],"x":[0.541,0.841,0.0],"y":[0.595,-0.382,-0.707],"k":[0.045,0.045,0.045]},{"p":[3.639,0.774,-7.63],"h":[0.317,0.316,0.737],"x":[-0.797,-0.168,0.58],"y":[0.103,0.909,0.405],"k":[0.061,0.061,0.061]},{"p":[-5.221,2.119,7.63],"h":[0.221,0.961,0.961],"x":[0.0,0.0,-1.0],"y":[-0.218,-0.976,0.0],"k":[0.045,0.045,0.045]},{"p":[-5.235,2.098,8.089],"h":[0.238,1.782,1.786],"x":[0.0,0.0,-1.0],"y":[-0.006,-1.0,0.0],"k":[0.956,0.631,0.0]},{"p":[-5.207,2.098,7.172],"h":[0.238,1.782,1.786],"x":[0.0,0.0,-1.0],"y":[0.006,-1.0,0.0],"k":[0.956,0.631,0.0]},{"p":[-5.214,3.718,7.624],"h":[0.092,0.092,0.864],"x":[-0.628,-0.46,-0.628],"y":[0.325,-0.888,0.325],"k":[0.597,0.597,0.597]},{"p":[-5.221,3.718,7.63],"h":[0.262,0.262,0.737],"x":[0.0,1.0,0.0],"y":[0.707,0.0,0.707],"k":[0.045,0.045,0.045]},{"p":[-5.221,3.718,7.63],"h":[0.317,0.316,0.737],"x":[-0.58,0.572,-0.58],"y":[-0.405,-0.82,-0.405],"k":[0.061,0.061,0.061]},{"p":[-4.351,3.46,7.624],"h":[0.092,0.092,0.864],"x":[0.282,0.923,-0.262],"y":[0.753,-0.043,0.657],"k":[0.597,0.597,0.597]},{"p":[-4.357,3.464,7.63],"h":[0.262,0.262,0.737],"x":[0.541,0.841,0.0],"y":[0.595,-0.382,0.707],"k":[0.045,0.045,0.045]},{"p":[-4.357,3.464,7.63],"h":[0.317,0.316,0.737],"x":[-0.178,0.795,-0.58],"y":[0.784,0.471,0.405],"k":[0.061,0.061,0.061]},{"p":[-3.764,2.777,7.624],"h":[0.092,0.092,0.864],"x":[-0.931,-0.026,-0.364],"y":[0.216,0.765,-0.606],"k":[0.597,0.597,0.597]},{"p":[-3.767,2.783,7.63],"h":[0.262,0.262,0.737],"x":[-0.91,-0.415,0.0],"y":[-0.294,0.643,-0.707],"k":[0.045,0.045,0.045]},{"p":[-3.767,2.783,7.63],"h":[0.317,0.316,0.737],"x":[0.28,0.765,-0.58],"y":[0.914,-0.028,0.405],"k":[0.061,0.061,0.061]},{"p":[-3.64,1.885,7.624],"h":[0.092,0.092,0.864],"x":[0.481,0.588,-0.65],"y":[0.871,-0.406,0.278],"k":[0.597,0.597,0.597]},{"p":[-3.639,1.891,7.63],"h":[0.262,0.262,0.737],"x":[-0.99,0.142,0.0],"y":[0.101,0.7,-0.707],"k":[0.045,0.045,0.045]},{"p":[-3.639,1.891,7.63],"h":[0.317,0.316,0.737],"x":[-0.649,-0.492,0.58],"y":[-0.754,0.517,-0.405],"k":[0.061,0.061,0.061]},{"p":[-4.017,1.067,7.624],"h":[0.092,0.092,0.864],"x":[-0.1,0.824,-0.557],"y":[0.881,-0.187,-0.435],"k":[0.597,0.597,0.597]},{"p":[-4.013,1.072,7.63],"h":[0.262,0.262,0.737],"x":[-0.756,0.655,0.0],"y":[0.463,0.534,-0.707],"k":[0.045,0.045,0.045]},{"p":[-4.013,1.072,7.63],"h":[0.317,0.316,0.737],"x":[-0.812,-0.063,0.58],"y":[-0.355,0.843,-0.405],"k":[0.061,0.061,0.061]},{"p":[-4.777,0.583,7.624],"h":[0.092,0.092,0.864],"x":[-0.724,0.02,0.689],"y":[-0.124,0.98,-0.158],"k":[0.597,0.597,0.597]},{"p":[-4.771,0.585,7.63],"h":[0.262,0.262,0.737],"x":[-0.282,0.96,0.0],"y":[0.678,0.199,-0.707],"k":[0.045,0.045,0.045]},{"p":[-4.771,0.585,7.63],"h":[0.317,0.316,0.737],"x":[-0.718,0.386,0.58],"y":[0.157,0.901,-0.405],"k":[0.061,0.061,0.061]},{"p":[-5.678,0.587,7.624],"h":[0.092,0.092,0.864],"x":[0.086,0.977,0.193],"y":[0.73,0.07,-0.68],"k":[0.597,0.597,0.597]},{"p":[-5.672,0.585,7.63],"h":[0.262,0.262,0.737],"x":[0.282,0.96,0.0],"y":[0.678,-0.199,-0.707],"k":[0.045,0.045,0.045]},{"p":[-5.672,0.585,7.63],"h":[0.317,0.316,0.737],"x":[-0.395,0.712,0.58],"y":[0.619,0.673,-0.405],"k":[0.061,0.061,0.061]},{"p":[-6.434,1.077,7.624],"h":[0.092,0.092,0.864],"x":[0.568,0.791,0.226],"y":[0.68,-0.297,-0.67],"k":[0.597,0.597,0.597]},{"p":[-6.429,1.072,7.63],"h":[0.262,0.262,0.737],"x":[0.756,0.655,0.0],"y":[0.463,-0.534,-0.707],"k":[0.045,0.045,0.045]},{"p":[-6.429,1.072,7.63],"h":[0.317,0.316,0.737],"x":[0.053,0.813,0.58],"y":[0.885,0.231,-0.405],"k":[0.061,0.061,0.061]},{"p":[-6.804,1.898,7.624],"h":[0.092,0.092,0.864],"x":[-0.616,0.515,0.597],"y":[0.782,0.495,0.379],"k":[0.597,0.597,0.597]},{"p":[-6.804,1.891,7.63],"h":[0.262,0.262,0.737],"x":[-0.99,-0.142,0.0],"y":[-0.101,0.7,0.707],"k":[0.045,0.045,0.045]},{"p":[-6.804,1.891,7.63],"h":[0.317,0.316,0.737],"x":[0.484,0.655,0.58],"y":[0.869,-0.284,-0.405],"k":[0.061,0.061,0.061]},{"p":[-6.672,2.789,7.624],"h":[0.092,0.092,0.864],"x":[-0.956,0.182,-0.231],"y":[-0.02,0.744,0.668],"k":[0.597,0.597,0.597]},{"p":[-6.675,2.783,7.63],"h":[0.262,0.262,0.737],"x":[-0.91,0.415,0.0],"y":[0.294,0.643,0.707],"k":[0.045,0.045,0.045]},{"p":[-6.675,2.783,7.63],"h":[0.317,0.316,0.737],"x":[-0.762,-0.29,-0.58],"y":[-0.578,0.709,0.405],"k":[0.061,0.061,0.061]},{"p":[-6.08,3.467,7.624],"h":[0.092,0.092,0.864],"x":[-0.076,0.902,0.424],"y":[0.8,-0.198,0.566],"k":[0.597,0.597,0.597]},{"p":[-6.085,3.464,7.63],"h":[0.262,0.262,0.737],"x":[-0.541,0.841,0.0],"y":[0.595,0.382,0.707],"k":[0.045,0.045,0.045]},{"p":[-6.085,3.464,7.63],"h":[0.317,0.316,0.737],"x":[-0.797,0.168,-0.58],"y":[-0.103,0.909,0.405],"k":[0.061,0.061,0.061]},{"p":[4.503,2.119,7.63],"h":[0.221,0.961,0.961],"x":[0.0,0.0,-1.0],"y":[-0.218,-0.976,0.0],"k":[0.045,0.045,0.045]},{"p":[4.517,2.098,8.089],"h":[0.238,1.782,1.786],"x":[0.0,0.0,-1.0],"y":[0.004,-1.0,0.0],"k":[0.956,0.631,0.0]},{"p":[4.49,2.098,7.172],"h":[0.238,1.782,1.786],"x":[0.0,0.0,-1.0],"y":[-0.004,-1.0,0.0],"k":[0.956,0.631,0.0]},{"p":[4.497,3.718,7.624],"h":[0.092,0.092,0.864],"x":[0.707,0.0,-0.707],"y":[0.0,-1.0,0.0],"k":[0.694,0.694,0.694]},{"p":[4.503,3.718,7.63],"h":[0.262,0.262,0.737],"x":[0.0,1.0,0.0],"y":[0.707,0.0,-0.707],"k":[0.045,0.045,0.045]},{"p":[4.503,3.718,7.63],"h":[0.317,0.316,0.737],"x":[-0.58,-0.572,0.58],"y":[-0.405,0.82,0.405],"k":[0.061,0.061,0.061]},{"p":[5.363,3.467,7.624],"h":[0.092,0.092,0.864],"x":[0.204,0.923,0.327],"y":[0.778,0.05,-0.627],"k":[0.694,0.694,0.694]},{"p":[5.368,3.464,7.63],"h":[0.262,0.262,0.737],"x":[0.541,0.841,0.0],"y":[0.595,-0.382,-0.707],"k":[0.045,0.045,0.045]},{"p":[5.368,3.464,7.63],"h":[0.317,0.316,0.737],"x":[-0.797,-0.168,0.58],"y":[0.103,0.909,0.405],"k":[0.061,0.061,0.061]},{"p":[5.955,2.789,7.624],"h":[0.092,0.092,0.864],"x":[-0.945,-0.082,0.318],"y":[0.147,0.761,0.632],"k":[0.694,0.694,0.694]},{"p":[5.958,2.783,7.63],"h":[0.262,0.262,0.737],"x":[-0.91,-0.415,0.0],"y":[-0.294,0.643,0.707],"k":[0.045,0.045,0.045]},{"p":[5.958,2.783,7.63],"h":[0.317,0.316,0.737],"x":[-0.762,0.29,0.58],"y":[0.578,0.709,0.405],"k":[0.061,0.061,0.061]},{"p":[6.087,1.898,7.624],"h":[0.092,0.092,0.864],"x":[-0.671,-0.477,-0.568],"y":[-0.734,0.532,0.422],"k":[0.694,0.694,0.694]},{"p":[6.086,1.891,7.63],"h":[0.262,0.262,0.737],"x":[-0.99,0.142,0.0],"y":[0.101,0.7,0.707],"k":[0.045,0.045,0.045]},{"p":[6.086,1.891,7.63],"h":[0.317,0.316,0.737],"x":[-0.484,0.655,0.58],"y":[0.869,0.284,0.405],"k":[0.061,0.061,0.061]},{"p":[5.716,1.077,7.624],"h":[0.092,0.092,0.864],"x":[-0.495,0.818,0.294],"y":[0.735,0.214,0.643],"k":[0.694,0.694,0.694]},{"p":[5.712,1.072,7.63],"h":[0.262,0.262,0.737],"x":[-0.756,0.655,0.0],"y":[0.463,0.534,0.707],"k":[0.045,0.045,0.045]},{"p":[5.712,1.072,7.63],"h":[0.317,0.316,0.737],"x":[-0.053,0.813,0.58],"y":[0.885,-0.231,0.405],"k":[0.061,0.061,0.061]},{"p":[4.96,0.587,7.624],"h":[0.092,0.092,0.864],"x":[-0.723,0.349,-0.596],"y":[0.128,0.916,0.381],"k":[0.694,0.694,0.694]},{"p":[4.954,0.585,7.63],"h":[0.262,0.262,0.737],"x":[-0.282,0.96,0.0],"y":[0.678,0.199,0.707],"k":[0.045,0.045,0.045]},{"p":[4.954,0.585,7.63],"h":[0.317,0.316,0.737],"x":[0.395,0.713,0.58],"y":[0.619,-0.673,0.405],"k":[0.061,0.061,0.061]},{"p":[4.059,0.583,7.624],"h":[0.092,0.092,0.864],"x":[-0.687,0.17,-0.707],"y":[0.261,0.965,-0.022],"k":[0.694,0.694,0.694]},{"p":[4.053,0.585,7.63],"h":[0.262,0.262,0.737],"x":[0.282,0.96,0.0],"y":[0.678,-0.199,0.707],"k":[0.045,0.045,0.045]},{"p":[4.053,0.585,7.63],"h":[0.317,0.316,0.737],"x":[-0.718,-0.386,-0.58],"y":[-0.157,0.901,-0.405],"k":[0.061,0.061,0.061]},{"p":[3.3,1.067,7.624],"h":[0.092,0.092,0.864],"x":[0.468,0.825,-0.317],"y":[0.752,-0.184,0.632],"k":[0.694,0.694,0.694]},{"p":[3.295,1.072,7.63],"h":[0.262,0.262,0.737],"x":[0.756,0.655,0.0],"y":[0.463,-0.534,0.707],"k":[0.045,0.045,0.045]},{"p":[3.295,1.072,7.63],"h":[0.317,0.316,0.737],"x":[-0.812,0.063,-0.58],"y":[0.355,0.843,-0.405],"k":[0.061,0.061,0.061]},{"p":[2.922,1.885,7.624],"h":[0.092,0.092,0.864],"x":[-0.97,0.088,-0.225],"y":[0.22,0.709,-0.67],"k":[0.694,0.694,0.694]},{"p":[2.921,1.891,7.63],"h":[0.262,0.262,0.737],"x":[-0.99,-0.142,0.0],"y":[-0.101,0.7,-0.707],"k":[0.045,0.045,0.045]},{"p":[2.921,1.891,7.63],"h":[0.317,0.316,0.737],"x":[-0.649,0.492,-0.58],"y":[0.754,0.517,-0.405],"k":[0.061,0.061,0.061]},{"p":[3.047,2.777,7.624],"h":[0.092,0.092,0.864],"x":[-0.956,0.212,0.204],"y":[0.018,0.736,-0.677],"k":[0.694,0.694,0.694]},{"p":[3.049,2.783,7.63],"h":[0.262,0.262,0.737],"x":[-0.91,0.415,0.0],"y":[0.294,0.643,-0.707],"k":[0.045,0.045,0.045]},{"p":[3.049,2.783,7.63],"h":[0.317,0.316,0.737],"x":[-0.28,0.765,-0.58],"y":[0.914,0.028,-0.405],"k":[0.061,0.061,0.061]},{"p":[3.634,3.46,7.624],"h":[0.092,0.092,0.864],"x":[-0.377,0.91,-0.175],"y":[0.71,0.163,-0.685],"k":[0.694,0.694,0.694]},{"p":[3.639,3.464,7.63],"h":[0.262,0.262,0.737],"x":[-0.541,0.841,0.0],"y":[0.595,0.382,-0.707],"k":[0.045,0.045,0.045]},{"p":[3.639,3.464,7.63],"h":[0.317,0.316,0.737],"x":[0.178,0.795,-0.58],"y":[0.784,-0.471,-0.405],"k":[0.061,0.061,0.061]},{"p":[-5.221,2.119,-7.619],"h":[0.221,0.961,0.961],"x":[0.0,0.0,-1.0],"y":[0.218,-0.976,0.0],"k":[0.045,0.045,0.045]},{"p":[-5.207,2.14,-8.078],"h":[0.238,1.782,1.786],"x":[0.0,0.0,-1.0],"y":[-0.004,-1.0,0.0],"k":[0.956,0.631,0.0]},{"p":[-5.235,2.14,-7.161],"h":[0.238,1.782,1.786],"x":[0.0,0.0,-1.0],"y":[0.004,-1.0,0.0],"k":[0.956,0.631,0.0]},{"p":[-5.228,0.52,-7.613],"h":[0.092,0.092,0.864],"x":[-0.707,0.0,-0.707],"y":[0.0,-1.0,0.0],"k":[0.694,0.694,0.694]},{"p":[-5.221,0.52,-7.619],"h":[0.262,0.262,0.737],"x":[0.0,1.0,0.0],"y":[-0.707,0.0,-0.707],"k":[0.045,0.045,0.045]},{"p":[-5.221,0.52,-7.619],"h":[0.317,0.316,0.737],"x":[-0.58,0.572,-0.58],"y":[0.405,0.82,0.405],"k":[0.061,0.061,0.061]},{"p":[-4.362,0.77,-7.613],"h":[0.092,0.092,0.864],"x":[-0.742,0.599,-0.3],"y":[0.309,0.703,0.64],"k":[0.694,0.694,0.694]},{"p":[-4.357,0.774,-7.619],"h":[0.262,0.262,0.737],"x":[-0.541,0.841,0.0],"y":[0.595,0.382,0.707],"k":[0.045,0.045,0.045]},{"p":[-4.357,0.774,-7.619],"h":[0.317,0.316,0.737],"x":[-0.797,0.168,-0.58],"y":[-0.103,0.909,0.405],"k":[0.061,0.061,0.061]},{"p":[-3.77,1.449,-7.613],"h":[0.092,0.092,0.864],"x":[-0.946,0.092,-0.309],"y":[-0.134,0.76,0.636],"k":[0.694,0.694,0.694]},{"p":[-3.767,1.455,-7.619],"h":[0.262,0.262,0.737],"x":[-0.91,0.415,0.0],"y":[0.294,0.643,0.707],"k":[0.045,0.045,0.045]},{"p":[-3.767,1.455,-7.619],"h":[0.317,0.316,0.737],"x":[-0.762,-0.29,-0.58],"y":[-0.578,0.709,0.405],"k":[0.061,0.061,0.061]},{"p":[-3.638,2.34,-7.613],"h":[0.092,0.092,0.864],"x":[-0.582,0.535,0.612],"y":[0.807,0.473,0.354],"k":[0.694,0.694,0.694]},{"p":[-3.639,2.347,-7.619],"h":[0.262,0.262,0.737],"x":[-0.99,-0.142,0.0],"y":[-0.101,0.7,0.707],"k":[0.045,0.045,0.045]},{"p":[-3.639,2.347,-7.619],"h":[0.317,0.316,0.737],"x":[0.484,0.655,0.58],"y":[0.869,-0.284,-0.405],"k":[0.061,0.061,0.061]},{"p":[-4.008,3.161,-7.613],"h":[0.092,0.092,0.864],"x":[0.009,0.801,0.599],"y":[0.886,0.271,-0.376],"k":[0.694,0.694,0.694]},{"p":[-4.013,3.166,-7.619],"h":[0.262,0.262,0.737],"x":[0.756,0.655,0.0],"y":[0.463,-0.534,-0.707],"k":[0.045,0.045,0.045]},{"p":[-4.013,3.166,-7.619],"h":[0.317,0.316,0.737],"x":[0.053,0.813,0.58],"y":[0.885,0.231,-0.405],"k":[0.061,0.061,0.061]},{"p":[-4.764,3.651,-7.613],"h":[0.092,0.092,0.864],"x":[-0.732,-0.099,0.674],"y":[0.064,0.975,0.213],"k":[0.694,0.694,0.694]},{"p":[-4.771,3.653,-7.619],"h":[0.262,0.262,0.737],"x":[0.282,0.96,0.0],"y":[0.678,-0.199,-0.707],"k":[0.045,0.045,0.045]},{"p":[-4.771,3.653,-7.619],"h":[0.317,0.316,0.737],"x":[-0.395,0.713,0.58],"y":[0.619,0.673,-0.405],"k":[0.061,0.061,0.061]},{"p":[-5.665,3.655,-7.613],"h":[0.092,0.092,0.864],"x":[-0.605,-0.395,0.692],"y":[-0.417,0.897,0.148],"k":[0.694,0.694,0.694]},{"p":[-5.672,3.653,-7.619],"h":[0.262,0.262,0.737],"x":[-0.282,0.96,0.0],"y":[0.678,0.199,-0.707],"k":[0.045,0.045,0.045]},{"p":[-5.672,3.653,-7.619],"h":[0.317,0.316,0.737],"x":[-0.718,0.386,0.58],"y":[0.157,0.901,-0.405],"k":[0.061,0.061,0.061]},{"p":[-6.425,3.171,-7.613],"h":[0.092,0.092,0.864],"x":[-0.268,0.845,-0.463],"y":[0.845,-0.025,-0.534],"k":[0.694,0.694,0.694]},{"p":[-6.429,3.166,-7.619],"h":[0.262,0.262,0.737],"x":[-0.756,0.655,0.0],"y":[0.463,0.534,-0.707],"k":[0.045,0.045,0.045]},{"p":[-6.429,3.166,-7.619],"h":[0.317,0.316,0.737],"x":[-0.812,-0.063,0.58],"y":[-0.355,0.843,-0.405],"k":[0.061,0.061,0.061]},{"p":[-6.802,2.353,-7.613],"h":[0.092,0.092,0.864],"x":[0.319,0.651,-0.689],"y":[0.942,-0.295,0.158],"k":[0.694,0.694,0.694]},{"p":[-6.804,2.347,-7.619],"h":[0.262,0.262,0.737],"x":[-0.99,0.142,0.0],"y":[0.101,0.7,-0.707],"k":[0.045,0.045,0.045]},{"p":[-6.804,2.347,-7.619],"h":[0.317,0.316,0.737],"x":[-0.649,-0.492,0.58],"y":[-0.754,0.517,-0.405],"k":[0.061,0.061,0.061]},{"p":[-6.678,1.461,-7.613],"h":[0.092,0.092,0.864],"x":[-0.853,-0.51,0.11],"y":[-0.431,0.571,-0.699],"k":[0.694,0.694,0.694]},{"p":[-6.675,1.455,-7.619],"h":[0.262,0.262,0.737],"x":[-0.91,-0.415,0.0],"y":[-0.294,0.643,-0.707],"k":[0.045,0.045,0.045]},{"p":[-6.675,1.455,-7.619],"h":[0.317,0.316,0.737],"x":[0.28,0.765,-0.58],"y":[0.914,-0.028,0.405],"k":[0.061,0.061,0.061]},{"p":[-6.091,0.778,-7.613],"h":[0.092,0.092,0.864],"x":[0.295,0.922,-0.251],"y":[0.748,-0.059,0.661],"k":[0.694,0.694,0.694]},{"p":[-6.085,0.774,-7.619],"h":[0.262,0.262,0.737],"x":[0.541,0.841,0.0],"y":[0.595,-0.382,0.707],"k":[0.045,0.045,0.045]},{"p":[-6.085,0.774,-7.619],"h":[0.317,0.316,0.737],"x":[-0.178,0.795,-0.58],"y":[0.784,0.471,0.405],"k":[0.061,0.061,0.061]},{"p":[3.914,1.824,0.006],"h":[0.129,0.147,4.862],"x":[0.002,1.0,0.0],"y":[1.0,-0.002,0.0],"k":[0.694,0.694,0.694]},{"p":[4.503,3.887,5.752],"h":[0.884,0.884,0.884],"x":[0.0,0.0,-1.0],"y":[-1.0,0.0,0.0],"k":[0.93,0.965,1.0]},{"p":[4.503,3.887,-5.741],"h":[0.884,0.884,0.884],"x":[0.0,0.0,-1.0],"y":[-1.0,0.0,0.0],"k":[0.93,0.965,1.0]},{"p":[4.503,3.887,5.155],"h":[0.129,0.147,1.473],"x":[-0.808,-0.589,0.0],"y":[-0.589,0.808,0.0],"k":[0.694,0.694,0.694]},{"p":[4.503,3.887,-5.144],"h":[0.129,0.147,1.473],"x":[-0.104,0.995,0.0],"y":[0.995,0.104,0.0],"k":[0.694,0.694,0.694]},{"p":[4.503,3.887,4.334],"h":[0.185,0.473,0.589],"x":[0.0,0.0,-1.0],"y":[-0.766,0.642,0.0],"k":[0.93,0.965,1.0]},{"p":[4.503,3.887,-4.028],"h":[0.185,0.473,0.589],"x":[0.0,0.0,-1.0],"y":[-0.615,-0.788,0.0],"k":[0.93,0.965,1.0]},{"p":[4.503,3.887,4.352],"h":[0.221,0.884,0.884],"x":[0.0,0.0,-1.0],"y":[0.105,-0.994,0.0],"k":[0.93,0.965,1.0]},{"p":[4.503,3.887,-4.046],"h":[0.221,0.884,0.884],"x":[0.0,0.0,-1.0],"y":[0.105,-0.994,0.0],"k":[0.93,0.965,1.0]},{"p":[5.938,4.335,4.352],"h":[0.221,0.589,1.768],"x":[0.0,0.0,-1.0],"y":[-0.994,-0.105,0.0],"k":[0.93,0.965,1.0]},{"p":[5.938,4.335,-4.046],"h":[0.221,0.589,1.768],"x":[0.0,0.0,-1.0],"y":[-0.994,-0.105,0.0],"k":[0.93,0.965,1.0]},{"p":[5.845,5.214,3.91],"h":[0.221,1.053,1.053],"x":[0.0,0.0,-1.0],"y":[-0.708,0.706,0.0],"k":[0.93,0.965,1.0]},{"p":[5.78,5.832,-3.605],"h":[0.209,0.25,0.792],"x":[-0.103,0.975,-0.197],"y":[0.021,-0.196,-0.98],"k":[0.93,0.965,1.0]},{"p":[5.91,4.596,-3.605],"h":[0.209,0.25,0.792],"x":[-0.103,0.975,0.197],"y":[-0.021,0.196,-0.98],"k":[0.93,0.965,1.0]},{"p":[5.845,5.214,0.153],"h":[0.884,0.884,3.978],"x":[-0.105,0.994,0.0],"y":[0.994,0.105,0.0],"k":[0.93,0.965,1.0]},{"p":[5.845,5.214,-2.074],"h":[0.101,0.588,0.588],"x":[0.0,0.0,-1.0],"y":[0.155,-0.988,0.0],"k":[0.665,0.694,0.716]},{"p":[5.845,5.214,-2.685],"h":[0.713,0.662,0.662],"x":[0.0,0.0,-1.0],"y":[-0.621,-0.784,0.0],"k":[0.102,0.102,0.102]},{"p":[5.845,5.214,-3.51],"h":[0.315,0.588,0.663],"x":[0.0,0.0,-1.0],"y":[0.106,-0.994,0.0],"k":[0.665,0.694,0.716]},{"p":[5.845,5.214,-3.943],"h":[0.165,0.165,0.748],"x":[0.153,0.988,0.0],"y":[0.988,-0.153,0.0],"k":[0.694,0.694,0.694]},{"p":[5.845,5.215,-1.007],"h":[0.663,0.656,1.139],"x":[0.629,0.777,0.007],"y":[0.778,-0.629,0.0],"k":[0.617,0.665,0.708]},{"p":[5.841,5.216,-1.196],"h":[0.629,0.687,0.691],"x":[0.0,0.0,-1.0],"y":[-0.866,0.501,0.0],"k":[0.617,0.665,0.708]},{"p":[5.854,5.207,0.428],"h":[0.484,0.739,0.69],"x":[0.154,-0.122,-0.98],"y":[-0.838,0.509,-0.195],"k":[0.045,0.045,0.045]},{"p":[5.852,5.223,0.039],"h":[0.018,0.632,0.644],"x":[0.0,0.0,-1.0],"y":[-0.778,0.629,0.0],"k":[0.597,0.597,0.597]},{"p":[5.841,5.216,-1.196],"h":[0.629,0.69,0.694],"x":[0.0,0.0,-1.0],"y":[-0.866,0.501,0.0],"k":[0.922,0.922,0.896]},{"p":[6.031,3.456,-0.204],"h":[0.129,0.147,4.42],"x":[-0.001,1.0,0.0],"y":[1.0,0.001,0.0],"k":[0.694,0.694,0.694]},{"p":[6.031,3.456,3.442],"h":[0.295,0.884,0.884],"x":[0.0,0.0,-1.0],"y":[-1.0,-0.002,0.0],"k":[0.72,0.74,0.76]},{"p":[6.031,3.456,2.411],"h":[0.295,0.884,0.884],"x":[0.0,0.0,-1.0],"y":[-1.0,0.002,0.0],"k":[0.72,0.74,0.76]},{"p":[6.031,3.456,1.379],"h":[0.295,0.884,0.884],"x":[0.0,0.0,-1.0],"y":[-1.0,-0.002,0.0],"k":[0.72,0.74,0.76]},{"p":[6.031,3.456,-0.683],"h":[0.295,0.884,0.884],"x":[0.0,0.0,-1.0],"y":[-1.0,0.002,0.0],"k":[0.72,0.74,0.76]},{"p":[6.031,3.456,0.348],"h":[0.295,0.884,0.884],"x":[0.0,0.0,-1.0],"y":[-1.0,-0.002,0.0],"k":[0.72,0.74,0.76]},{"p":[6.031,3.456,-2.746],"h":[0.295,0.884,0.884],"x":[0.0,0.0,-1.0],"y":[-1.0,-0.002,0.0],"k":[0.72,0.74,0.76]},{"p":[6.031,3.456,-1.715],"h":[0.295,0.884,0.884],"x":[0.0,0.0,-1.0],"y":[-1.0,-0.002,0.0],"k":[0.72,0.74,0.76]},{"p":[5.845,5.214,-4.507],"h":[0.185,0.473,0.589],"x":[0.0,0.0,-1.0],"y":[-0.719,-0.695,0.0],"k":[0.93,0.965,1.0]},{"p":[5.845,5.214,-4.617],"h":[0.111,1.503,1.503],"x":[0.0,0.0,-1.0],"y":[-0.839,0.545,0.0],"k":[0.93,0.965,1.0]},{"p":[5.388,2.536,-4.065],"h":[0.138,0.146,0.792],"x":[0.15,0.989,0.0],"y":[0.989,-0.15,0.0],"k":[0.93,0.965,1.0]},{"p":[5.676,4.011,5.015],"h":[0.138,0.146,0.792],"x":[-0.999,0.045,0.0],"y":[0.045,0.999,0.0],"k":[0.93,0.965,1.0]},{"p":[7.008,2.309,5.752],"h":[0.318,0.792,1.235],"x":[0.003,1.0,0.0],"y":[0.0,0.0,-1.0],"k":[0.93,0.965,1.0]},{"p":[7.45,2.007,5.752],"h":[0.219,0.589,0.589],"x":[0.0,1.0,0.0],"y":[0.729,0.0,-0.685],"k":[0.93,0.965,1.0]},{"p":[7.008,2.309,-5.741],"h":[0.318,0.792,1.235],"x":[0.003,1.0,0.0],"y":[0.0,0.0,-1.0],"k":[0.93,0.965,1.0]},{"p":[7.45,2.007,-5.741],"h":[0.219,0.589,0.589],"x":[0.0,1.0,0.0],"y":[0.729,0.0,-0.685],"k":[0.93,0.965,1.0]},{"p":[7.089,2.491,5.752],"h":[0.241,0.369,1.001],"x":[0.013,1.0,0.0],"y":[0.0,0.0,-1.0],"k":[0.212,0.212,0.212]},{"p":[7.091,3.088,5.752],"h":[0.368,0.368,0.737],"x":[0.0,0.0,-1.0],"y":[0.0,-1.0,0.0],"k":[0.212,0.212,0.212]},{"p":[7.091,3.589,5.752],"h":[0.134,0.368,0.737],"x":[-0.002,1.0,0.0],"y":[0.0,0.0,-1.0],"k":[0.212,0.212,0.212]},{"p":[7.736,3.111,6.028],"h":[0.069,0.069,0.602],"x":[-1.0,0.0,-0.002],"y":[-0.002,0.0,1.0],"k":[0.102,0.102,0.102]},{"p":[6.447,3.111,6.028],"h":[0.069,0.069,0.602],"x":[-1.0,0.0,-0.002],"y":[-0.002,0.0,1.0],"k":[0.102,0.102,0.102]},{"p":[6.447,3.111,5.476],"h":[0.069,0.069,0.602],"x":[-1.0,0.0,-0.002],"y":[-0.002,0.0,1.0],"k":[0.102,0.102,0.102]},{"p":[7.736,3.111,5.476],"h":[0.069,0.069,0.602],"x":[-1.0,0.0,-0.002],"y":[-0.002,0.0,1.0],"k":[0.102,0.102,0.102]},{"p":[7.091,3.09,6.123],"h":[0.003,0.645,0.313],"x":[0.0,0.0,-1.0],"y":[-1.0,0.0,0.0],"k":[0.922,0.922,0.896]},{"p":[7.089,2.491,-5.741],"h":[0.241,0.369,1.001],"x":[0.013,1.0,0.0],"y":[0.0,0.0,-1.0],"k":[0.212,0.212,0.212]},{"p":[7.091,3.088,-5.741],"h":[0.368,0.737,0.368],"x":[0.0,0.0,-1.0],"y":[-1.0,0.0,0.0],"k":[0.212,0.212,0.212]},{"p":[7.091,3.589,-5.741],"h":[0.134,0.368,0.737],"x":[-0.002,1.0,0.0],"y":[0.0,0.0,-1.0],"k":[0.212,0.212,0.212]},{"p":[7.736,3.111,-5.465],"h":[0.069,0.069,0.602],"x":[-1.0,0.0,-0.002],"y":[-0.002,0.0,1.0],"k":[0.102,0.102,0.102]},{"p":[6.447,3.111,-5.465],"h":[0.069,0.069,0.602],"x":[-1.0,0.0,-0.002],"y":[-0.002,0.0,1.0],"k":[0.102,0.102,0.102]},{"p":[6.447,3.111,-6.017],"h":[0.069,0.069,0.602],"x":[-1.0,0.0,-0.002],"y":[-0.002,0.0,1.0],"k":[0.102,0.102,0.102]},{"p":[7.736,3.111,-6.017],"h":[0.069,0.069,0.602],"x":[-1.0,0.0,-0.002],"y":[-0.002,0.0,1.0],"k":[0.102,0.102,0.102]},{"p":[7.091,3.09,-5.37],"h":[0.003,0.645,0.313],"x":[0.0,0.0,-1.0],"y":[-1.0,0.0,0.0],"k":[0.922,0.922,0.896]},{"p":[7.45,1.64,5.752],"h":[0.442,1.326,1.326],"x":[0.0,1.0,0.0],"y":[0.995,0.0,-0.098],"k":[0.72,0.74,0.76]},{"p":[7.45,1.64,-5.741],"h":[0.442,1.326,1.326],"x":[0.0,1.0,0.0],"y":[0.995,0.0,-0.098],"k":[0.72,0.74,0.76]},{"p":[-1.685,4.094,-5.741],"h":[0.374,0.939,1.09],"x":[-1.0,0.0,0.0],"y":[0.0,0.106,0.994],"k":[0.08,0.08,0.08]},{"p":[-1.685,3.371,-5.741],"h":[0.368,0.964,2.381],"x":[0.0,1.0,0.0],"y":[0.056,0.0,-0.998],"k":[0.045,0.045,0.045]},{"p":[-4.042,2.045,-2.499],"h":[0.221,1.053,1.053],"x":[0.0,1.0,0.0],"y":[0.777,0.0,0.63],"k":[0.93,0.965,1.0]},{"p":[-4.042,2.045,2.51],"h":[0.221,1.053,1.053],"x":[0.0,1.0,0.0],"y":[0.777,0.0,0.63],"k":[0.93,0.965,1.0]},{"p":[-4.042,6.687,2.51],"h":[0.884,0.884,4.862],"x":[0.0,0.0,-1.0],"y":[-1.0,0.0,0.0],"k":[0.93,0.965,1.0]},{"p":[-4.042,6.687,-2.499],"h":[0.884,0.884,4.862],"x":[0.0,0.0,-1.0],"y":[-1.0,0.0,0.0],"k":[0.93,0.965,1.0]},{"p":[-2.937,6.539,2.51],"h":[0.221,1.053,1.053],"x":[-1.0,0.0,0.0],"y":[0.0,0.63,0.777],"k":[0.93,0.965,1.0]},{"p":[-0.506,6.539,3.173],"h":[0.221,2.652,0.884],"x":[0.0,0.0,-1.0],"y":[-1.0,0.0,0.0],"k":[0.93,0.965,1.0]},{"p":[-2.274,6.539,-2.057],"h":[1.326,0.884,0.884],"x":[0.0,0.0,-1.0],"y":[-1.0,0.0,0.0],"k":[0.93,0.965,1.0]},{"p":[-0.506,7.644,-2.499],"h":[0.884,2.652,0.221],"x":[0.0,0.0,-1.0],"y":[-1.0,0.0,0.0],"k":[0.93,0.965,1.0]},{"p":[-2.274,6.539,-0.952],"h":[0.221,1.053,1.053],"x":[0.0,0.0,-1.0],"y":[0.63,-0.777,0.0],"k":[0.93,0.965,1.0]},{"p":[0.231,5.458,2.51],"h":[0.318,0.792,1.235],"x":[0.003,1.0,0.0],"y":[0.0,0.0,-1.0],"k":[0.93,0.965,1.0]},{"p":[0.673,5.156,2.51],"h":[0.219,0.589,0.589],"x":[0.0,1.0,0.0],"y":[0.729,0.0,-0.685],"k":[0.93,0.965,1.0]},{"p":[0.302,5.641,2.51],"h":[0.241,0.369,1.001],"x":[0.013,1.0,0.0],"y":[0.0,0.0,-1.0],"k":[0.212,0.212,0.212]},{"p":[0.304,6.237,2.51],"h":[0.368,0.737,0.368],"x":[0.0,0.0,-1.0],"y":[-1.0,0.0,0.0],"k":[0.212,0.212,0.212]},{"p":[0.304,6.738,2.51],"h":[0.134,0.368,0.737],"x":[-0.002,1.0,0.0],"y":[0.0,0.0,-1.0],"k":[0.212,0.212,0.212]},{"p":[-0.34,6.261,2.234],"h":[0.069,0.069,0.602],"x":[-1.0,0.0,-0.002],"y":[-0.002,0.0,1.0],"k":[0.102,0.102,0.102]},{"p":[0.949,6.261,2.234],"h":[0.069,0.069,0.602],"x":[-1.0,0.0,-0.002],"y":[-0.002,0.0,1.0],"k":[0.102,0.102,0.102]},{"p":[0.949,6.261,2.786],"h":[0.069,0.069,0.602],"x":[-1.0,0.0,-0.002],"y":[-0.002,0.0,1.0],"k":[0.102,0.102,0.102]},{"p":[-0.34,6.261,2.786],"h":[0.069,0.069,0.602],"x":[-1.0,0.0,-0.002],"y":[-0.002,0.0,1.0],"k":[0.102,0.102,0.102]},{"p":[0.304,6.239,2.881],"h":[0.003,0.645,0.313],"x":[0.0,0.0,-1.0],"y":[-1.0,0.0,0.0],"k":[0.922,0.922,0.896]},{"p":[-2.274,6.539,-2.31],"h":[0.101,0.588,0.588],"x":[0.0,0.0,-1.0],"y":[-0.999,0.05,0.0],"k":[0.665,0.694,0.716]},{"p":[-2.274,6.539,-1.858],"h":[0.553,0.662,0.662],"x":[0.0,0.0,-1.0],"y":[-0.714,-0.7,0.0],"k":[0.102,0.102,0.102]},{"p":[-2.274,6.539,-1.193],"h":[0.315,0.588,0.663],"x":[0.0,0.0,-1.0],"y":[-1.0,0.001,0.0],"k":[0.665,0.694,0.716]},{"p":[-2.274,6.539,-0.761],"h":[0.165,0.165,0.748],"x":[-0.153,0.988,0.0],"y":[0.988,0.153,0.0],"k":[0.694,0.694,0.694]},{"p":[-2.275,6.539,-3.377],"h":[0.663,0.656,1.139],"x":[-0.707,-0.707,-0.007],"y":[-0.707,0.707,0.0],"k":[0.617,0.665,0.708]},{"p":[-2.277,6.543,-3.187],"h":[0.629,0.687,0.691],"x":[0.0,0.0,-1.0],"y":[0.589,-0.808,0.0],"k":[0.617,0.665,0.708]},{"p":[-2.266,6.531,-4.811],"h":[0.484,0.739,0.69],"x":[-0.138,0.14,-0.98],"y":[0.595,-0.78,-0.195],"k":[0.045,0.045,0.045]},{"p":[-2.283,6.531,-4.422],"h":[0.018,0.632,0.644],"x":[0.0,0.0,-1.0],"y":[-0.707,0.707,0.0],"k":[0.597,0.597,0.597]},{"p":[-2.277,6.543,-3.187],"h":[0.629,0.69,0.694],"x":[0.0,0.0,-1.0],"y":[0.589,-0.808,0.0],"k":[0.922,0.922,0.896]},{"p":[-2.274,6.539,-0.142],"h":[0.405,0.559,0.559],"x":[0.0,0.0,-1.0],"y":[-0.806,-0.592,0.0],"k":[0.93,0.965,1.0]},{"p":[-2.274,6.539,0.19],"h":[0.442,1.768,1.768],"x":[0.0,0.0,-1.0],"y":[-0.017,-1.0,0.0],"k":[0.72,0.74,0.76]},{"p":[0.673,4.716,2.51],"h":[0.221,1.053,1.053],"x":[0.0,1.0,0.0],"y":[-0.63,0.0,-0.777],"k":[0.93,0.965,1.0]},{"p":[-1.685,4.173,-5.741],"h":[0.872,0.877,2.303],"x":[0.056,0.001,-0.998],"y":[0.001,-1.0,-0.001],"k":[0.72,0.74,0.76]},{"p":[0.083,3.335,-4.829],"h":[0.028,2.799,0.737],"x":[0.0,0.0,-1.0],"y":[-1.0,0.0,0.0],"k":[0.922,0.922,0.896]},{"p":[1.704,4.053,3.33],"h":[0.028,0.737,1.768],"x":[0.0,0.0,-1.0],"y":[0.0,-1.0,0.0],"k":[0.922,0.922,0.896]},{"p":[1.492,4.053,1.479],"h":[0.028,0.737,1.768],"x":[-1.0,0.0,0.0],"y":[0.0,1.0,0.0],"k":[0.922,0.922,0.896]},{"p":[-0.359,4.053,1.691],"h":[0.028,0.737,1.768],"x":[0.0,0.0,-1.0],"y":[-0.0,-1.0,0.0],"k":[0.922,0.922,0.896]},{"p":[-0.147,4.053,3.542],"h":[0.028,0.737,1.768],"x":[-1.0,0.0,0.0],"y":[0.0,1.0,-0.0],"k":[0.922,0.922,0.896]},{"p":[-6.105,7.129,1.713],"h":[0.037,0.737,1.623],"x":[0.026,0.0,-1.0],"y":[0.0,-1.0,0.0],"k":[0.922,0.922,0.896]},{"p":[-6.105,7.129,-1.702],"h":[0.037,0.737,1.623],"x":[-0.026,0.0,-1.0],"y":[0.0,-1.0,0.0],"k":[0.922,0.922,0.896]},{"p":[-4.539,4.16,-0.003],"h":[1.024,1.645,4.888],"x":[0.662,0.749,0.015],"y":[0.012,0.01,-1.0],"k":[0.922,0.922,0.896]},{"p":[-1.392,2.14,-2.903],"h":[0.154,1.347,1.64],"x":[0.019,0.98,0.197],"y":[1.0,-0.017,-0.008],"k":[0.922,0.922,0.896]},{"p":[-2.02,2.068,1.654],"h":[0.028,0.737,1.031],"x":[0.0,0.0,-1.0],"y":[-0.035,-0.999,0.0],"k":[0.922,0.922,0.896]},{"p":[1.263,1.847,-0.053],"h":[0.201,1.624,4.864],"x":[-0.003,0.993,0.115],"y":[1.0,0.003,0.0],"k":[0.922,0.922,0.896]},{"p":[0.164,9.17,-0.006],"h":[0.151,3.319,4.093],"x":[0.573,0.818,0.038],"y":[0.036,0.022,-0.999],"k":[0.922,0.922,0.896]},{"p":[-1.871,2.759,-1.404],"h":[0.11,0.11,0.792],"x":[0.01,0.063,-0.998],"y":[-0.99,0.144,-0.001],"k":[0.93,0.965,1.0]},{"p":[-1.102,2.688,-1.909],"h":[0.11,0.11,0.792],"x":[0.005,0.167,-0.986],"y":[-1.0,0.016,-0.003],"k":[0.93,0.965,1.0]},{"p":[-1.675,2.923,-3.017],"h":[0.11,0.11,0.792],"x":[0.007,0.223,-0.975],"y":[-1.0,0.02,-0.003],"k":[0.93,0.965,1.0]}]},"tank":{"src":"goBILDA 3200-2627-0003","unit":"in","scale":0.9356,"size":{"L":17.8,"W":15.69,"H":12.02},"boxes":[{"p":[-0.801,2.425,-5.746],"h":[0.884,7.072,0.884],"x":[0.0,0.0,-1.0],"y":[-1.0,0.0,0.0],"k":[0.93,0.965,1.0]},{"p":[-0.801,2.425,5.746],"h":[0.884,7.072,0.884],"x":[0.0,0.0,-1.0],"y":[-1.0,0.0,0.0],"k":[0.93,0.965,1.0]},{"p":[-7.611,2.425,4.642],"h":[0.209,0.25,0.792],"x":[-0.98,0.0,0.197],"y":[0.197,0.0,0.98],"k":[0.93,0.965,1.0]},{"p":[-7.611,2.425,-4.642],"h":[0.209,0.25,0.792],"x":[-0.98,0.0,-0.197],"y":[-0.197,0.0,0.98],"k":[0.93,0.965,1.0]},{"p":[-4.042,1.868,4.642],"h":[0.209,0.25,0.792],"x":[0.0,0.98,0.197],"y":[0.0,0.197,-0.98],"k":[0.93,0.965,1.0]},{"p":[-4.042,1.868,-4.642],"h":[0.209,0.25,0.792],"x":[0.0,0.98,-0.197],"y":[0.0,-0.197,-0.98],"k":[0.93,0.965,1.0]},{"p":[-4.042,1.91,0.0],"h":[4.862,0.884,0.221],"x":[0.0,0.0,-1.0],"y":[-1.0,0.0,0.0],"k":[0.93,0.965,1.0]},{"p":[-7.652,2.425,0.0],"h":[4.862,0.221,0.884],"x":[0.0,0.0,-1.0],"y":[-1.0,0.0,0.0],"k":[0.93,0.965,1.0]},{"p":[4.503,2.425,6.721],"h":[0.097,0.442,0.737],"x":[0.0,0.009,-1.0],"y":[-1.0,0.0,0.0],"k":[0.045,0.045,0.045]},{"p":[4.503,2.425,4.772],"h":[0.097,0.442,0.737],"x":[0.0,-0.009,-1.0],"y":[-1.0,-0.0,0.0],"k":[0.045,0.045,0.045]},{"p":[4.503,2.425,-4.772],"h":[0.097,0.442,0.737],"x":[0.0,0.009,-1.0],"y":[-1.0,0.0,0.0],"k":[0.045,0.045,0.045]},{"p":[4.503,2.425,-6.721],"h":[0.097,0.442,0.737],"x":[0.0,-0.009,-1.0],"y":[-1.0,-0.0,0.0],"k":[0.045,0.045,0.045]},{"p":[-6.105,2.425,6.152],"h":[0.129,0.147,1.473],"x":[-1.0,0.002,0.0],"y":[0.002,1.0,0.0],"k":[0.694,0.694,0.694]},{"p":[-0.801,2.425,6.152],"h":[0.129,0.147,1.473],"x":[-1.0,0.002,0.0],"y":[0.002,1.0,0.0],"k":[0.694,0.694,0.694]},{"p":[4.503,2.499,6.004],"h":[0.129,0.147,1.473],"x":[0.002,1.0,0.0],"y":[1.0,-0.002,0.0],"k":[0.694,0.694,0.694]},{"p":[-6.105,2.425,-6.152],"h":[0.129,0.147,1.473],"x":[-1.0,-0.002,0.0],"y":[-0.002,1.0,0.0],"k":[0.694,0.694,0.694]},{"p":[-0.801,2.425,-6.152],"h":[0.129,0.147,1.473],"x":[-1.0,-0.002,0.0],"y":[-0.002,1.0,0.0],"k":[0.694,0.694,0.694]},{"p":[4.503,2.499,-6.004],"h":[0.129,0.147,1.473],"x":[-0.002,1.0,0.0],"y":[1.0,0.002,0.0],"k":[0.694,0.694,0.694]},{"p":[-6.105,2.425,7.072],"h":[0.405,0.559,0.559],"x":[0.0,0.0,-1.0],"y":[-0.806,-0.592,0.0],"k":[0.93,0.965,1.0]},{"p":[-0.801,2.425,7.072],"h":[0.405,0.559,0.559],"x":[0.0,0.0,-1.0],"y":[-0.806,-0.592,0.0],"k":[0.93,0.965,1.0]},{"p":[-6.105,2.425,-7.072],"h":[0.405,0.559,0.559],"x":[0.0,0.0,-1.0],"y":[-0.806,0.592,0.0],"k":[0.93,0.965,1.0]},{"p":[-0.801,2.425,-7.072],"h":[0.405,0.559,0.559],"x":[0.0,0.0,-1.0],"y":[-0.806,0.592,0.0],"k":[0.93,0.965,1.0]},{"p":[4.503,2.499,7.054],"h":[0.185,0.473,0.589],"x":[0.0,0.0,-1.0],"y":[-0.97,0.242,0.0],"k":[0.93,0.965,1.0]},{"p":[4.503,2.499,-7.054],"h":[0.185,0.473,0.589],"x":[0.0,0.0,-1.0],"y":[-0.97,-0.242,0.0],"k":[0.93,0.965,1.0]},{"p":[-6.989,2.425,-3.431],"h":[0.101,0.588,0.588],"x":[0.0,0.0,-1.0],"y":[-0.999,-0.05,0.0],"k":[0.665,0.694,0.716]},{"p":[-6.989,2.425,-3.882],"h":[0.553,0.662,0.662],"x":[0.0,0.0,-1.0],"y":[-0.714,0.7,0.0],"k":[0.102,0.102,0.102]},{"p":[-6.989,2.425,-4.547],"h":[0.315,0.588,0.663],"x":[0.0,0.0,-1.0],"y":[-1.0,-0.001,0.0],"k":[0.665,0.694,0.716]},{"p":[-6.989,2.425,-4.98],"h":[0.165,0.165,0.748],"x":[0.049,0.999,0.0],"y":[0.999,-0.049,0.0],"k":[0.694,0.694,0.694]},{"p":[-6.989,2.425,-2.364],"h":[0.663,0.656,1.139],"x":[-0.707,0.707,-0.007],"y":[0.707,0.707,0.0],"k":[0.617,0.665,0.708]},{"p":[-6.987,2.429,-2.554],"h":[0.629,0.687,0.691],"x":[0.0,0.0,-1.0],"y":[-0.589,-0.808,0.0],"k":[0.617,0.665,0.708]},{"p":[-6.998,2.417,-0.93],"h":[0.484,0.739,0.69],"x":[-0.138,-0.14,-0.98],"y":[-0.595,-0.78,0.195],"k":[0.045,0.045,0.045]},{"p":[-6.981,2.417,-1.318],"h":[0.018,0.632,0.644],"x":[0.0,0.0,-1.0],"y":[-0.707,-0.707,0.0],"k":[0.597,0.597,0.597]},{"p":[-6.987,2.429,-2.553],"h":[0.629,0.69,0.694],"x":[0.0,0.0,-1.0],"y":[-0.589,-0.808,0.0],"k":[0.922,0.922,0.896]},{"p":[-6.989,2.425,3.431],"h":[0.101,0.588,0.588],"x":[0.0,0.0,-1.0],"y":[-0.999,0.05,0.0],"k":[0.665,0.694,0.716]},{"p":[-6.989,2.425,3.882],"h":[0.553,0.662,0.662],"x":[0.0,0.0,-1.0],"y":[-0.714,-0.7,0.0],"k":[0.102,0.102,0.102]},{"p":[-6.989,2.425,4.547],"h":[0.315,0.588,0.663],"x":[0.0,0.0,-1.0],"y":[-1.0,0.001,0.0],"k":[0.665,0.694,0.716]},{"p":[-6.989,2.425,4.98],"h":[0.165,0.165,0.748],"x":[-0.256,0.967,0.0],"y":[0.967,0.256,0.0],"k":[0.694,0.694,0.694]},{"p":[-6.989,2.426,2.364],"h":[0.663,0.656,1.139],"x":[-0.707,-0.707,0.007],"y":[-0.707,0.707,0.0],"k":[0.617,0.665,0.708]},{"p":[-6.987,2.422,2.554],"h":[0.629,0.687,0.691],"x":[0.0,0.0,-1.0],"y":[0.589,-0.808,0.0],"k":[0.617,0.665,0.708]},{"p":[-6.998,2.434,0.93],"h":[0.484,0.739,0.69],"x":[0.138,-0.14,-0.98],"y":[0.595,-0.78,0.195],"k":[0.045,0.045,0.045]},{"p":[-6.981,2.434,1.318],"h":[0.018,0.632,0.644],"x":[0.0,0.0,-1.0],"y":[-0.707,0.707,0.0],"k":[0.597,0.597,0.597]},{"p":[-6.987,2.422,2.553],"h":[0.629,0.69,0.694],"x":[0.0,0.0,-1.0],"y":[0.589,-0.808,0.0],"k":[0.922,0.922,0.896]},{"p":[-6.103,2.428,6.282],"h":[0.206,0.541,0.534],"x":[-0.012,-0.02,-1.0],"y":[-0.866,0.499,0.0],"k":[0.102,0.102,0.102]},{"p":[-0.799,2.428,6.282],"h":[0.206,0.541,0.534],"x":[-0.012,-0.02,-1.0],"y":[-0.866,0.499,0.0],"k":[0.102,0.102,0.102]},{"p":[-6.107,2.428,-6.282],"h":[0.206,0.541,0.534],"x":[-0.012,0.02,-1.0],"y":[-0.866,-0.499,0.0],"k":[0.102,0.102,0.102]},{"p":[-0.799,2.422,-6.282],"h":[0.206,0.541,0.534],"x":[0.012,-0.02,-1.0],"y":[-0.866,-0.499,0.0],"k":[0.102,0.102,0.102]},{"p":[-6.105,2.425,-7.404],"h":[0.442,1.768,1.768],"x":[0.0,0.0,-1.0],"y":[0.017,-1.0,0.0],"k":[0.72,0.74,0.76]},{"p":[-0.801,2.425,-7.404],"h":[0.442,1.768,1.768],"x":[0.0,0.0,-1.0],"y":[0.017,-1.0,0.0],"k":[0.72,0.74,0.76]},{"p":[-6.105,2.425,7.404],"h":[0.442,1.768,1.768],"x":[0.0,0.0,-1.0],"y":[-0.017,-1.0,0.0],"k":[0.72,0.74,0.76]},{"p":[-0.801,2.425,7.404],"h":[0.442,1.768,1.768],"x":[0.0,0.0,-1.0],"y":[-0.017,-1.0,0.0],"k":[0.72,0.74,0.76]},{"p":[4.503,2.499,7.312],"h":[0.442,1.768,1.768],"x":[0.0,0.0,-1.0],"y":[0.682,-0.732,0.0],"k":[0.72,0.74,0.76]},{"p":[4.503,2.499,-7.312],"h":[0.442,1.768,1.768],"x":[0.0,0.0,-1.0],"y":[-0.682,-0.732,0.0],"k":[0.72,0.74,0.76]},{"p":[3.914,2.131,0.0],"h":[0.129,0.147,4.862],"x":[0.002,1.0,0.0],"y":[1.0,-0.002,0.0],"k":[0.694,0.694,0.694]},{"p":[4.503,4.193,5.746],"h":[0.884,0.884,0.884],"x":[0.0,0.0,-1.0],"y":[-1.0,0.0,0.0],"k":[0.93,0.965,1.0]},{"p":[4.503,4.193,-5.746],"h":[0.884,0.884,0.884],"x":[0.0,0.0,-1.0],"y":[-1.0,0.0,0.0],"k":[0.93,0.965,1.0]},{"p":[4.503,4.193,5.15],"h":[0.129,0.147,1.473],"x":[0.667,0.745,0.0],"y":[0.745,-0.667,0.0],"k":[0.694,0.694,0.694]},{"p":[4.503,4.193,-5.15],"h":[0.129,0.147,1.473],"x":[-0.309,0.951,0.0],"y":[0.951,0.309,0.0],"k":[0.694,0.694,0.694]},{"p":[4.503,4.193,4.328],"h":[0.185,0.473,0.589],"x":[0.0,0.0,-1.0],"y":[-0.884,0.468,0.0],"k":[0.93,0.965,1.0]},{"p":[4.503,4.193,-4.033],"h":[0.185,0.473,0.589],"x":[0.0,0.0,-1.0],"y":[-0.437,-0.899,0.0],"k":[0.93,0.965,1.0]},{"p":[4.503,4.193,4.347],"h":[0.221,0.884,0.884],"x":[0.0,0.0,-1.0],"y":[0.31,-0.951,0.0],"k":[0.93,0.965,1.0]},{"p":[4.503,4.193,-4.052],"h":[0.221,0.884,0.884],"x":[0.0,0.0,-1.0],"y":[0.31,-0.951,0.0],"k":[0.93,0.965,1.0]},{"p":[5.813,4.931,4.347],"h":[0.221,0.589,1.768],"x":[0.0,0.0,-1.0],"y":[-0.951,-0.31,0.0],"k":[0.93,0.965,1.0]},{"p":[5.813,4.931,-4.052],"h":[0.221,0.589,1.768],"x":[0.0,0.0,-1.0],"y":[-0.951,-0.31,0.0],"k":[0.93,0.965,1.0]},{"p":[5.539,5.771,3.905],"h":[0.221,1.053,1.053],"x":[0.0,0.0,-1.0],"y":[-0.84,0.543,0.0],"k":[0.93,0.965,1.0]},{"p":[5.346,6.362,-3.611],"h":[0.209,0.25,0.792],"x":[-0.304,0.932,-0.197],"y":[0.061,-0.187,-0.98],"k":[0.93,0.965,1.0]},{"p":[5.732,5.18,-3.611],"h":[0.209,0.25,0.792],"x":[-0.304,0.932,0.197],"y":[-0.061,0.187,-0.98],"k":[0.93,0.965,1.0]},{"p":[5.539,5.771,0.147],"h":[0.884,0.884,3.978],"x":[-0.31,0.951,0.0],"y":[0.951,0.31,0.0],"k":[0.93,0.965,1.0]},{"p":[5.539,5.771,-2.079],"h":[0.101,0.588,0.588],"x":[0.0,0.0,-1.0],"y":[0.357,-0.934,0.0],"k":[0.665,0.694,0.716]},{"p":[5.539,5.771,-2.691],"h":[0.713,0.662,0.662],"x":[0.0,0.0,-1.0],"y":[-0.444,-0.896,0.0],"k":[0.102,0.102,0.102]},{"p":[5.539,5.771,-3.516],"h":[0.315,0.588,0.663],"x":[0.0,0.0,-1.0],"y":[0.311,-0.95,0.0],"k":[0.665,0.694,0.716]},{"p":[5.539,5.771,-3.949],"h":[0.165,0.165,0.748],"x":[-0.987,-0.161,0.0],"y":[-0.161,0.987,0.0],"k":[0.694,0.694,0.694]},{"p":[5.539,5.771,-1.012],"h":[0.663,0.656,1.139],"x":[0.453,0.892,0.007],"y":[0.892,-0.453,0.0],"k":[0.617,0.665,0.708]},{"p":[5.535,5.772,-1.202],"h":[0.629,0.687,0.691],"x":[0.0,0.0,-1.0],"y":[-0.951,0.309,0.0],"k":[0.617,0.665,0.708]},{"p":[5.549,5.766,0.422],"h":[0.484,0.739,0.69],"x":[0.176,-0.087,-0.98],"y":[-0.926,0.324,-0.195],"k":[0.045,0.045,0.045]},{"p":[5.544,5.782,0.034],"h":[0.018,0.632,0.644],"x":[0.0,0.0,-1.0],"y":[-0.892,0.453,0.0],"k":[0.597,0.597,0.597]},{"p":[5.535,5.772,-1.202],"h":[0.629,0.69,0.694],"x":[0.0,0.0,-1.0],"y":[-0.951,0.309,0.0],"k":[0.922,0.922,0.896]},{"p":[6.087,4.09,-0.21],"h":[0.129,0.147,4.42],"x":[-0.95,-0.311,0.0],"y":[-0.311,0.95,0.0],"k":[0.694,0.694,0.694]},{"p":[6.087,4.09,3.326],"h":[0.295,0.884,0.884],"x":[0.0,0.0,-1.0],"y":[0.312,-0.95,0.0],"k":[0.72,0.74,0.76]},{"p":[6.087,4.09,2.295],"h":[0.295,0.884,0.884],"x":[0.0,0.0,-1.0],"y":[0.308,-0.951,0.0],"k":[0.72,0.74,0.76]},{"p":[6.087,4.09,1.263],"h":[0.295,0.884,0.884],"x":[0.0,0.0,-1.0],"y":[0.312,-0.95,0.0],"k":[0.72,0.74,0.76]},{"p":[6.087,4.09,0.232],"h":[0.295,0.884,0.884],"x":[0.0,0.0,-1.0],"y":[0.312,-0.95,0.0],"k":[0.72,0.74,0.76]},{"p":[6.087,4.09,-0.799],"h":[0.295,0.884,0.884],"x":[0.0,0.0,-1.0],"y":[0.308,-0.951,0.0],"k":[0.72,0.74,0.76]},{"p":[6.087,4.09,-1.831],"h":[0.295,0.884,0.884],"x":[0.0,0.0,-1.0],"y":[0.312,-0.95,0.0],"k":[0.72,0.74,0.76]},{"p":[6.087,4.09,-2.862],"h":[0.295,0.884,0.884],"x":[0.0,0.0,-1.0],"y":[0.312,-0.95,0.0],"k":[0.72,0.74,0.76]},{"p":[5.539,5.771,-4.494],"h":[0.185,0.473,0.589],"x":[0.0,0.0,-1.0],"y":[-0.884,0.468,0.0],"k":[0.93,0.965,1.0]},{"p":[5.539,5.771,-4.604],"h":[0.111,1.503,1.503],"x":[0.0,0.0,-1.0],"y":[-0.258,-0.966,0.0],"k":[0.93,0.965,1.0]},{"p":[5.682,3.015,-4.07],"h":[0.138,0.146,0.792],"x":[0.15,0.989,0.0],"y":[0.989,-0.15,0.0],"k":[0.93,0.965,1.0]},{"p":[5.624,4.559,5.01],"h":[0.138,0.146,0.792],"x":[-0.986,-0.164,0.0],"y":[-0.164,0.986,0.0],"k":[0.93,0.965,1.0]},{"p":[7.008,2.615,5.746],"h":[0.318,0.792,1.235],"x":[0.003,1.0,0.0],"y":[0.0,0.0,-1.0],"k":[0.93,0.965,1.0]},{"p":[7.45,2.313,5.746],"h":[0.219,0.589,0.589],"x":[0.0,1.0,0.0],"y":[0.729,0.0,-0.685],"k":[0.93,0.965,1.0]},{"p":[7.008,2.615,-5.746],"h":[0.318,0.792,1.235],"x":[0.003,1.0,0.0],"y":[0.0,0.0,-1.0],"k":[0.93,0.965,1.0]},{"p":[7.45,2.313,-5.746],"h":[0.219,0.589,0.589],"x":[0.0,1.0,0.0],"y":[0.729,0.0,-0.685],"k":[0.93,0.965,1.0]},{"p":[7.089,2.798,5.746],"h":[0.241,0.369,1.001],"x":[0.013,1.0,0.0],"y":[0.0,0.0,-1.0],"k":[0.212,0.212,0.212]},{"p":[7.091,3.394,5.746],"h":[0.368,0.368,0.737],"x":[0.0,0.0,-1.0],"y":[0.0,-1.0,0.0],"k":[0.212,0.212,0.212]},{"p":[7.091,3.895,5.746],"h":[0.134,0.368,0.737],"x":[-0.002,1.0,0.0],"y":[0.0,0.0,-1.0],"k":[0.212,0.212,0.212]},{"p":[7.736,3.418,6.023],"h":[0.069,0.069,0.602],"x":[-1.0,0.0,-0.002],"y":[-0.002,0.0,1.0],"k":[0.102,0.102,0.102]},{"p":[6.447,3.418,6.023],"h":[0.069,0.069,0.602],"x":[-1.0,0.0,-0.002],"y":[-0.002,0.0,1.0],"k":[0.102,0.102,0.102]},{"p":[6.447,3.418,5.47],"h":[0.069,0.069,0.602],"x":[-1.0,0.0,-0.002],"y":[-0.002,0.0,1.0],"k":[0.102,0.102,0.102]},{"p":[7.736,3.418,5.47],"h":[0.069,0.069,0.602],"x":[-1.0,0.0,-0.002],"y":[-0.002,0.0,1.0],"k":[0.102,0.102,0.102]},{"p":[7.091,3.396,6.118],"h":[0.003,0.645,0.313],"x":[0.0,0.0,-1.0],"y":[-1.0,0.0,0.0],"k":[0.922,0.922,0.896]},{"p":[7.089,2.798,-5.746],"h":[0.241,0.369,1.001],"x":[0.013,1.0,0.0],"y":[0.0,0.0,-1.0],"k":[0.212,0.212,0.212]},{"p":[7.091,3.394,-5.746],"h":[0.368,0.737,0.368],"x":[0.0,0.0,-1.0],"y":[-1.0,0.0,0.0],"k":[0.212,0.212,0.212]},{"p":[7.091,3.895,-5.746],"h":[0.134,0.368,0.737],"x":[-0.002,1.0,0.0],"y":[0.0,0.0,-1.0],"k":[0.212,0.212,0.212]},{"p":[7.736,3.418,-5.47],"h":[0.069,0.069,0.602],"x":[-1.0,0.0,-0.002],"y":[-0.002,0.0,1.0],"k":[0.102,0.102,0.102]},{"p":[6.447,3.418,-5.47],"h":[0.069,0.069,0.602],"x":[-1.0,0.0,-0.002],"y":[-0.002,0.0,1.0],"k":[0.102,0.102,0.102]},{"p":[6.447,3.418,-6.023],"h":[0.069,0.069,0.602],"x":[-1.0,0.0,-0.002],"y":[-0.002,0.0,1.0],"k":[0.102,0.102,0.102]},{"p":[7.736,3.418,-6.023],"h":[0.069,0.069,0.602],"x":[-1.0,0.0,-0.002],"y":[-0.002,0.0,1.0],"k":[0.102,0.102,0.102]},{"p":[7.091,3.396,-5.375],"h":[0.003,0.645,0.313],"x":[0.0,0.0,-1.0],"y":[-1.0,0.0,0.0],"k":[0.922,0.922,0.896]},{"p":[7.45,1.947,5.746],"h":[0.442,1.326,1.326],"x":[0.0,1.0,0.0],"y":[0.995,0.0,-0.098],"k":[0.72,0.74,0.76]},{"p":[7.45,1.947,-5.746],"h":[0.442,1.326,1.326],"x":[0.0,1.0,0.0],"y":[0.995,0.0,-0.098],"k":[0.72,0.74,0.76]},{"p":[-4.042,2.352,-2.505],"h":[0.221,1.053,1.053],"x":[0.0,1.0,0.0],"y":[0.63,0.0,-0.777],"k":[0.93,0.965,1.0]},{"p":[-4.042,2.352,2.505],"h":[0.221,1.053,1.053],"x":[0.0,1.0,0.0],"y":[0.63,0.0,-0.777],"k":[0.93,0.965,1.0]},{"p":[-4.042,6.993,-2.505],"h":[0.884,0.884,4.862],"x":[0.0,0.0,-1.0],"y":[-1.0,0.0,0.0],"k":[0.93,0.965,1.0]},{"p":[-4.042,6.993,2.505],"h":[0.884,0.884,4.862],"x":[0.0,0.0,-1.0],"y":[-1.0,0.0,0.0],"k":[0.93,0.965,1.0]},{"p":[-2.274,6.846,-2.063],"h":[1.326,0.884,0.884],"x":[0.0,0.0,-1.0],"y":[-1.0,0.0,0.0],"k":[0.93,0.965,1.0]},{"p":[-2.274,6.846,-0.958],"h":[0.221,1.053,1.053],"x":[0.0,0.0,-1.0],"y":[0.63,-0.777,0.0],"k":[0.93,0.965,1.0]},{"p":[-2.937,6.846,2.505],"h":[0.221,1.053,1.053],"x":[-1.0,0.0,0.0],"y":[0.0,0.63,0.777],"k":[0.93,0.965,1.0]},{"p":[-0.506,6.846,3.168],"h":[0.221,2.652,0.884],"x":[0.0,0.0,-1.0],"y":[-1.0,0.0,0.0],"k":[0.93,0.965,1.0]},{"p":[0.231,5.764,2.505],"h":[0.318,0.792,1.235],"x":[0.003,1.0,0.0],"y":[0.0,0.0,-1.0],"k":[0.93,0.965,1.0]},{"p":[0.673,5.462,2.505],"h":[0.219,0.589,0.589],"x":[0.0,1.0,0.0],"y":[0.729,0.0,-0.685],"k":[0.93,0.965,1.0]},{"p":[0.302,5.947,2.505],"h":[0.241,0.369,1.001],"x":[0.013,1.0,0.0],"y":[0.0,0.0,-1.0],"k":[0.212,0.212,0.212]},{"p":[0.304,6.544,2.505],"h":[0.368,0.737,0.368],"x":[0.0,0.0,-1.0],"y":[-1.0,0.0,0.0],"k":[0.212,0.212,0.212]},{"p":[0.304,7.045,2.505],"h":[0.134,0.368,0.737],"x":[-0.002,1.0,0.0],"y":[0.0,0.0,-1.0],"k":[0.212,0.212,0.212]},{"p":[-0.34,6.567,2.229],"h":[0.069,0.069,0.602],"x":[-1.0,0.0,-0.002],"y":[-0.002,0.0,1.0],"k":[0.102,0.102,0.102]},{"p":[0.949,6.567,2.229],"h":[0.069,0.069,0.602],"x":[-1.0,0.0,-0.002],"y":[-0.002,0.0,1.0],"k":[0.102,0.102,0.102]},{"p":[0.949,6.567,2.781],"h":[0.069,0.069,0.602],"x":[-1.0,0.0,-0.002],"y":[-0.002,0.0,1.0],"k":[0.102,0.102,0.102]},{"p":[-0.34,6.567,2.781],"h":[0.069,0.069,0.602],"x":[-1.0,0.0,-0.002],"y":[-0.002,0.0,1.0],"k":[0.102,0.102,0.102]},{"p":[0.304,6.545,2.876],"h":[0.003,0.645,0.313],"x":[0.0,0.0,-1.0],"y":[-1.0,0.0,0.0],"k":[0.922,0.922,0.896]},{"p":[0.673,5.022,2.505],"h":[0.221,1.053,1.053],"x":[0.0,1.0,0.0],"y":[-0.63,0.0,-0.777],"k":[0.93,0.965,1.0]},{"p":[-2.274,6.846,-2.315],"h":[0.101,0.588,0.588],"x":[0.0,0.0,-1.0],"y":[-0.999,0.05,0.0],"k":[0.665,0.694,0.716]},{"p":[-2.274,6.846,-1.864],"h":[0.553,0.662,0.662],"x":[0.0,0.0,-1.0],"y":[-0.714,-0.7,0.0],"k":[0.102,0.102,0.102]},{"p":[-2.274,6.846,-1.199],"h":[0.315,0.588,0.663],"x":[0.0,0.0,-1.0],"y":[-1.0,0.001,0.0],"k":[0.665,0.694,0.716]},{"p":[-2.274,6.846,-0.766],"h":[0.165,0.165,0.748],"x":[-0.153,0.988,0.0],"y":[0.988,0.153,0.0],"k":[0.694,0.694,0.694]},{"p":[-2.275,6.845,-3.382],"h":[0.663,0.656,1.139],"x":[-0.707,-0.707,-0.007],"y":[-0.707,0.707,0.0],"k":[0.617,0.665,0.708]},{"p":[-2.277,6.849,-3.193],"h":[0.629,0.687,0.691],"x":[0.0,0.0,-1.0],"y":[0.589,-0.808,0.0],"k":[0.617,0.665,0.708]},{"p":[-2.266,6.837,-4.817],"h":[0.484,0.739,0.69],"x":[-0.138,0.14,-0.98],"y":[0.595,-0.78,-0.195],"k":[0.045,0.045,0.045]},{"p":[-2.283,6.837,-4.428],"h":[0.018,0.632,0.644],"x":[0.0,0.0,-1.0],"y":[-0.707,0.707,0.0],"k":[0.597,0.597,0.597]},{"p":[-2.277,6.849,-3.193],"h":[0.629,0.69,0.694],"x":[0.0,0.0,-1.0],"y":[0.589,-0.808,0.0],"k":[0.922,0.922,0.896]},{"p":[-2.274,6.846,-0.166],"h":[0.405,0.559,0.559],"x":[0.0,0.0,-1.0],"y":[-0.806,-0.592,0.0],"k":[0.93,0.965,1.0]},{"p":[-2.274,6.846,0.166],"h":[0.442,1.768,1.768],"x":[0.0,0.0,-1.0],"y":[-0.017,-1.0,0.0],"k":[0.72,0.74,0.76]},{"p":[-0.506,7.951,-2.505],"h":[0.884,2.652,0.221],"x":[0.0,0.0,-1.0],"y":[-1.0,0.0,0.0],"k":[0.93,0.965,1.0]},{"p":[-3.453,4.4,5.747],"h":[0.374,0.939,1.09],"x":[-1.0,0.0,0.0],"y":[0.0,-0.106,0.994],"k":[0.08,0.08,0.08]},{"p":[-3.453,3.678,5.746],"h":[0.368,0.964,2.381],"x":[0.0,1.0,0.0],"y":[0.056,0.0,-0.998],"k":[0.045,0.045,0.045]},{"p":[-3.453,4.479,5.746],"h":[0.872,0.877,2.303],"x":[0.056,-0.001,-0.998],"y":[-0.001,-1.0,0.001],"k":[0.72,0.74,0.76]},{"p":[0.083,3.641,-4.835],"h":[0.028,2.799,0.737],"x":[0.0,0.0,-1.0],"y":[-1.0,0.0,0.0],"k":[0.922,0.922,0.896]},{"p":[1.704,4.359,3.324],"h":[0.028,0.737,1.768],"x":[0.0,0.0,-1.0],"y":[0.0,-1.0,0.0],"k":[0.922,0.922,0.896]},{"p":[1.492,4.359,1.473],"h":[0.028,0.737,1.768],"x":[-1.0,0.0,0.0],"y":[0.0,1.0,0.0],"k":[0.922,0.922,0.896]},{"p":[-0.359,4.359,1.685],"h":[0.028,0.737,1.768],"x":[0.0,0.0,-1.0],"y":[-0.0,-1.0,0.0],"k":[0.922,0.922,0.896]},{"p":[-0.147,4.359,3.536],"h":[0.028,0.737,1.768],"x":[-1.0,0.0,0.0],"y":[0.0,1.0,-0.0],"k":[0.922,0.922,0.896]},{"p":[-6.105,7.435,1.708],"h":[0.037,0.737,1.623],"x":[0.026,0.0,-1.0],"y":[0.0,-1.0,0.0],"k":[0.922,0.922,0.896]},{"p":[-6.105,7.435,-1.708],"h":[0.037,0.737,1.623],"x":[-0.026,0.0,-1.0],"y":[0.0,-1.0,0.0],"k":[0.922,0.922,0.896]},{"p":[-1.392,2.446,-2.909],"h":[0.154,1.347,1.64],"x":[0.019,0.98,0.197],"y":[1.0,-0.017,-0.008],"k":[0.922,0.922,0.896]},{"p":[-4.539,4.466,-0.008],"h":[1.024,1.645,4.888],"x":[0.662,0.749,0.015],"y":[0.012,0.01,-1.0],"k":[0.922,0.922,0.896]},{"p":[1.263,2.154,-0.058],"h":[0.201,1.624,4.864],"x":[-0.003,0.993,0.115],"y":[1.0,0.003,0.0],"k":[0.922,0.922,0.896]},{"p":[-2.02,2.375,1.648],"h":[0.028,0.737,1.031],"x":[0.0,0.0,-1.0],"y":[-0.035,-0.999,0.0],"k":[0.922,0.922,0.896]},{"p":[0.164,9.477,-0.012],"h":[0.151,3.319,4.093],"x":[0.573,0.818,0.038],"y":[0.036,0.022,-0.999],"k":[0.922,0.922,0.896]},{"p":[-1.871,3.066,-1.409],"h":[0.11,0.11,0.792],"x":[0.01,0.063,-0.998],"y":[-0.99,0.144,-0.001],"k":[0.93,0.965,1.0]},{"p":[-1.102,2.994,-1.915],"h":[0.11,0.11,0.792],"x":[0.005,0.167,-0.986],"y":[-1.0,0.016,-0.003],"k":[0.93,0.965,1.0]},{"p":[-1.675,3.229,-3.022],"h":[0.11,0.11,0.792],"x":[0.007,0.223,-0.975],"y":[-1.0,0.02,-0.003],"k":[0.93,0.965,1.0]}]}};
+const BOT_MODEL = { mecanum:null, tank:null };
+function loadBotModel(which, after) {
+  if (!BOT_MODEL[which]) BOT_MODEL[which] = BOT_DATA[which] || null;
+  after && after(BOT_MODEL[which]);
+}
+/* build one drivetrain's body into a group */
+function buildBotBody(model, perf) {
+  const g = new THREE.Group();
+  if (!model || !model.boxes) return g;
+  const mats = {};
+  model.boxes.forEach(function (b) {
+    const key = b.k.join(",");
+    if (!mats[key]) {
+      const c = new THREE.Color(b.k[0], b.k[1], b.k[2]);
+      /* bright aluminium gets the perforation; the dark and coloured parts stay plain */
+      const bright = (b.k[0] + b.k[1] + b.k[2]) / 3 > 0.55;
+      mats[key] = bright && perf
+        ? goChannel(2, 2, c.getHex())
+        : new THREE.MeshStandardMaterial({ color:c, roughness:.55, metalness:.25 });
+    }
+    const m = new THREE.Mesh(
+      new THREE.BoxGeometry(b.h[0]*2, b.h[1]*2, b.h[2]*2), mats[key]);
+    /* the OBB's own axes, straight from the CAD */
+    const X = new THREE.Vector3().fromArray(b.x);
+    const Y = new THREE.Vector3().fromArray(b.y);
+    const Z = new THREE.Vector3().crossVectors(X, Y);
+    m.setRotationFromMatrix(new THREE.Matrix4().makeBasis(X, Y, Z));
+    m.position.fromArray(b.p);
+    m.castShadow = true;
+    g.add(m);
+  });
+  return g;
+}
+
+/* ===== goBILDA, IN ONE MATERIAL =====
+   What makes their hardware recognisable at a glance is not its shape, it is the surface:
+   bright brushed aluminium drilled with an even grid of round holes, on every channel and
+   every plate. Modelling a few hundred holes would cost more than the whole ROBOT, so the
+   pattern is drawn into a canvas once and repeated over the geometry - the same trick the
+   TILES use. Darker rim and lighter floor in each hole so they read as holes, not dots. */
+let GB_TEX = null;
+function goChannel(repX, repY, tint) {
+  if (!GB_TEX) GB_TEX = tex(function (g, w, h) {
+    g.fillStyle = "#c9ced4"; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 160; i++) {                       /* brushed grain */
+      g.strokeStyle = "rgba(255,255,255," + (0.03 + Math.random()*0.06).toFixed(3) + ")";
+      g.lineWidth = 1;
+      const y = Math.random()*h;
+      g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke();
+    }
+    const n = 6, pitch = w/n, rad = pitch*0.22;
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+      const x = (c+0.5)*pitch, y = (r+0.5)*pitch;
+      g.beginPath(); g.arc(x, y, rad, 0, 7); g.fillStyle = "#7b818a"; g.fill();
+      g.beginPath(); g.arc(x, y + rad*0.18, rad*0.76, 0, 7); g.fillStyle = "#43484f"; g.fill();
+    }
+  }, 256);
+  const t = GB_TEX.clone();
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(repX || 1, repY || 1);
+  t.needsUpdate = true;
+  /* Low metalness on purpose. A MeshStandardMaterial with high metalness reflects the
+     environment and nothing else, and this scene has lights but no environment map - so
+     "realistic" aluminium came out BLACK, which is the opposite of the look. The brushed
+     grain and the holes are in the texture; the material just has to stay bright. */
+  return new THREE.MeshStandardMaterial({ map:t, color:tint || 0xffffff,
+                                          roughness:.52, metalness:.18 });
+}
+const GB_YELLOW = 0xe8b71d, GB_DARK = 0x24282e;
+
 /* FTC soft tile: grey foam, interlocking edge, faint speckle */
 function bannerTexture() {
   return tex((g, w, h) => {
@@ -2701,45 +2910,48 @@ function buildScene() {
   const stalk = new THREE.MeshStandardMaterial({ color:0x3faa3f, roughness:.55 });
   const ringMat = new THREE.MeshStandardMaterial({ color:0xe8c21c, roughness:.45, metalness:.2 });
   const pollenMat = () => ballMaterialFor("pollen", S.holes);
-  FLOWERS.forEach(f => {
+  /* loose SCORING ELEMENTS, and the ones still held in a FLOWER, share one group so a
+     released POLLEN simply changes list rather than being rebuilt */
+  const fieldGroup = new THREE.Group(); scene.add(fieldGroup);
+  const flowerBalls = [];
+
+  FLOWERS.forEach((f, fi) => {
     for (let i = 0; i < 3; i++) {
       const a = i*Math.PI*2/3;
       scene.add(tube([f[0]+Math.cos(a)*2.6, 0, f[1]+Math.sin(a)*2.6],
                      [f[0]+Math.cos(a)*2.6, F.flowerH, f[1]+Math.sin(a)*2.6], .5, stalk));
     }
-    /* the four staged POLLEN sit stacked in the tube (10.3.1) */
+    /* The four staged POLLEN (10.3.1). These used to be scenery - meshes dropped into the
+       scene and tracked nowhere - so nothing on the FIELD could ever take them. That is 16
+       of the FIELD's 40 POLLEN locked away, which is why a practice MATCH ran out of
+       ammunition. They are real objects now, and 9.7's retrieval opening at the base is what
+       a floor-level intake reaches into to free them. */
     for (let i = 0; i < 4; i++) {
       const b = new THREE.Mesh(new THREE.SphereGeometry(BALL.pollen.dia/2, 14, 10), pollenMat());
-      b.position.set(f[0], 2.2 + i*(BALL.pollen.dia*0.95), f[1]);
-      scene.add(b);
+      b.position.set(f[0], FLOWER_Y0 + i*FLOWER_DY, f[1]);
+      fieldGroup.add(b);
+      /* staged low in the tube, by the retrieval opening - BELOW 10.5.2's scoring volume,
+         which is the band between the middle ring and the top ring */
+      flowerBalls.push({ mesh:b, fi:fi, slot:i, x:f[0], z:f[1],
+                         kind:"pollen", blue:false, inVolume:false });
     }
     const ring = new THREE.Mesh(new THREE.TorusGeometry(F.flowerDia/2 + .7, .55, 8, 28), ringMat);
     ring.rotation.x = Math.PI/2; ring.position.set(f[0], F.flowerH, f[1]);
     scene.add(ring);
   });
 
-  /* ---- robot: Strafer-style chassis + shooter ---- */
+  /* ---- the ROBOT's body: goBILDA's own parts, in their own places ----
+     Two bodies are built, one per drivetrain, and swapped by the Mecanum/Tank buttons. They
+     arrive asynchronously because they are fetched, so the scene is built around an empty
+     holder and each body drops in when its file lands. Everything that MOVES - the shooter,
+     the plow, the NECTAR arm - stays app geometry added on top of this. */
   const robot = new THREE.Group();
   const wheelRad = 2.05, chassisH = 4;
-  const cMat = new THREE.MeshStandardMaterial({ color:0x2a2e34, roughness:.55, metalness:.35 });
-  const body = new THREE.Mesh(new THREE.BoxGeometry(17, chassisH, 17), cMat);
-  body.position.y = wheelRad + chassisH/2; body.castShadow = true; robot.add(body);
-  const plate = new THREE.Mesh(new THREE.BoxGeometry(15, .5, 15),
-    new THREE.MeshStandardMaterial({ color:0x3d434b, roughness:.5, metalness:.5 }));
-  plate.position.y = wheelRad + chassisH + .25; robot.add(plate);
-
-  const mecMat = new THREE.MeshStandardMaterial({ color:0x36393f, roughness:.75 });
-  const rollMat = new THREE.MeshStandardMaterial({ color:0xd8a32a, roughness:.6 });
-  [[-8.5,-8.5],[8.5,-8.5],[-8.5,8.5],[8.5,8.5]].forEach(p => {
-    const w = new THREE.Mesh(new THREE.CylinderGeometry(wheelRad, wheelRad, 2.2, 18), mecMat);
-    w.rotation.z = Math.PI/2; w.position.set(p[0], wheelRad, p[1]); w.castShadow = true; robot.add(w);
-    for (let i = 0; i < 8; i++) {
-      const a = i*Math.PI/4;
-      const r = new THREE.Mesh(new THREE.CylinderGeometry(.36, .36, 2.0, 6), rollMat);
-      r.position.set(p[0], wheelRad + Math.cos(a)*(wheelRad-.35), p[1] + Math.sin(a)*(wheelRad-.35));
-      r.rotation.z = Math.PI/2; r.rotation.x = Math.PI/5; robot.add(r);
-    }
-  });
+  const RAIL_Y = wheelRad + 1.25, DECK_Y = wheelRad + chassisH;
+  const bodyHolder = new THREE.Group();
+  robot.add(bodyHolder);
+  const bodies = { mecanum:null, tank:null };
+  const mecRollers = [], tankParts = [];     /* kept for the size readout and old callers */
 
   /* shooter assembly, yaws with the tip and pitches with the hood */
   const yaw = new THREE.Group();   yaw.position.y = wheelRad + chassisH + .5;
@@ -2754,15 +2966,20 @@ function buildScene() {
   hoodMesh.rotation.z = Math.PI/2;
   pitch.add(hoodMesh);
   const magMat = new THREE.MeshStandardMaterial({ color:0x4a5259, roughness:.6, metalness:.3 });
-  const mag = new THREE.Mesh(new THREE.BoxGeometry(3.4, 3.4, 13), magMat);
-  mag.position.set(0, 0, -8); yaw.add(mag);
+  /* the hopper lives INSIDE the frame on a legal ROBOT - this was a 13 in. tube hung off
+     the back, which on its own put the ROBOT 10 in. over R102's 18 in. cube */
+  const mag = new THREE.Mesh(new THREE.BoxGeometry(3.4, 3.4, 8), magMat);
+  mag.position.set(0, 0, -4.4); yaw.add(mag);
   const magBalls = [];
   for (let i = 0; i < 12; i++) {
     const b = new THREE.Mesh(new THREE.SphereGeometry(1.4, 18, 14),
       new THREE.MeshStandardMaterial({ roughness:.62 }));
-    b.position.set(0, 0, -3.2 - i*3.0); b.visible = false; yaw.add(b); magBalls.push(b);
+    b.position.set(0, 0, -2.2 - i*1.8); b.visible = false; yaw.add(b); magBalls.push(b);
   }
   robot.add(yaw);
+  robot.add(makePlow(0xc9b23a));     /* the intake plow, at TILE level */
+  const arm = makeArm(0xd8a32a);     /* and the NECTAR arm above it */
+  robot.add(arm);
   scene.add(robot);
 
   /* ---- trajectory line + the flying ball ---- */
@@ -2771,11 +2988,10 @@ function buildScene() {
   const traj = new THREE.Line(trajGeo, new THREE.LineBasicMaterial({ color:0xe0a52c }));
   traj.frustumCulled = false; scene.add(traj);
 
-  /* ---- loose SCORING ELEMENTS on the tiles ---- */
-  const fieldGroup = new THREE.Group(); scene.add(fieldGroup);
-
   return { renderer, scene, camera, key, robot, yaw, pitch, fw, hoodMesh, mag, magBalls,
-           traj, trajGeo, cells, hive, floor, fieldGroup, fieldBalls:[] };
+           traj, trajGeo, cells, hive, floor, fieldGroup, fieldBalls:[], flowerBalls:flowerBalls,
+           mecRollers:mecRollers, tankParts:tankParts, arm:arm,
+           bodyHolder:bodyHolder, bodies:bodies };
 }
 
 /* ================= camera, driving, shooting ================= */
@@ -2851,8 +3067,149 @@ function scatterBalls() {
    "unless and until that SCORING ELEMENT contacts anything else besides that ROBOT". Balls in
    free fall live in `falling` and are deliberately NOT collectable - they must hit the tiles
    first, at which point they join `fieldBalls` and the intake can have them. */
+/* The floor-level geometry that does the freeing: a triangular plow, sitting in the inch
+   above the TILES where the FLOWER's retrieval opening is. Built once and used by the
+   player's ROBOT and by all three sim ROBOTS, because on a real FIELD every ROBOT needs one
+   - an opponent who cannot empty a FLOWER is an opponent who runs out of POLLEN too. */
+/* The NECTAR arm: a shoulder on the deck, a boom that swings up, and a two-finger claw at
+   the end. Returned with its moving parts named so the loop can animate them, and used by
+   the player's ROBOT and the sim ROBOTS alike. */
+function makeArm(colour) {
+  const g = new THREE.Group();
+  const steel = new THREE.MeshStandardMaterial({ color:0x8d97a3, roughness:.4, metalness:.6 });
+  const post = new THREE.Mesh(new THREE.BoxGeometry(1.5, 5.5, 1.5), steel);
+  post.position.set(-4.0, 8.4, 5.0); g.add(post);
+  const pivot = new THREE.Group();
+  pivot.position.set(-4.0, 11.0, 5.0); g.add(pivot);
+  const boom = new THREE.Mesh(new THREE.BoxGeometry(9, 1.1, 1.1), steel);
+  boom.position.set(4.5, 0, 0); pivot.add(boom);
+  const claw = new THREE.Group(); claw.position.set(9, 0, 0); pivot.add(claw);
+  [-1, 1].forEach(function (sgn) {
+    const fng = new THREE.Mesh(new THREE.BoxGeometry(3.4, .55, .55),
+      new THREE.MeshStandardMaterial({ color:colour, roughness:.45, metalness:.5 }));
+    fng.position.set(1.4, 0, sgn*1.3); fng.rotation.y = -sgn*0.22; claw.add(fng);
+  });
+  const held = new THREE.Mesh(new THREE.SphereGeometry(BALL.nectar.dia/2, 14, 10),
+    new THREE.MeshStandardMaterial({ color:0xd8203c, roughness:.62 }));
+  held.position.set(1.9, 0, 0); held.visible = false; claw.add(held);
+  g.userData = { pivot:pivot, held:held };
+  return g;
+}
+
+function makePlow(colour) {
+  const g = new THREE.Group();
+  const sh = new THREE.Shape();
+  sh.moveTo(0, -6.2); sh.lineTo(0, 6.2); sh.lineTo(4.2, 0); sh.lineTo(0, -6.2);
+  const geo = new THREE.ExtrudeGeometry(sh, { depth:1.7, bevelEnabled:false });
+  const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
+    color:colour, roughness:.42, metalness:.55, side:THREE.DoubleSide }));
+  m.rotation.x = -Math.PI/2;          /* lay the shape flat: shape x -> +x, shape y -> -z */
+  m.position.set(4.6, 0.35, 0);       /* tip at 8.8 in. - inside R102's 18 in. cube */
+  m.castShadow = true;
+  g.add(m);
+  /* a low lip along the leading edges, so it reads as a scoop rather than a flat plate */
+  [[-1, -3.6], [1, 3.6]].forEach(function (e) {
+    const lip = new THREE.Mesh(new THREE.BoxGeometry(4.6, 1.5, .5),
+      new THREE.MeshStandardMaterial({ color:colour, roughness:.4, metalness:.6 }));
+    lip.position.set(7.0, 1.0, e[1]);
+    lip.rotation.y = e[0]*0.98;
+    g.add(lip);
+  });
+  return g;
+}
+
+/* ===== FREEING POLLEN FROM A FLOWER =====
+   9.7 gives each FLOWER a retrieval opening 3.55 in. tall and 3.57 in. deep at its base, and
+   the goBILDA StarterBot's published intake "can pull POLLEN out of the FLOWER". So this is
+   not a special power - it is what a floor-level intake, plow or stinger is FOR, and every
+   ROBOT on the FIELD gets one.
+
+   Reaching the opening releases the BOTTOM POLLEN: it rolls out onto the TILES just outside
+   the stalks, and the three above it drop a slot. From there it is an ordinary loose ball
+   that anyone can intake, which is the whole point - 16 of the 40 POLLEN start up these
+   tubes, and a practice MATCH that cannot reach them runs dry. */
+const FLOWER_Y0 = 2.2;                              /* bottom POLLEN centre height */
+const FLOWER_DY = BALL.pollen.dia*0.95;             /* stack pitch */
+const PLOW_REACH = 12;                              /* plow tip to the retrieval opening */
+const PLOW_AHEAD = 7;                               /* plow tip ahead of ROBOT centre */
+
+function releaseFromFlower(rx, rz, heading) {
+  if (!R3 || !R3.flowerBalls || !R3.flowerBalls.length) return null;
+  const px = rx + Math.cos(heading)*PLOW_AHEAD, pz = rz + Math.sin(heading)*PLOW_AHEAD;
+  for (let fi = 0; fi < FLOWERS.length; fi++) {
+    const f = FLOWERS[fi];
+    if (Math.hypot(f[0] - px, f[1] - pz) > PLOW_REACH) continue;
+    /* the lowest POLLEN still in this FLOWER is the one the opening can reach */
+    let low = null;
+    R3.flowerBalls.forEach(function (b) {
+      if (b.fi === fi && (!low || b.slot < low.slot)) low = b;
+    });
+    if (!low) continue;
+    R3.flowerBalls.splice(R3.flowerBalls.indexOf(low), 1);
+    R3.flowerBalls.forEach(function (b) { if (b.fi === fi) b.slot--; });
+    /* it lands on the TILES just outside the stalks, on the side the ROBOT came from */
+    const a = Math.atan2(pz - f[1], px - f[0]);
+    const dia = BALL.pollen.dia, ox = f[0] + Math.cos(a)*5.5, oz = f[1] + Math.sin(a)*5.5;
+    low.mesh.position.set(ox, dia/2, oz);
+    R3.fieldBalls.push({ mesh:low.mesh, kind:"pollen", blue:false, x:ox, z:oz, dia:dia });
+    needUI = true;
+    return low;
+  }
+  return null;
+}
+/* Put all 16 back up the tubes. Staging used to scatter them loose around each FLOWER's
+   base instead, which was a workaround for the ones in the tube being untouchable. */
+function resetFlowers() {
+  if (!R3 || !R3.flowerBalls) return;
+  R3.flowerBalls.forEach(function (b) { R3.fieldGroup.remove(b.mesh); });
+  R3.flowerBalls.length = 0;
+  FLOWERS.forEach(function (f, fi) {
+    for (let i = 0; i < 4; i++) {
+      const m = new THREE.Mesh(new THREE.SphereGeometry(BALL.pollen.dia/2, 14, 10),
+                               ballMaterialFor("pollen", S.holes));
+      m.position.set(f[0], FLOWER_Y0 + i*FLOWER_DY, f[1]);
+      m.castShadow = true;
+      R3.fieldGroup.add(m);
+      R3.flowerBalls.push({ mesh:m, fi:fi, slot:i, x:f[0], z:f[1],
+                            kind:"pollen", blue:false, inVolume:false });
+    }
+  });
+}
+const flowerPollenLeft = () => (R3 && R3.flowerBalls) ? R3.flowerBalls.length : 0;
+/* the nearest FLOWER that still holds something, and a spot to work it from */
+function nearestLoadedFlower(x, z) {
+  if (!R3 || !R3.flowerBalls || !R3.flowerBalls.length) return null;
+  const has = {};
+  R3.flowerBalls.forEach(function (b) { has[b.fi] = true; });
+  let best = null, bd = 1e9;
+  FLOWERS.forEach(function (f, fi) {
+    if (!has[fi]) return;
+    const d = Math.hypot(f[0] - x, f[1] - z);
+    if (d < bd) { bd = d; best = { fi:fi, x:f[0], z:f[1] }; }
+  });
+  if (!best) return null;
+  /* stand off toward the middle of the FIELD - the FLOWER is against a wall */
+  const c = F.size/2;
+  const ax = Math.atan2(c - best.z, c - best.x);
+  return { x:best.x + Math.cos(ax)*9, z:best.z + Math.sin(ax)*9, fi:best.fi };
+}
+
+/* the stack settles after one is taken from the bottom */
+function restackFlowers() {
+  if (!R3 || !R3.flowerBalls) return;
+  R3.flowerBalls.forEach(function (b) {
+    const y = FLOWER_Y0 + b.slot*FLOWER_DY;
+    if (Math.abs(b.mesh.position.y - y) > 0.01)
+      b.mesh.position.y += (y - b.mesh.position.y)*0.25;   /* drop, rather than teleport */
+  });
+}
+
 function runIntake() {
-  if (!S.intakeOn || S.magLeft >= S.magSize) return;
+  if (!S.intakeOn) return;
+  /* the plow frees POLLEN whether or not there is room in the magazine - it drops to the
+     TILES, it does not go straight aboard */
+  releaseFromFlower(S.rx, S.ry, S.heading);
+  if (S.magLeft >= S.magSize) return;
   const reach = 11, ch = Math.cos(S.heading), sh = Math.sin(S.heading);
   const mx = S.rx + ch*7, mz = S.ry + sh*7;      // the intake mouth, ahead of centre
   for (let i = R3.fieldBalls.length - 1; i >= 0; i--) {
@@ -2995,7 +3352,9 @@ function toJava() {
   p("import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;");
   p("import com.qualcomm.robotcore.hardware.DcMotor;");
   p("import com.qualcomm.robotcore.hardware.DcMotorEx;");
-  p("import com.qualcomm.robotcore.hardware.Servo;");
+  p("import com.qualcomm.robotcore.hardware.CRServo;");
+  p("import com.qualcomm.robotcore.hardware.DcMotorSimple;");
+  p("import com.qualcomm.robotcore.hardware.PIDFCoefficients;");
   p("import com.qualcomm.robotcore.util.ElapsedTime;");
   p("");
   p("/**");
@@ -3046,25 +3405,46 @@ function toJava() {
   p("    static final double TURN_TICKS_PER_DEG  = 9.6;    // MEASURE THIS");
   p("    static final double DRIVE_POWER         = 0.55;");
   p("");
-  p("    private DcMotor fl, bl, fr, br;");
-  p("    private DcMotorEx shooter;");
-  p("    private DcMotor intake;");
-  p("    private Servo feeder;");
+  /* ---- the hardware, named exactly as goBILDA's own example code names it, so an OpMode
+          exported from here runs against a Control Hub configured by their guide ---- */
+  const C = gbCfg(), K = GBOT.common;
+  p("    // Hardware names are goBILDA's, from " + C.sku + " (" + C.guide + ").");
+  p("    // Configure your Control Hub with these exact names.");
+  C.drive.forEach(function (d) { p("    private DcMotor " + d[0] + " = null;"); });
+  p("    private DcMotorEx launcher = null;");
+  p("    private DcMotor intake = null;");
+  p("    private CRServo " + C.windmill + " = null;");
+  K.intakeServos.forEach(function (v) { p("    private CRServo " + v[0] + " = null;"); });
   p("    private final ElapsedTime timer = new ElapsedTime();");
   p("");
   p("    @Override");
   p("    public void runOpMode() {");
-  p("        fl = hardwareMap.get(DcMotor.class, \"front_left_drive\");");
-  p("        bl = hardwareMap.get(DcMotor.class, \"back_left_drive\");");
-  p("        fr = hardwareMap.get(DcMotor.class, \"front_right_drive\");");
-  p("        br = hardwareMap.get(DcMotor.class, \"back_right_drive\");");
-  p("        shooter = hardwareMap.get(DcMotorEx.class, \"shooter\");");
-  p("        intake  = hardwareMap.get(DcMotor.class, \"intake\");");
-  p("        feeder  = hardwareMap.get(Servo.class, \"feeder\");");
+  C.drive.forEach(function (d) {
+    p("        " + d[0] + " = hardwareMap.get(DcMotor.class, \"" + d[1] + "\");");
+  });
+  p("        launcher = hardwareMap.get(DcMotorEx.class, \"" + K.launcher + "\");");
+  p("        intake   = hardwareMap.get(DcMotor.class, \"" + K.intake + "\");");
+  p("        " + C.windmill + " = hardwareMap.get(CRServo.class, \"" + C.windmill + "\");");
+  K.intakeServos.forEach(function (v) {
+    p("        " + v[0] + " = hardwareMap.get(CRServo.class, \"" + v[1] + "\");");
+  });
   p("");
-  p("        fl.setDirection(DcMotor.Direction.REVERSE);");
-  p("        bl.setDirection(DcMotor.Direction.REVERSE);");
-  p("        shooter.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);");
+  p("        // left side reversed, right side forward - goBILDA's own setting");
+  C.drive.forEach(function (d) {
+    p("        " + d[0] + ".setDirection(DcMotor.Direction." +
+      (/^left/i.test(d[0]) ? "REVERSE" : "FORWARD") + ");");
+  });
+  C.drive.forEach(function (d) {
+    p("        " + d[0] + ".setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);");
+  });
+  p("        intake.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);");
+  p("        " + K.intakeServos[1][0] + ".setDirection(DcMotorSimple.Direction.REVERSE);");
+  p("        " + C.windmill + ".setDirection(DcMotorSimple.Direction.REVERSE);");
+  p("");
+  p("        // closed-loop velocity on the launcher, with goBILDA's PIDF for a flywheel");
+  p("        launcher.setMode(DcMotor.RunMode.RUN_USING_ENCODER);");
+  p("        launcher.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER,");
+  p("                new PIDFCoefficients(" + K.PIDF + "));");
   p("");
   p("        telemetry.addData(\"Ready\", \"" + REC.steps.length + " recorded steps\");");
   p("        telemetry.update();");
@@ -3084,7 +3464,7 @@ function toJava() {
   });
   p("        // ====================================================");
   p("");
-  p("        shooter.setVelocity(0);");
+  p("        launcher.setVelocity(0);");
   p("        setIntake(false);");
   p("        telemetry.addData(\"Done\", \"%.1f s\", timer.seconds());");
   p("        telemetry.update();");
@@ -3095,32 +3475,38 @@ function toJava() {
   p("        return flywheelRpm * MOTOR_TO_FLYWHEEL * TICKS_PER_MOTOR_REV / 60.0;");
   p("    }");
   p("");
-  p("    /** Spin up, wait until actually at speed, then feed one ball. */");
+  p("    /** Spin up, wait until the launcher is actually at speed, then run the windmill");
+  p("     *  to feed one element - the same gate goBILDA's TeleOp uses before it feeds. */");
   p("    private void shoot(double flywheelRpm) {");
-  p("        shooter.setVelocity(rpmToTicks(flywheelRpm));");
+  p("        launcher.setVelocity(rpmToTicks(flywheelRpm));");
   p("        ElapsedTime spin = new ElapsedTime();");
   p("        while (opModeIsActive() && spin.seconds() < 2.0) {");
-  p("            double rpmNow = shooter.getVelocity() * 60.0");
+  p("            double rpmNow = launcher.getVelocity() * 60.0");
   p("                          / (TICKS_PER_MOTOR_REV * MOTOR_TO_FLYWHEEL);");
-  p("            telemetry.addData(\"flywheel\", \"%.0f / %.0f\", rpmNow, flywheelRpm);");
+  p("            telemetry.addData(\"launcher\", \"%.0f / %.0f rpm\", rpmNow, flywheelRpm);");
   p("            telemetry.update();");
   p("            if (Math.abs(rpmNow - flywheelRpm) < RPM_TOLERANCE) break;");
   p("            idle();");
   p("        }");
-  p("        feeder.setPosition(0.65);");
-  p("        sleep(180);");
-  p("        feeder.setPosition(0.25);");
-  p("        sleep(140);");
+  p("        " + gbCfg().windmill + ".setPower(1);   // feed");
+  p("        sleep(260);");
+  p("        " + gbCfg().windmill + ".setPower(0);");
+  p("        sleep(120);");
   p("    }");
   p("");
-  p("    private void setIntake(boolean on) { intake.setPower(on ? 1.0 : 0.0); }");
+  p("    /** Intake roller AND the two corner servos together, as goBILDA drives them. */");
+  p("    private void setIntake(boolean on) {");
+  p("        double q = on ? 1.0 : 0.0;");
+  p("        intake.setPower(q);");
+  GBOT.common.intakeServos.forEach(function (v) { p("        " + v[0] + ".setPower(q);"); });
+  p("    }");
   p("");
   if (S.drive === "mecanum") {
     p("    /** Mecanum: all four wheels forward. Strafing is left/right on the sticks. */");
     p("    private void strafeInches(double inches) {");
     p("        int t = (int) Math.round(inches * DRIVE_TICKS_PER_IN);");
     p("        // front-left and back-right one way, front-right and back-left the other");
-    p("        runToFour(t, -t, -t, t);");
+    p("        runToFour(t, -t, -t, t);   // lf, rf, lb, rb");
     p("    }");
     p("");
   }
@@ -3134,35 +3520,34 @@ function toJava() {
   p("        runToRelative(-t, t);");
   p("    }");
   p("");
+  /* The drive helpers are written against whichever motors this ROBOT actually has -
+     four on the Strafer mecanum bot, two on the drop-centre 6WD. */
+  const names = C.drive.map(function (d) { return d[0]; });
+  const isL = n => /^left/i.test(n);
   if (S.drive === "mecanum") {
-    p("    private void runToFour(int fl, int bl, int fr, int br) {");
-    p("        DcMotor[] all = { this.fl, this.bl, this.fr, this.br };");
-    p("        int[] target = { this.fl.getCurrentPosition() + fl,");
-    p("                         this.bl.getCurrentPosition() + bl,");
-    p("                         this.fr.getCurrentPosition() + fr,");
-    p("                         this.br.getCurrentPosition() + br };");
-    p("        for (int i = 0; i < 4; i++) {");
-    p("            all[i].setTargetPosition(target[i]);");
+    p("    private void runToFour(int lf, int rf, int lb, int rb) {");
+    p("        DcMotor[] all = { " + names.join(", ") + " };");
+    p("        int[] add = { lf, rf, lb, rb };");
+    p("        for (int i = 0; i < all.length; i++) {");
+    p("            all[i].setTargetPosition(all[i].getCurrentPosition() + add[i]);");
     p("            all[i].setMode(DcMotor.RunMode.RUN_TO_POSITION);");
     p("            all[i].setPower(DRIVE_POWER);");
     p("        }");
-    p("        while (opModeIsActive() && (this.fl.isBusy() || this.fr.isBusy())) { idle(); }");
+    p("        while (opModeIsActive() && all[0].isBusy()) { idle(); }");
     p("        for (DcMotor m : all) { m.setPower(0); m.setMode(DcMotor.RunMode.RUN_USING_ENCODER); }");
     p("    }");
     p("");
   }
   p("    private void runToRelative(int leftTicks, int rightTicks) {");
-  p("        DcMotor[] all = { fl, bl, fr, br };");
-  p("        int[] target = { fl.getCurrentPosition() + leftTicks,");
-  p("                         bl.getCurrentPosition() + leftTicks,");
-  p("                         fr.getCurrentPosition() + rightTicks,");
-  p("                         br.getCurrentPosition() + rightTicks };");
-  p("        for (int i = 0; i < 4; i++) {");
-  p("            all[i].setTargetPosition(target[i]);");
+  p("        DcMotor[] all = { " + names.join(", ") + " };");
+  p("        int[] add = { " + names.map(function (n) {
+       return isL(n) ? "leftTicks" : "rightTicks"; }).join(", ") + " };");
+  p("        for (int i = 0; i < all.length; i++) {");
+  p("            all[i].setTargetPosition(all[i].getCurrentPosition() + add[i]);");
   p("            all[i].setMode(DcMotor.RunMode.RUN_TO_POSITION);");
   p("            all[i].setPower(DRIVE_POWER);");
   p("        }");
-  p("        while (opModeIsActive() && (fl.isBusy() || fr.isBusy())) { idle(); }");
+  p("        while (opModeIsActive() && all[0].isBusy()) { idle(); }");
   p("        for (DcMotor m : all) { m.setPower(0); m.setMode(DcMotor.RunMode.RUN_USING_ENCODER); }");
   p("    }");
   p("}");
@@ -3196,10 +3581,9 @@ function stageAuto() {
     R3.fieldGroup.add(m);
     R3.fieldBalls.push({ mesh:m, kind:kind, blue:!!blue, x:x, z:z, dia:dia });
   };
-  /* 4 POLLEN in each FLOWER */
-  FLOWERS.forEach(f => {
-    for (let i = 0; i < 4; i++) drop(f[0] + (i%2-0.5)*4, f[1] + (Math.floor(i/2)-0.5)*4, "pollen");
-  });
+  /* 4 POLLEN in each FLOWER - staged UP the tube, per Figure 10-2, and freed by driving a
+     plow into the retrieval opening rather than handed out on the floor */
+  resetFlowers();
   /* 4 POLLEN in each GARDEN. Fig 10-2: red GARDEN bottom-left, blue GARDEN top-right. */
   for (let i = 0; i < 4; i++) {
     drop(GARDEN_RED.x0  + 3 + i*5.5, GARDEN_RED.z,  "pollen");   // GARDEN - RED
@@ -3225,7 +3609,11 @@ function stageAuto() {
   /* the ROBOT starts in its ALLIANCE AREA touching the wall (G304). Red's wall is now the
      LEFT one (low X), per Fig 10-2, and its raised CELL is toward the audience side. */
   /* AUTO starts in the red LOADING ZONE, against the red ALLIANCE wall (Fig 10-2) */
-  S.rx = 13; S.ry = (LOAD_RED.z0 + LOAD_RED.z1)/2;
+  /* A legal G304 start for whichever ALLIANCE you are playing - this used to drop the ROBOT
+     in the red LOADING ZONE whatever colour you were, which G304.E forbids. AUTO then aims
+     at the HIVE from there, which IS allowed and is what makes the pre-load shootable. */
+  const SP = START_POSE[S.ally] || START_POSE.red;
+  S.rx = SP.x; S.ry = SP.z;
   const T0 = targetXZ();
   S.heading = Math.atan2(T0.z - S.ry, T0.x - S.rx);
   S.magSize = Math.max(4, S.magSize);
@@ -3260,12 +3648,18 @@ function stageAuto() {
     }
     return best;
   };
+  /* Try the WHOLE hood range and keep the WIDEST band, rather than stopping at the first
+     angle that happens to work. Two reasons. The hood reaches 70 degrees but this only ever
+     looked as far as 60, so when the launch height dropped to the StarterBot's real 14 in. -
+     a 45.5 in. rise instead of 35.5 - the steep shots the ROBOT now needs were outside the
+     search, and AUTO staged a pre-load that could not score. And a wide band is worth more
+     than a narrow one anyway: it is how much the flywheel may drift and still go in, which
+     is exactly the tolerance a student is trying to find. */
   let band = bandAt(), ang = S.angle;
-  if (!band) {
-    for (const a of [40, 45, 35, 50, 55, 30, 60]) {
-      S.angle = a; const b = bandAt();
-      if (b) { band = b; ang = a; break; }
-    }
+  for (const a of [25, 30, 35, 40, 45, 50, 55, 60, 65, 70]) {
+    S.angle = a;
+    const b = bandAt();
+    if (b && (!band || (b.hi - b.lo) > (band.hi - band.lo))) { band = b; ang = a; }
   }
   S.angle = ang;
   if (band) {
@@ -3299,6 +3693,23 @@ function stageAuto() {
 /* The real match: 30 s AUTO, 8 s transition, 2 min TELEOP (Manual 10.1). */
 /* V1 10.1: a 30-second AUTO, an 8-second transition, a 2-minute TELEOP. */
 const PHASE = MATCH_CLOCK;
+PHASE.countdown = 3;          /* 3 - 2 - 1 - GO, before the AUTO clock starts */
+/* A MATCH does not simply begin - the FIELD is set, everyone is motionless, and then it is
+   counted in. Three seconds of countdown before AUTO, with every ROBOT frozen on its legal
+   G304 start, which is also the moment to check your own placement. */
+function startCountdown() {
+  stageAuto();
+  if (BOTS.length) BOTS.forEach(function (b) {
+    if (b.home) { b.x = b.home.x; b.z = b.home.z; b.h = b.home.h; }
+    b.mag = 4; b.scored = 0; b.state = "shoot"; b.cool = 0; b.skip = null;
+  });
+  S.matchPhase = "countdown"; S.matchT = PHASE.countdown;
+  S.scoreAuto = 0; S.left = false; S.park = false;
+  S.autoRun = false;
+  cancelGoto(); recPlayStop();
+  S.trackL = S.trackR = S.strafeX = 0;
+  needUI = true;
+}
 function startMatch() {
   stageAuto();
   S.matchPhase = "auto"; S.matchT = PHASE.auto;
@@ -3309,11 +3720,24 @@ function startMatch() {
 }
 function stepMatch(dt) {
   if (S.matchPhase === "idle" || S.matchPhase === "done") return;
+  if (S.matchPhase === "countdown") {
+    S.matchT -= dt;
+    if (S.matchT <= 0) {            /* GO: the AUTO clock starts here, not before */
+      S.matchPhase = "auto"; S.matchT = PHASE.auto;
+      S.autoRun = true; S.autoT = PHASE.auto;
+      recStart();
+    }
+    needUI = true;
+    return;
+  }
   S.matchT -= dt;
   /* PARK: at least partly in the LOADING ZONE (10.5, G-rules) */
   /* PARK needs only PARTIAL overlap with the LOADING ZONE, so grow the
      zone by half a ROBOT (18 in. frame) before testing the ROBOT centre. */
-  S.park = (S.rx < LOAD_RED.x1 + 9 && S.ry > LOAD_RED.z0 - 9 && S.ry < LOAD_RED.z1 + 9);
+  /* ...and it is YOUR LOADING ZONE that counts. This only ever tested red's, so a blue
+     ROBOT sitting correctly parked scored nothing. */
+  const LZ = S.ally === "blue" ? LOAD_BLUE : LOAD_RED;
+  S.park = (S.rx > LZ.x0 - 9 && S.rx < LZ.x1 + 9 && S.ry > LZ.z0 - 9 && S.ry < LZ.z1 + 9);
   if (S.matchT <= 0) {
     if (S.matchPhase === "auto") {
       S.scoreAuto = matchPoints();          // AUTO is banked at the buzzer
@@ -3337,6 +3761,7 @@ function matchPoints() {
   if (S.park) pts += auto ? POINTS.park.auto : POINTS.park.teleop;
   pts += S.tips * POINTS.tip.auto;
   if (!auto) pts += cellCount() * POINTS.cell.teleop;
+  if (!auto) pts += flowerPoints(S.ally);     /* 10.5.2, gated to the last minute by G410 */
   return pts;
 }
 const totalPoints = () => {
@@ -3348,8 +3773,13 @@ const totalPoints = () => {
 function stepAuto(dt) {
   if (!S.autoRun) return;
   S.autoT = Math.max(0, S.autoT - dt);
-  if (!S.left && (S.rx > 22 && S.rx < F.size-22 && S.ry > 22 && S.ry < F.size-22)) {
-    S.left = true; needUI = true;           // LEAVE: no longer contacting the perimeter wall
+  /* LEAVE, 10.5.4: "a ROBOT must move so that it is no longer contacting the perimeter
+     wall". That is the frame clearing the wall - centre more than half a ROBOT away - not
+     the 22 in. inset this used, which withheld LEAVE from a ROBOT that had plainly left. */
+  const clear = BOT_HALF + 0.5;
+  if (!S.left && (S.rx > clear && S.rx < F.size-clear &&
+                  S.ry > clear && S.ry < F.size-clear)) {
+    S.left = true; needUI = true;
   }
   if (S.autoT <= 0) { S.autoRun = false; needUI = true; }
 }
@@ -3961,7 +4391,7 @@ function keepOutOfHive() {
       S.rx = lx + (Math.sign(S.rx - lx) || 1) * legHalf;
     }
   });
-  S.rx = Math.max(10, Math.min(F.size-10, S.rx));
+  S.rx = Math.max(BOT_HALF, Math.min(F.size-BOT_HALF, S.rx));
 }
 
 /* true while a tipped HIVE still has SCORING ELEMENTS in the air over the robot */
@@ -3993,6 +4423,9 @@ const TRACK_W = 14;            // inches between the tracks
 const TOP_SPEED = 46;          // in/s at full stick
 
 function drive(dt) {
+  /* G304.H: motionless until the MATCH starts. The count-in is part of the MATCH, so the
+     sticks are dead through it - the same three seconds the real DRIVE TEAM stands back. */
+  if (S.matchPhase === "countdown") { S.trackL = S.trackR = S.strafeX = 0; return; }
   /* Left stick: W/A/S/D. Right stick: I/J/K/L. A real pad, when plugged in, overrides both. */
   let L = S.trackL, R = S.trackR, strafe = S.strafeX;
   if (keys.w) L += 1;
@@ -4021,8 +4454,8 @@ function drive(dt) {
   const ch = Math.cos(S.heading), sh = Math.sin(S.heading);
   S.rx += (ch*v - sh*strafe*TOP_SPEED*0.7)*dt;
   S.ry += (sh*v + ch*strafe*TOP_SPEED*0.7)*dt;
-  S.rx = Math.max(10, Math.min(F.size-10, S.rx));
-  S.ry = Math.max(10, Math.min(F.size-10, S.ry));
+  S.rx = Math.max(BOT_HALF, Math.min(F.size-BOT_HALF, S.rx));
+  S.ry = Math.max(BOT_HALF, Math.min(F.size-BOT_HALF, S.ry));
   keepOutOfHive();
   return true;
 }
@@ -4087,6 +4520,18 @@ function syncScene(C) {
   R3.fw.rotation.y += 0;                       // (kept for clarity; spin applied below)
   R3.robot.position.set(S.rx, 0, S.ry);
   R3.robot.rotation.y = -S.heading;
+  /* The towers carry the shooter, so they have to follow the launch height - change LAUNCH Z
+     and the mast grows or shrinks with it rather than leaving the flywheel in mid-air. */
+  /* the boom rides up when the claw is loaded and stows when it is not */
+  if (R3.arm) {
+    const want = S.claw ? 1 : 0;
+    S.armT += Math.max(-1, Math.min(1, want - S.armT))*Math.min(1, ARM_UP_RATE*0.016);
+    if (Math.abs(want - S.armT) < 0.01) S.armT = want;
+    R3.arm.userData.pivot.rotation.z = S.armT*0.95;      /* up to about 54 degrees */
+    const held = R3.arm.userData.held;
+    held.visible = !!S.claw;
+    if (S.claw) held.material.color.setHex(S.claw.blue ? 0x2f6fd0 : 0xd8203c);
+  }
   R3.yaw.rotation.y = -S.tip*Math.PI/180;
   R3.pitch.rotation.z = 0;
   R3.pitch.position.y = S.launch - (2.05 + 4 + .5);
@@ -4178,6 +4623,7 @@ function loop(t) {
   if (stepPlay(dt)) moved = true;
   stepBots(dt);
   runIntake();
+  restackFlowers();
   stepTips(dt);
   stepCellPhysics(dt);
   stepFalling(dt);
@@ -4258,7 +4704,8 @@ function stage2D() {
   }
   T2.cell = [{kind:"nectar"},{kind:"nectar"},{kind:"nectar"}];
   T2.tips = 0;
-  S.rx = 13; S.ry = (LOAD_RED.z0 + LOAD_RED.z1)/2;
+  const SP2 = START_POSE[S.ally] || START_POSE.red;      /* G304, not the LOADING ZONE */
+  S.rx = SP2.x; S.ry = SP2.z;
   const T0 = targetXZ();
   S.heading = Math.atan2(T0.z - S.ry, T0.x - S.rx);
   S.magLeft = 4; S.tips = 0; S.left = false; S.picked = 0;
@@ -4498,8 +4945,8 @@ function bind2D() {
     const px = (e.clientX - r.left - ox)/k;
     const pz = F.size - (e.clientY - r.top - pad)/k;
     if (px < 0 || px > F.size || pz < 0 || pz > F.size) return;
-    S.rx = Math.max(10, Math.min(F.size-10, px));
-    S.ry = Math.max(10, Math.min(F.size-10, pz));
+    S.rx = Math.max(BOT_HALF, Math.min(F.size-BOT_HALF, px));
+    S.ry = Math.max(BOT_HALF, Math.min(F.size-BOT_HALF, pz));
     keepOutOfHive(); aimAtHive();
     needUI = true; save();
   });
@@ -4513,8 +4960,8 @@ function bind2D() {
 const GOTO = { on:false, x:0, z:0 };
 function gotoPoint(x, z) {
   GOTO.on = true;
-  GOTO.x = Math.max(10, Math.min(F.size-10, x));
-  GOTO.z = Math.max(10, Math.min(F.size-10, z));
+  GOTO.x = Math.max(BOT_HALF, Math.min(F.size-BOT_HALF, x));
+  GOTO.z = Math.max(BOT_HALF, Math.min(F.size-BOT_HALF, z));
   needUI = true;
 }
 function cancelGoto() { if (GOTO.on) { GOTO.on = false; needUI = true; } }
@@ -4542,8 +4989,8 @@ function stepGoto(dt) {
   if (!GOTO.on) return false;
   const o = { x:S.rx, z:S.ry, h:S.heading };
   const done = steerTo(o, GOTO.x, GOTO.z, dt, TOP_SPEED);
-  S.rx = Math.max(10, Math.min(F.size-10, o.x));
-  S.ry = Math.max(10, Math.min(F.size-10, o.z));
+  S.rx = Math.max(BOT_HALF, Math.min(F.size-BOT_HALF, o.x));
+  S.ry = Math.max(BOT_HALF, Math.min(F.size-BOT_HALF, o.z));
   S.heading = o.h;
   keepOutOfHive();
   if (done) { GOTO.on = false; aimAtHive(); }
@@ -4602,8 +5049,8 @@ function stepPlay(dt) {
       lastShotAt = -99; shoot(); PLAY.cur = null;
     }
   } else { PLAY.cur = null; }
-  S.rx = Math.max(10, Math.min(F.size-10, S.rx));
-  S.ry = Math.max(10, Math.min(F.size-10, S.ry));
+  S.rx = Math.max(BOT_HALF, Math.min(F.size-BOT_HALF, S.rx));
+  S.ry = Math.max(BOT_HALF, Math.min(F.size-BOT_HALF, S.ry));
   keepOutOfHive();
   return true;
 }
@@ -4630,26 +5077,63 @@ function botShootSpot(ally, lane) {
 function makeBots() {
   BOTS.length = 0;
   /* you are red. One red partner, two blue opponents. */
+  /* Legal G304 starts, like yours: touching a wall, on their own ALLIANCE's half, clear of
+     the FLOWERS and NOT in a LOADING ZONE. Figure 11-1 shows ROBOTS spread along the top,
+     side and bottom walls rather than all bunched on the ALLIANCE wall, so they are. */
   const seed = [
-    { ally:"red",  x:13, z:78,  col:0xd8203c, nm:"RED 2", lane:1 },
-    { ally:"blue", x:F.size-13, z:26, col:0x2f6fd0, nm:"BLUE 1", lane:-1 },
-    { ally:"blue", x:F.size-13, z:60, col:0x2f6fd0, nm:"BLUE 2", lane:1 }
+    { ally:"red",  x:40,          z:9,   h: Math.PI/2, col:0xd8203c, nm:"RED 2",  lane:1 },
+    { ally:"blue", x:F.size-9,    z:66,  h: Math.PI,   col:0x2f6fd0, nm:"BLUE 1", lane:-1 },
+    { ally:"blue", x:104,         z:135, h:-Math.PI/2, col:0x2f6fd0, nm:"BLUE 2", lane:1 }
   ];
   seed.forEach(function (s) {
-    const b = { ally:s.ally, nm:s.nm, x:s.x, z:s.z, h:s.ally === "red" ? 0 : Math.PI,
+    const b = { ally:s.ally, nm:s.nm, x:s.x, z:s.z, h:s.h, home:{ x:s.x, z:s.z, h:s.h },
                 mag:4, state:"shoot", cool:0, target:null, scored:0, mesh:null,
                 lane: s.lane };
     if (R3 && R3.scene) {
+      /* The same machine as yours, in the same language - open channel frame, yellow
+         mecanum wheels, the angled plate - with an ALLIANCE band over the top so you can
+         still tell at a glance whose ROBOT is whose on a crowded FIELD. */
       const g = new THREE.Group();
-      const body = new THREE.Mesh(new THREE.BoxGeometry(17, 7, 17),
-        new THREE.MeshStandardMaterial({ color:0x2a2e34, roughness:.6, metalness:.3 }));
-      body.position.y = 5.5; body.castShadow = true; g.add(body);
-      const band = new THREE.Mesh(new THREE.BoxGeometry(17.4, 2.2, 17.4),
+      [[0,-7.7],[0,7.7]].forEach(function (r) {
+        const m = new THREE.Mesh(new THREE.BoxGeometry(17, 2.5, 1.5), goChannel(6, 1));
+        m.position.set(r[0], 3.3, r[1]); m.castShadow = true; g.add(m);
+      });
+      [-7.7, 7.7].forEach(function (x) {
+        const m = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2.5, 14), goChannel(5, 1));
+        m.position.set(x, 3.3, 0); m.castShadow = true; g.add(m);
+      });
+      const deck = new THREE.Mesh(new THREE.BoxGeometry(14.5, .4, 14.5), goChannel(5, 5));
+      deck.position.y = 6.1; deck.castShadow = true; g.add(deck);
+      [-1, 1].forEach(function (sgn) {
+        const pl = new THREE.Mesh(new THREE.BoxGeometry(9.5, 7.6, .35), goChannel(4, 3));
+        pl.position.set(-1.4, 9.6, sgn*3.3); pl.rotation.x = -sgn*0.46;
+        pl.castShadow = true; g.add(pl);
+      });
+      /* yellow wheels, dark rollers, same as yours */
+      const bh = new THREE.MeshStandardMaterial({ color:GB_YELLOW, roughness:.42, metalness:.45 });
+      const br = new THREE.MeshStandardMaterial({ color:0x23262b, roughness:.82 });
+      [[-8.5,-8.5],[8.5,-8.5],[-8.5,8.5],[8.5,8.5]].forEach(function (q) {
+        const w = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 2.3, 16), bh);
+        w.rotation.z = Math.PI/2; w.position.set(q[0], 2.05, q[1]); w.castShadow = true; g.add(w);
+        for (let i = 0; i < 6; i++) {
+          const a = i*Math.PI/3;
+          const r = new THREE.Mesh(new THREE.CylinderGeometry(.42, .42, 2.1, 7), br);
+          r.position.set(q[0], 2.05 + Math.cos(a)*1.75, q[1] + Math.sin(a)*1.75);
+          r.rotation.z = Math.PI/2; r.rotation.x = Math.PI/5; g.add(r);
+        }
+      });
+      /* the ALLIANCE band - the one part that is NOT goBILDA grey, on purpose */
+      const band = new THREE.Mesh(new THREE.BoxGeometry(15.5, 1.4, 15.5),
         new THREE.MeshStandardMaterial({ color:s.col, roughness:.5 }));
-      band.position.y = 9.4; g.add(band);
-      const nose = new THREE.Mesh(new THREE.BoxGeometry(3, 2, 8),
-        new THREE.MeshStandardMaterial({ color:0xe8c21c, roughness:.6 }));
-      nose.position.set(9, 4, 0); g.add(nose);
+      band.position.y = 7.0; g.add(band);
+      /* the Gecko intake shaft across the front */
+      for (let i = -1; i <= 1; i++) {
+        const gw = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, 1.5, 14),
+          new THREE.MeshStandardMaterial({ color:0x2c3036, roughness:.85 }));
+        gw.rotation.x = Math.PI/2; gw.position.set(6.6, 2.7, i*3.6); g.add(gw);
+      }
+      g.add(makePlow(s.col));        /* they empty FLOWERS too */
+      g.add(makeArm(s.col));         /* and carry a NECTAR arm of their own */
       R3.scene.add(g); b.mesh = g;
     }
     BOTS.push(b);
@@ -4705,10 +5189,20 @@ function stepBots(dt) {
          threshold distance and sat there for the whole match. */
       const crowded = separate(bot, dt);
       const speed = TOP_SPEED*(crowded ? 0.35 : 0.8);
+      /* their plow frees POLLEN exactly as yours does, just by being driven at a FLOWER */
+      releaseFromFlower(bot.x, bot.z, bot.h);
       if (bot.state === "hunt") {
         const t = nearestBall(bot);
         bot.huntT = (bot.huntT || 0) + dt;
-        if (!t || bot.mag >= 4) { bot.state = "shoot"; bot.huntT = 0; }
+        if (bot.mag >= 4) { bot.state = "shoot"; bot.huntT = 0; }
+        else if (!t) {
+          /* nothing loose left on the TILES - go and empty a FLOWER, which is where 16 of
+             the 40 POLLEN start. Before this they simply gave up and idled. */
+          const fl = nearestLoadedFlower(bot.x, bot.z);
+          if (!fl) { bot.state = "shoot"; bot.huntT = 0; }
+          else { steerTo(bot, fl.x, fl.z, dt, speed, 4);
+                 if (bot.huntT > 8) { bot.huntT = 0; if (bot.mag > 0) bot.state = "shoot"; } }
+        }
         else if (steerTo(bot, t.x, t.z, dt, speed, 9)) {   /* intake reach, not centre */
           const i = R3.fieldBalls.indexOf(t);
           if (i >= 0) { R3.fieldGroup.remove(t.mesh); R3.fieldBalls.splice(i, 1);
@@ -4732,8 +5226,8 @@ function stepBots(dt) {
           if (bot.mag <= 0) { bot.state = "hunt"; bot.huntT = 0; }
         }
       }
-      bot.x = Math.max(10, Math.min(F.size-10, bot.x));
-      bot.z = Math.max(10, Math.min(F.size-10, bot.z));
+      bot.x = Math.max(BOT_HALF, Math.min(F.size-BOT_HALF, bot.x));
+      bot.z = Math.max(BOT_HALF, Math.min(F.size-BOT_HALF, bot.z));
       /* the HIVE frame legs are solid for them too */
       const c = F.size/2, dxh = bot.x - c, dzh = bot.z - c;
       const rr = Math.hypot(dxh, dzh);
@@ -4762,14 +5256,14 @@ function stepBots(dt) {
       if (d < MIN && d > 1e-4) {
         const f = (MIN - d)/2/d;
         a.x -= dx*f; a.z -= dz*f;
-        S.rx = Math.max(10, Math.min(F.size-10, S.rx + dx*f));
-        S.ry = Math.max(10, Math.min(F.size-10, S.ry + dz*f));
+        S.rx = Math.max(BOT_HALF, Math.min(F.size-BOT_HALF, S.rx + dx*f));
+        S.ry = Math.max(BOT_HALF, Math.min(F.size-BOT_HALF, S.ry + dz*f));
       }
     }
   }
   BOTS.forEach(function (b) {
-    b.x = Math.max(10, Math.min(F.size-10, b.x));
-    b.z = Math.max(10, Math.min(F.size-10, b.z));
+    b.x = Math.max(BOT_HALF, Math.min(F.size-BOT_HALF, b.x));
+    b.z = Math.max(BOT_HALF, Math.min(F.size-BOT_HALF, b.z));
     if (b.mesh) b.mesh.position.set(b.x, 0, b.z);
   });
 }
@@ -5181,6 +5675,28 @@ function updateHud(C) {
     : (T2.on ? T2.flights.length : 0);
   $("hLoose").textContent = (R3 ? R3.fieldBalls.length : (T2.on ? T2.balls.length : 0)) + " on tiles" +
     (air ? "  +" + air + " falling" : "");
+  /* ---- inspection, live: R102 is an 18 in. cube at the start, R105 lets it grow to
+          18 x 24 x 29 once the MATCH is running. Measured off the actual geometry rather
+          than from numbers typed in, so if a part is moved the verdict moves with it. This
+          is the check a team faces at the inspection table, so the bench may as well run
+          it. */
+  const sz = $("hSize");
+  if (sz) {
+    const box = robotEnvelope();
+    if (box) {
+      const started = S.matchPhase === "auto" || S.matchPhase === "teleop";
+      const lim = started ? [18, 24, 29] : [18, 18, 18];
+      const okW = box.W <= lim[0] + 0.05, okL = box.L <= lim[1] + 0.05,
+            okH = box.H <= lim[2] + 0.05;
+      const ok = okW && okL && okH;
+      sz.textContent = box.L.toFixed(1) + "\u00d7" + box.W.toFixed(1) + "\u00d7" +
+                       box.H.toFixed(1) + (ok ? " ok" : " OVER");
+      sz.style.color = ok ? "" : "var(--crit)";
+      sz.title = (started ? "R105 expanded 18 x 24 x 29" : "R102 starting cube 18 x 18 x 18")
+               + " \u2014 length " + box.L.toFixed(1) + ", width " + box.W.toFixed(1)
+               + ", height " + box.H.toFixed(1);
+    }
+  }
   const cb = $("hCatch");
   if (cb) {
     const blocked = (typeof catchBlocked === "function") && catchBlocked();
@@ -5690,13 +6206,16 @@ function blkRefreshJava() {
     + " \u00b7 real FTC toolbox \u00b7 Java by the FTC generator";
 }
 
-/* Map the real FTC blocks onto this simulator. A dcMotor block that sets "shooter" power is
+/* Map the real FTC blocks onto this simulator. A dcMotor block that sets "launcher" power is
    a shot here; one that sets a drive motor is motion. Blocks the bench has no robot for are
    skipped rather than faked. */
 function blocksToSteps() {
   if (!BLK.ws) return [];
   const steps = [];
-  const DRIVE = ["front_left_drive","back_left_drive","front_right_drive","back_right_drive"];
+  /* every drive motor either StarterBot can have, so a recording made on one drivetrain is
+     still recognised when it is read back on the other */
+  const DRIVE = ["left_front_drive","left_back_drive","right_front_drive","right_back_drive",
+                 "left_drive","right_drive"];
   BLK.ws.getTopBlocks(true).forEach(function walk(b) {
     while (b) {
       const t = b.type || "";
@@ -5705,7 +6224,7 @@ function blocksToSteps() {
           const id = b.getFieldValue("IDENTIFIER") || b.getFieldValue("IDENTIFIER1") || "";
           const prop = b.getFieldValue("PROP") || "";
           const v = ftcNumberFrom(b, "VALUE") || ftcNumberFrom(b, "VALUE1") || 0;
-          if (id === "shooter" && (prop === "Velocity" || prop === "Power")) {
+          if (id === GBOT.common.launcher && (prop === "Velocity" || prop === "Power")) {
             steps.push({ type:"shoot", rpm: prop === "Velocity" ? Math.abs(v)*60/28
                                             : Math.abs(v)*maxFlyRpm() });
           } else if (id === "intake") {
@@ -5791,26 +6310,26 @@ function blocksFromRecording() {
     if (st.type === "drive") {
       const t = Math.round(st.inches*TICKS);
       if (S.drive === "tank") {
-        const b = dual("front_left_drive", "front_right_drive", "TargetPosition", t, t);
+        const b = dual(GBOT.tank.drive[0][1], GBOT.tank.drive[1][1], "TargetPosition", t, t);
         if (b) put(b);
       } else {
-        const b1 = dual("front_left_drive", "back_left_drive",  "TargetPosition", t, t);
-        const b2 = dual("front_right_drive","back_right_drive", "TargetPosition", t, t);
+        const b1 = dual(GBOT.mecanum.drive[0][1], GBOT.mecanum.drive[2][1],  "TargetPosition", t, t);
+        const b2 = dual(GBOT.mecanum.drive[1][1],GBOT.mecanum.drive[3][1], "TargetPosition", t, t);
         if (b1) put(b1); if (b2) put(b2);
       }
     } else if (st.type === "turn") {
       /* a turn is the two sides in opposition, on either drivetrain */
       const t = Math.round(st.deg*9.6);       // TURN_TICKS_PER_DEG in the export
       if (S.drive === "tank") {
-        const b = dual("front_left_drive", "front_right_drive", "TargetPosition", -t, t);
+        const b = dual(GBOT.tank.drive[0][1], GBOT.tank.drive[1][1], "TargetPosition", -t, t);
         if (b) put(b);
       } else {
-        const b1 = dual("front_left_drive", "back_left_drive",  "TargetPosition", -t, -t);
-        const b2 = dual("front_right_drive","back_right_drive", "TargetPosition",  t,  t);
+        const b1 = dual(GBOT.mecanum.drive[0][1], GBOT.mecanum.drive[2][1],  "TargetPosition", -t, -t);
+        const b2 = dual(GBOT.mecanum.drive[1][1],GBOT.mecanum.drive[3][1], "TargetPosition",  t,  t);
         if (b1) put(b1); if (b2) put(b2);
       }
     } else if (st.type === "shoot") {
-      const b = single("shooter", "Velocity", Math.round((st.rpm || S.rpm)*28/60));
+      const b = single(GBOT.common.launcher, "Velocity", Math.round((st.rpm || S.rpm)*28/60));
       if (b) put(b);
     } else if (st.type === "intake") {
       const b = single("intake", "Power", st.on ? 1 : 0);
@@ -5848,17 +6367,17 @@ function blocksStarter() {
   const fwd = Math.round(24*TICKS);           // drive 24 in
   const spin = Math.round(90*TURN);           // turn 90 deg
   if (S.drive === "tank") {
-    put(dual("front_left_drive", "front_right_drive", "TargetPosition", fwd, fwd));
-    put(dual("front_left_drive", "front_right_drive", "TargetPosition", -spin, spin));
+    put(dual(GBOT.mecanum.drive[0][1], GBOT.mecanum.drive[1][1], "TargetPosition", fwd, fwd));
+    put(dual(GBOT.mecanum.drive[0][1], GBOT.mecanum.drive[1][1], "TargetPosition", -spin, spin));
   } else {
     const side = Math.round(12*TICKS);        // strafe 12 in - no tank equivalent
-    put(dual("front_left_drive", "back_left_drive",   "TargetPosition", fwd, fwd));
-    put(dual("front_right_drive","back_right_drive",  "TargetPosition", fwd, fwd));
+    put(dual(GBOT.mecanum.drive[0][1], GBOT.mecanum.drive[2][1],   "TargetPosition", fwd, fwd));
+    put(dual(GBOT.mecanum.drive[1][1],GBOT.mecanum.drive[3][1],  "TargetPosition", fwd, fwd));
     /* strafing right: front-left and back-right one way, the other pair the other */
-    put(dual("front_left_drive", "back_right_drive",  "TargetPosition",  side,  side));
-    put(dual("front_right_drive","back_left_drive",   "TargetPosition", -side, -side));
-    put(dual("front_left_drive", "back_left_drive",   "TargetPosition", -spin, -spin));
-    put(dual("front_right_drive","back_right_drive",  "TargetPosition",  spin,  spin));
+    put(dual(GBOT.mecanum.drive[0][1], GBOT.mecanum.drive[3][1],  "TargetPosition",  side,  side));
+    put(dual(GBOT.mecanum.drive[1][1],GBOT.mecanum.drive[2][1],   "TargetPosition", -side, -side));
+    put(dual(GBOT.mecanum.drive[0][1], GBOT.mecanum.drive[2][1],   "TargetPosition", -spin, -spin));
+    put(dual(GBOT.mecanum.drive[1][1],GBOT.mecanum.drive[3][1],  "TargetPosition",  spin,  spin));
   }
   blkRefreshJava();
   return BLK.ws.getAllBlocks(false).length;
@@ -6426,6 +6945,33 @@ function cellCount() {
 }
 
 /* ---- stats panels ---- */
+/* The ROBOT's real bounding box, in ROBOT-local inches. Measured with the ROBOT squared up,
+   because taking a world-space box of a ROBOT sitting at 40 degrees and re-squaring it
+   inflates an 18 in. frame to 25 - which is the mistake that nearly had me "fixing" a ROBOT
+   that was the right size. Hidden parts are skipped so the drivetrain you are NOT using does
+   not count against you. */
+let ENV_CACHE = null, ENV_KEY = "";
+function robotEnvelope() {
+  if (!R3 || !R3.robot || typeof THREE === "undefined") return null;
+  const key = S.drive + "|" + (S.claw ? 1 : 0) + "|" + Math.round(S.launch) +
+              "|" + Math.round(S.armT*10) + "|" + S.magLeft;
+  if (key === ENV_KEY && ENV_CACHE) return ENV_CACHE;
+  const rb = R3.robot, px = rb.position.clone(), ry = rb.rotation.y;
+  rb.position.set(0, 0, 0); rb.rotation.y = 0; rb.updateMatrixWorld(true);
+  const b = new THREE.Box3();
+  rb.traverse(function (o) { if (o.isMesh && o.visible) b.expandByObject(o); });
+  rb.position.copy(px); rb.rotation.y = ry; rb.updateMatrixWorld(true);
+  if (!isFinite(b.min.x)) return null;
+  const v = b.getSize(new THREE.Vector3());
+  ENV_KEY = key;
+  /* Height is measured from the TILE surface, not between the lowest and highest mesh.
+     R102's sizing volume rests ON the FIELD, so a tyre lug modelled a tenth of an inch
+     below y=0 is not part of the ROBOT's height - counting it was adding a phantom 0.3 in.
+     and failing a ROBOT that fits. */
+  ENV_CACHE = { L:v.x, W:v.z, H:Math.max(0, b.max.y) };
+  return ENV_CACHE;
+}
+
 function drawStats(C) {
   const set = (id,v) => { const e = $(id); if (e) e.childNodes[0].nodeValue = v; };
   const ok = !isNaN(C.flyRpm) && C.flyRpm > 0;
@@ -6471,6 +7017,7 @@ function drawStats(C) {
   const cue = matchCue();
   const cueEl = $("phaseCue");
   if (cueEl) { cueEl.textContent = cue.txt; cueEl.style.color = cue.col; }
+  drawCountdown();
   $("phaseTag").textContent = inMatch ? S.matchPhase.toUpperCase() : "idle";
   $("phaseTag").style.color = S.matchPhase === "auto" ? "var(--good)"
     : S.matchPhase === "teleop" ? "var(--amber)" : "#8b97a4";
@@ -6937,6 +7484,7 @@ function goHome() {
 
   if (T2 && T2.on) { scatter2D(); }
   else if (typeof scatterBalls === "function") { scatterBalls(); }
+  if (typeof resetFlowers === "function") resetFlowers();
 
   S.rx = 30; S.ry = 30;
   S.heading = Math.atan2(F.size/2 - S.ry, F.size/2 - S.rx);
@@ -6970,6 +7518,281 @@ const C_MAP = [
   ["cWheelMass","wheelMass","vWheelMass", v => Math.round(v)+" g"],
   ["cMagSize","magSize","vMagSize", v => Math.round(v)+" balls"]
 ];
+/* ===== goBILDA'S OWN ROBOT CONFIGURATION =====
+   Taken from the example code in their two StarterBot Resource Guides, not invented here.
+   This matters more than it looks: a student who builds the StarterBot and configures their
+   Control Hub by goBILDA's guide ends up with THESE names. The app had made up its own -
+   front_left_drive, shooter, feeder - so every OpMode it exported would have thrown
+   "device not found" on a real ROBOT. For a teaching tool that is the worst kind of wrong,
+   because the code looks right.
+
+     mecanum   3200-2627-0004   Strafer chassis, four GripForce mecanum wheels
+     tank      3200-2627-0003   drop-centre 6WD, four Hogback traction + two omni
+
+   The two guides spell the windmill servo differently - "windmillServo" on the mecanum bot,
+   "windmill" on the 6WD. That is goBILDA's own inconsistency, reproduced exactly, because
+   the name has to match what the student types into their configuration. */
+const GBOT = {
+  mecanum: {
+    sku:"3200-2627-0004", guide:"StarterBot with Mecanum Wheels",
+    drive:[["leftFrontDrive","left_front_drive"], ["rightFrontDrive","right_front_drive"],
+           ["leftBackDrive","left_back_drive"],   ["rightBackDrive","right_back_drive"]],
+    windmill:"windmillServo"
+  },
+  tank: {
+    sku:"3200-2627-0003", guide:"StarterBot, drop-centre 6WD",
+    drive:[["leftDrive","left_drive"], ["rightDrive","right_drive"]],
+    windmill:"windmill"
+  },
+  /* shared by both guides, straight out of their code */
+  common: {
+    intake:"intake", launcher:"launcher",
+    intakeServos:[["leftIntakeServo","left_intake_servo"],
+                  ["rightIntakeServo","right_intake_servo"]],
+    LAUNCHER_TARGET_VELOCITY:1250,   /* ticks/s = 2678 rpm */
+    LAUNCHER_MIN_VELOCITY:1200,      /* ticks/s = 2571 rpm */
+    TICKS_PER_REV:28,
+    PIDF:"40, 0, 0, 12.5"
+  }
+};
+const gbCfg = () => GBOT[S.drive] || GBOT.mecanum;
+const gbRpmToTicks = r => Math.round(r * GBOT.common.TICKS_PER_REV / 60);
+const gbTicksToRpm = t => Math.round(t / GBOT.common.TICKS_PER_REV * 60);
+
+/* ===== WHERE A MATCH LEGALLY BEGINS - G304, Competition Manual TU05 =====
+   This had the ROBOT starting IN its LOADING ZONE, which the rule forbids outright. G304
+   requires the ROBOT to be:
+     A. fully on its own ALLIANCE's half   red = FIELD columns A/B/C, blue = D/E/F
+     C. TOUCHING the FIELD perimeter wall
+     D. clear of the FLOWERS
+     E. NOT in the LOADING ZONE            <-- the LOADING ZONE is where you PARK at the END
+                                               of a MATCH. Starting there is illegal, and the
+                                               two places are mutually exclusive by design.
+     F. within the 18 in. STARTING CONFIGURATION (R102/R103)
+
+   So the centre sits exactly half a ROBOT off the wall - 9 in. - which puts the frame
+   against it, and the z lane is picked to clear both the FLOWER on that wall and that
+   ALLIANCE's own LOADING ZONE:
+
+     red  wall x=0    FLOWER z=48   LOADING ZONE z 98-121  ->  z=78, frame spans 69-87
+     blue wall x=144  FLOWER z=96   LOADING ZONE z 23-46   ->  z=66, frame spans 57-75
+
+   Heading is square to the wall, facing into the FIELD. The manual does NOT require square -
+   Figure 11-1 shows several legal orientations and angling for a pre-load shot is a normal
+   team choice - but square is how a ROBOT is really placed, and the diagonal pose this used
+   to produce existed only to fake wall contact from a centre too far out to reach it. */
+const HALF_BOT = 9;                                 /* half the 18 in. STARTING CONFIGURATION */
+const START_POSE = {
+  red:  { x:HALF_BOT,          z:78, h:0       },   /* red wall,  facing +x into the FIELD */
+  blue: { x:F.size - HALF_BOT, z:66, h:Math.PI }    /* blue wall, facing -x into the FIELD */
+};
+const PARK_BTNS = [["gbParkRed","red"], ["gbParkBlue","blue"]];
+
+/* Park on an ALLIANCE: this is the pose a MATCH opens from, so it sets the ALLIANCE too -
+   starting in blue's LOADING ZONE while still playing red is not a position G304 allows.
+   Anything that was driving the ROBOT is stopped first, or the goto would walk it straight
+   back out of the zone you just put it in. */
+function parkAt(ally) {
+  if (typeof cancelGoto  === "function") cancelGoto();
+  if (typeof recPlayStop === "function") recPlayStop();
+  S.trackL = S.trackR = S.strafeX = 0;
+  S.ally = ally;
+  const p = START_POSE[ally];
+  S.rx = p.x; S.ry = p.z; S.heading = p.h;
+  sanePose();
+  S.tip = 0; needUI = true; save();
+  refreshAll();
+}
+
+/* The drivetrain is ONE choice shown in two places, so every button that sets it and every
+   button that displays it comes off this one list. Adding a third place later means adding a
+   row here, not another copy of the logic. */
+const DRIVE_BTNS = [["dtMecanum","mecanum"], ["dtTank","tank"],
+                    ["gbMec","mecanum"],     ["gbTank","tank"]];
+
+/* Picking a drivetrain is not just a driving change: the exported Java and the Blocks are
+   both rewritten, because a mecanum OpMode drives four wheels separately and a tank one
+   drives two sides together. Pressing the drivetrain you are already on does nothing, rather
+   than needlessly rebuilding the workspace. */
+/* ===== THE ARM, AND WHY A SHOOTER IS NOT ENOUGH =====
+   10.5.2 is blunt about it: "Placing SCORING ELEMENTS into the top of the FLOWER is the only
+   allowable way to score." You cannot shoot a FLOWER. The scoring volume is the band between
+   the middle ring and the top ring, 21.5 in. up, so a FLOWER is reached by lifting an element
+   over the lip and letting go - which is an arm with a claw, not a flywheel.
+
+   So the claw carries exactly one NECTAR, the boom lifts it to the FLOWER's top opening, and
+   releasing it there drops it into the scoring volume. Press C to take the nearest NECTAR,
+   C again to let it go: at a FLOWER it is placed, anywhere else it is simply put back on the
+   TILES. The arm raises itself whenever it is loaded, because there is nothing else it would
+   be doing.
+
+   G410 holds the points back until the last minute, exactly as the real one does. */
+const ARM_UP_RATE = 2.2;                 /* how fast the boom swings, in units of travel/sec */
+const CLAW_REACH  = 13;                  /* how far the claw can take a NECTAR off the TILES */
+const FLOWER_TOP_REACH = 15;             /* how close the ROBOT must be to place into the top */
+
+function clawGrab() {
+  if (!R3) return "";
+  if (S.claw) return clawRelease();
+  const cx = S.rx + Math.cos(S.heading)*PLOW_AHEAD, cz = S.ry + Math.sin(S.heading)*PLOW_AHEAD;
+  let best = null, bd = CLAW_REACH;
+  R3.fieldBalls.forEach(function (b) {
+    if (b.kind !== "nectar") return;     /* the claw is for NECTAR; POLLEN go up the shooter */
+    const d = Math.hypot(b.x - cx, b.z - cz);
+    if (d < bd) { bd = d; best = b; }
+  });
+  if (!best) return "no NECTAR in reach";
+  R3.fieldGroup.remove(best.mesh);
+  R3.fieldBalls.splice(R3.fieldBalls.indexOf(best), 1);
+  S.claw = { blue: !!best.blue };
+  needUI = true;
+  return "NECTAR in the claw \u00b7 C again to place it";
+}
+
+function clawRelease() {
+  if (!R3 || !S.claw) return "the claw is empty";
+  const blue = !!S.claw.blue;
+  const cx = S.rx + Math.cos(S.heading)*PLOW_AHEAD, cz = S.ry + Math.sin(S.heading)*PLOW_AHEAD;
+  /* a FLOWER within reach takes it through the top opening, into the scoring volume */
+  let fi = -1, bd = FLOWER_TOP_REACH;
+  FLOWERS.forEach(function (f, i) {
+    const d = Math.hypot(f[0] - cx, f[1] - cz);
+    if (d < bd) { bd = d; fi = i; }
+  });
+  const dia = BALL.nectar.dia;
+  const m = new THREE.Mesh(new THREE.SphereGeometry(dia/2, 16, 12),
+                           ballMaterialFor(blue ? "nectar" : "nectarRed", S.holes));
+  m.castShadow = true;
+  S.claw = null;
+  if (fi >= 0) {
+    const f = FLOWERS[fi];
+    let top = -1;
+    R3.flowerBalls.forEach(function (b) { if (b.fi === fi && b.slot > top) top = b.slot; });
+    const slot = Math.max(top + 1, 5);               /* placed elements sit in the upper band */
+    m.position.set(f[0], FLOWER_Y0 + slot*FLOWER_DY, f[1]);
+    R3.fieldGroup.add(m);
+    R3.flowerBalls.push({ mesh:m, fi:fi, slot:slot, x:f[0], z:f[1],
+                          kind:"nectar", blue:blue, inVolume:true });
+    needUI = true;
+    return fieldClock() > 60 && S.matchPhase !== "done"
+      ? "placed \u00b7 FLOWER points do not count until 1:00 (G410)"
+      : "placed in the FLOWER";
+  }
+  m.position.set(cx, dia/2, cz);
+  R3.fieldGroup.add(m);
+  R3.fieldBalls.push({ mesh:m, kind:"nectar", blue:blue, x:cx, z:cz, dia:dia });
+  needUI = true;
+  return "put back on the TILES";
+}
+
+/* 10.5.2 scoring. The ALLIANCE holding the TOP-most NECTAR of its colour OWNS the FLOWER and
+   takes 2 for every element in it, whoever put them there; the BOTTOM-most NECTAR earns its
+   ALLIANCE the 5 point bonus. Nothing counts until the last minute, per G410. */
+function flowerPoints(ally) {
+  if (!R3 || !R3.flowerBalls) return 0;
+  if (S.matchPhase !== "done" && fieldClock() > 60) return 0;
+  let pts = 0;
+  FLOWERS.forEach(function (f, fi) {
+    const vol = R3.flowerBalls.filter(function (b) { return b.fi === fi && b.inVolume; })
+                              .sort(function (a, b) { return a.slot - b.slot; });
+    if (!vol.length) return;
+    const nect = vol.filter(function (b) { return b.kind === "nectar"; });
+    if (!nect.length) return;
+    const owner  = nect[nect.length-1].blue ? "blue" : "red";
+    const bottom = nect[0].blue ? "blue" : "red";
+    if (owner  === ally) pts += vol.length * POINTS.flower.teleop;
+    if (bottom === ally) pts += POINTS.flowerBottom.teleop;
+  });
+  return pts;
+}
+
+/* ===== THE STARTERBOT, DRAWN =====
+   goBILDA's 2026-27 FTC StarterBot, from above, so the button you press shows you the
+   machine you get rather than only a word. Drawn rather than fetched: an <img> off
+   gobilda.com would be a third-party request from a FIELD page that works offline today,
+   and the shapes that matter here - four corner wheels, the shooter, the plow across the
+   front - are the ones worth seeing anyway.
+     mecanum  four Omni-style wheels, rollers at 45 degrees, goBILDA yellow
+     tank     two lugged tyres a side, joined by a belt
+   Everything else is shared, because on the real StarterBot it IS shared: the Strafer
+   chassis, the Gecko-wheel intake, the shooter. */
+const SB_COMMON =
+  '<rect x="22" y="14" width="56" height="62" rx="5" fill="#3a4049" stroke="#20242a"/>' +
+  '<rect x="28" y="20" width="44" height="26" rx="3" fill="#2b3037"/>' +
+  '<circle cx="50" cy="33" r="9" fill="#5a636e" stroke="#20242a"/>' +
+  '<circle cx="50" cy="33" r="3.4" fill="#e0a52c"/>' +
+  '<rect x="33" y="52" width="34" height="16" rx="3" fill="#4a525b" stroke="#20242a"/>' +
+  '<circle cx="41" cy="60" r="3.1" fill="#d8a32a"/><circle cx="50" cy="60" r="3.1" fill="#d8a32a"/>' +
+  '<circle cx="59" cy="60" r="3.1" fill="#d8a32a"/>' +
+  '<path d="M26 76 L50 90 L74 76 Z" fill="#c9b23a" stroke="#8d7c1e" stroke-width="1.4"/>';
+const STARTERBOT_SVG = {
+  mecanum:
+    '<svg viewBox="0 0 100 96" width="74" height="71" role="img" aria-label="goBILDA StarterBot, mecanum">' +
+    [[16,24],[84,24],[16,64],[84,64]].map(function (w) {
+      return '<g><rect x="' + (w[0]-7) + '" y="' + (w[1]-10) + '" width="14" height="20" rx="4"' +
+             ' fill="#2b3037" stroke="#15181c"/>' +
+             [0,1,2,3].map(function (i) {
+               const y = w[1] - 7 + i*4.6;
+               return '<line x1="' + (w[0]-5.5) + '" y1="' + (y+2.4) + '" x2="' + (w[0]+5.5) +
+                      '" y2="' + (y-2.4) + '" stroke="#e8c21c" stroke-width="2.1"' +
+                      ' stroke-linecap="round"/>';
+             }).join('') + '</g>';
+    }).join('') + SB_COMMON + '</svg>',
+  /* the non-mecanum StarterBot is a drop-centre 6WD - THREE wheels a side, not a two-wheel
+     tank - so the picture shows three, with the middle one sitting proud as it really does */
+  tank:
+    '<svg viewBox="0 0 100 96" width="74" height="71" role="img" aria-label="goBILDA StarterBot, drop-centre 6WD">' +
+    [16,84].map(function (x) {
+      return [20,44,68].map(function (y, i) {
+        const r = (i === 1) ? 8.2 : 7.4;                 /* centre pair slightly larger/lower */
+        return '<circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="#202428"' +
+               ' stroke="#15181c" stroke-width="1.2"/>' +
+               '<circle cx="' + x + '" cy="' + y + '" r="' + (r*0.46) + '" fill="#c9a227"/>';
+      }).join('');
+    }).join('') + SB_COMMON + '</svg>'
+};
+
+/* Show the hardware that matches the choice: the 3D wheels, and the StarterBot illustration
+   beside the buttons. Called on every change and once on load. */
+/* Build a drivetrain's body on first use and keep it; thereafter switching is just two
+   visibility flags. The file is fetched, so the first switch may land a frame later. */
+function ensureBotBody(which, then) {
+  if (!R3 || !R3.bodyHolder) return;
+  if (R3.bodies[which]) { then && then(); return; }
+  loadBotModel(which, function (model) {
+    if (!model || R3.bodies[which]) { then && then(); return; }
+    const g = buildBotBody(model, true);
+    g.visible = (S.drive === which);
+    R3.bodyHolder.add(g);
+    R3.bodies[which] = g;
+    ENV_KEY = "";                 /* the ROBOT changed shape, so re-measure it */
+    needUI = true;
+    then && then();
+  });
+}
+function applyDriveLook() {
+  const mec = S.drive === "mecanum";
+  if (R3 && R3.bodies) {
+    ["mecanum", "tank"].forEach(function (w) {
+      if (R3.bodies[w]) R3.bodies[w].visible = (w === S.drive);
+    });
+    ensureBotBody(S.drive);
+  }
+  const art = $("drvArt");
+  if (art) art.innerHTML = mec ? STARTERBOT_SVG.mecanum : STARTERBOT_SVG.tank;
+  const cap = $("drvArtCap");
+  if (cap) cap.textContent = mec ? "goBILDA Mecanum" : "goBILDA Tank";
+}
+
+function setDrive(mode) {
+  if (S.drive === mode) return;
+  S.drive = mode;
+  applyDriveLook();
+  if (BLK.ready) { if (REC.steps.length) blocksFromRecording(); else blocksStarter(); }
+  if (typeof drawRec === "function") drawRec();
+  refreshAll();
+}
+
 function syncInputs() {
   C_MAP.forEach(([id,key,out,fmt]) => { const e = $(id); if (!e) return;
     e.value = S[key]; $(out).textContent = fmt(S[key]); });
@@ -7004,9 +7827,10 @@ function syncInputs() {
   $("bNectar").setAttribute("aria-pressed", S.ball === "nectar");
   $("bSmooth").setAttribute("aria-pressed", !S.holes);
   $("bHoles").setAttribute("aria-pressed", !!S.holes);
-  const dm = $("dtMecanum"), dtk = $("dtTank");
-  if (dm)  dm.setAttribute("aria-pressed", S.drive === "mecanum");
-  if (dtk) dtk.setAttribute("aria-pressed", S.drive === "tank");
+  /* four buttons, one choice - the pair by the sticks and the pair in the coding tab */
+  DRIVE_BTNS.forEach(function (r) {
+    const e = $(r[0]); if (e) e.setAttribute("aria-pressed", S.drive === r[1]);
+  });
   const dx = $("dtExplain");
   if (dx) dx.textContent = S.drive === "mecanum"
     ? "Four wheels, each driven independently, with rollers at 45\u00b0. It can go sideways: "
@@ -7021,6 +7845,9 @@ function syncInputs() {
   const ar = $("allyRed"), ab = $("allyBlue");
   if (ar) ar.setAttribute("aria-pressed", S.ally === "red");
   if (ab) ab.setAttribute("aria-pressed", S.ally === "blue");
+  PARK_BTNS.forEach(function (r) {
+    const e = $(r[0]); if (e) e.setAttribute("aria-pressed", S.ally === r[1]);
+  });
   $("duro15").setAttribute("aria-pressed", S.duro === 15);
   $("duro30").setAttribute("aria-pressed", S.duro === 30);
   $("cPredict").value = S.predict;
@@ -7046,13 +7873,27 @@ function refreshPanels(C) {
     case "data":  drawLabOut(); break;
   }
 }
+/* The count-in badge. Its own function because it was folded into drawStats(), which only
+   the render loop calls - so the badge could not be refreshed on demand, and would sit stale
+   in a throttled or backgrounded tab. Cheap enough to run from both. */
+function drawCountdown() {
+  const cd = $("cdown"); if (!cd) return;
+  const counting = S.matchPhase === "countdown";
+  cd.hidden = !counting;
+  if (!counting) return;
+  const go = S.matchT <= 0.35;
+  cd.classList.toggle("go", go);
+  $("cdownN").textContent = go ? "GO" : String(Math.max(1, Math.ceil(S.matchT)));
+  $("cdownT").textContent = go ? "AUTO is live" : "ROBOTS set · motionless";
+}
+
 function refreshAll() {
   rowKey = ""; bestKey = "";
   if (!R3) {                       // no render loop is running, so refresh here
     setTimeout(() => { lastC = compute(); refreshPanels(lastC); updateHud(lastC); }, 0);
   }
   if (S.magLeft > S.magSize) S.magLeft = S.magSize;
-  drawCatalogue(); syncInputs();
+  drawCatalogue(); syncInputs(); drawCountdown();
   needUI = true;
   save();
 }
@@ -7234,15 +8075,13 @@ $("bPollen").addEventListener("click", () => { S.ball = "pollen"; refreshAll(); 
 $("bNectar").addEventListener("click", () => { S.ball = "nectar"; refreshAll(); });
 $("bSmooth").addEventListener("click", () => { S.holes = false; S.cd = 0.50; refreshAll(); });
 $("bHoles").addEventListener("click", () => { S.holes = true; S.cd = 0.75; refreshAll(); });
-[["dtMecanum","mecanum"],["dtTank","tank"]].forEach(function (r) {
+DRIVE_BTNS.forEach(function (r) {
   const e = $(r[0]); if (!e) return;
-  e.addEventListener("click", function () {
-    S.drive = r[1];
-    /* both panes have to follow the choice - the exported OpMode and the blocks */
-    if (BLK.ready) { if (REC.steps.length) blocksFromRecording(); else blocksStarter(); }
-    if (typeof drawRec === "function") drawRec();
-    refreshAll();
-  });
+  e.addEventListener("click", function () { setDrive(r[1]); });
+});
+PARK_BTNS.forEach(function (r) {
+  const e = $(r[0]); if (!e) return;
+  e.addEventListener("click", function () { parkAt(r[1]); });
 });
 
 ["red","blue"].forEach(function (a) {
@@ -7310,7 +8149,7 @@ $("bAutoStage").addEventListener("click", () => { T2.on ? stage2D() : stageAuto(
 $("bMatch").addEventListener("click", () => {
   if (T2.on) { stage2D(); S.matchPhase = "auto"; S.matchT = 30; S.scoreAuto = 0;
     S.left = false; S.park = false; recStart(); S.autoRun = true; }
-  else startMatch();
+  else startCountdown();
   refreshAll();
 });
 $("bPlay").addEventListener("click", () => {
@@ -7444,8 +8283,8 @@ TABS.forEach(t => $("tb-"+t).addEventListener("click", () => showTab(t)));
       if (!r.width || !r.height) return;          // hidden at narrow widths: nothing to click
       const vx = (ev.clientX - r.left)/r.width*150, vy = (ev.clientY - r.top)/r.height*150;
       const P = 6, k = 138/F.size;
-      S.rx = Math.max(10, Math.min(F.size-10, (vx - P)/k));
-      S.ry = Math.max(10, Math.min(F.size-10, F.size - (vy - P)/k));
+      S.rx = Math.max(BOT_HALF, Math.min(F.size-BOT_HALF, (vx - P)/k));
+      S.ry = Math.max(BOT_HALF, Math.min(F.size-BOT_HALF, F.size - (vy - P)/k));
       keepOutOfHive();
       aimAtHive();
       needUI = true; save();
@@ -7463,8 +8302,8 @@ TABS.forEach(t => $("tb-"+t).addEventListener("click", () => showTab(t)));
       const b = Math.atan2(F.size/2 - S.ry, F.size/2 - S.rx);
       S.rx = F.size/2 - Math.cos(b)*want;
       S.ry = F.size/2 - Math.sin(b)*want;
-      S.rx = Math.max(10, Math.min(F.size-10, S.rx));
-      S.ry = Math.max(10, Math.min(F.size-10, S.ry));
+      S.rx = Math.max(BOT_HALF, Math.min(F.size-BOT_HALF, S.rx));
+      S.ry = Math.max(BOT_HALF, Math.min(F.size-BOT_HALF, S.ry));
       keepOutOfHive(); aimAtHive();
       needUI = true; save();
     };
@@ -7487,8 +8326,8 @@ TABS.forEach(t => $("tb-"+t).addEventListener("click", () => showTab(t)));
     if (!last) return;
     moved += Math.abs(e.clientX - last.x) + Math.abs(e.clientY - last.y);
     if (e.shiftKey) {
-      S.rx = Math.max(10, Math.min(F.size-10, S.rx + (e.clientX-last.x)*0.34));
-      S.ry = Math.max(10, Math.min(F.size-10, S.ry + (e.clientY-last.y)*0.34));
+      S.rx = Math.max(BOT_HALF, Math.min(F.size-BOT_HALF, S.rx + (e.clientX-last.x)*0.34));
+      S.ry = Math.max(BOT_HALF, Math.min(F.size-BOT_HALF, S.ry + (e.clientY-last.y)*0.34));
       needUI = true;
     } else {
       S.chase = false;
@@ -7514,8 +8353,8 @@ TABS.forEach(t => $("tb-"+t).addEventListener("click", () => showTab(t)));
           /* Drive there. Teleporting hid how long a move actually costs, which is the one
              thing AUTO planning is about. Shift-click still jumps, for quick aiming tests. */
           if (e.shiftKey) {
-            S.rx = Math.max(10, Math.min(F.size-10, hit.x));
-            S.ry = Math.max(10, Math.min(F.size-10, hit.z));
+            S.rx = Math.max(BOT_HALF, Math.min(F.size-BOT_HALF, hit.x));
+            S.ry = Math.max(BOT_HALF, Math.min(F.size-BOT_HALF, hit.z));
             keepOutOfHive(); aimAtHive();
           } else {
             gotoPoint(hit.x, hit.z);
@@ -7533,7 +8372,7 @@ TABS.forEach(t => $("tb-"+t).addEventListener("click", () => showTab(t)));
   }, { passive:false });
 })();
 
-/* keyboard: WASD drive, QE strafe, space shoot */
+/* keyboard: WASD drive, QE strafe, space shoot, C works the NECTAR claw */
 const DRIVE_KEYS = { w:1, a:1, s:1, d:1, q:1, e:1,
                      i:1, j:1, k:1, l:1, arrowup:1, arrowdown:1 };
 addEventListener("keydown", e => {
@@ -7549,6 +8388,7 @@ addEventListener("keydown", e => {
   else if (k === "4") aimAtHive();
   else if (k === "5") { S.intakeOn = !S.intakeOn; needUI = true; }
   else if (k === "r") { S.magLeft = S.magSize; needUI = true; }
+  else if (k === "c") { S.clawMsg = clawGrab(); needUI = true; }
 });
 addEventListener("keyup", e => {
   const k = e.key.toLowerCase();
@@ -7569,8 +8409,11 @@ function boot() {
       throw new Error("three.js did not load from the CDN - check the network connection.");
     if (!window.WebGLRenderingContext)
       throw new Error("this browser reports no WebGL support.");
+    { const bt = $("buildTag"); if (bt) bt.textContent = BUILD_ID; }
+    syncLaunchFromMeasurements();   /* a saved LAUNCH Z must not outlive its measurements */
     R3 = buildScene();
     resize();
+    applyDriveLook();        /* the saved drivetrain decides which ROBOT you see */
   } catch (err) {
     R3 = null;
     why = (err && err.message) ? err.message : String(err);
