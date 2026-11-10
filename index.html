@@ -4654,29 +4654,42 @@ function drive(dt) {
   /* G304.H: motionless until the MATCH starts. The count-in is part of the MATCH, so the
      sticks are dead through it - the same three seconds the real DRIVE TEAM stands back. */
   if (S.matchPhase === "countdown") { S.trackL = S.trackR = S.strafeX = 0; return; }
-  /* Left stick: W/A/S/D. Right stick: I/J/K/L. A real pad, when plugged in, overrides both. */
-  let L = S.trackL, R = S.trackR, strafe = S.strafeX;
-  if (keys.w) L += 1;
-  if (keys.s) L -= 1;
-  if (keys.i) R += 1;
-  if (keys.k) R -= 1;
+  /* W/A/S/D IS the left stick and I/J/K/L IS the right stick - not an approximation of
+     them. The keys produce the four axis numbers a thumb would and mixDrive turns those
+     into wheels exactly as it does for a real pad, so the keyboard drives identically on
+     both drivetrains and teaches the same lesson:
+
+       MECANUM   W/S drive      A/D STRAFE      J/L turn       I/K nothing
+       TANK      W/S left side  I/K right side  A/D, J/L nothing
+
+     The dead keys are not an oversight. They are dead on the gamepad too - a mecanum's
+     right stick has no forward axis and a tank has no sideways one - and a key that
+     plainly does nothing is the clearest way to feel why a team pays for mecanum wheels. */
+  const clamp = v => Math.max(-1, Math.min(1, v));
+  let ly = 0, lx = 0, ry = 0, rx = 0;
+  if (keys.w) ly += 1;
+  if (keys.s) ly -= 1;
+  if (keys.a) lx -= 1;
+  if (keys.d) lx += 1;
+  if (keys.q) lx -= 1;                        /* Q/E kept as strafe aliases */
+  if (keys.e) lx += 1;
+  if (keys.i) ry += 1;
+  if (keys.k) ry -= 1;
+  if (keys.j) rx -= 1;
+  if (keys.l) rx += 1;
   /* The arrows are PLAYER 2's as soon as there is one. One keyboard, two drivers: a class
-     should never be unable to practise because a controller is the wrong model or missing. */
+     should never be unable to practise because a controller is the wrong model or missing.
+     Solo they are a second right stick, which is exactly what I/K are. */
   if (S.players < 2) {
-    if (keys.arrowup) R += 1;
-    if (keys.arrowdown) R -= 1;
+    if (keys.arrowup)   ry += 1;
+    if (keys.arrowdown) ry -= 1;
   }
-  if (keys.a) { L -= 1; R += 1; }            // left stick X: pivot
-  if (keys.d) { L += 1; R -= 1; }
-  if (keys.j) strafe -= 1;                    // right stick X: strafe
-  if (keys.l) strafe += 1;
-  if (keys.q) strafe -= 1;
-  if (keys.e) strafe += 1;
-  L = Math.max(-1, Math.min(1, L));
-  R = Math.max(-1, Math.min(1, R));
-  strafe = Math.max(-1, Math.min(1, strafe));
-  /* A tank drive has no sideways degree of freedom - the wheels only roll forward and back.
-     Letting it strafe would teach exactly the wrong thing about why teams pay for mecanums. */
+  const kb = mixDrive(clamp(ly), clamp(lx), clamp(ry), clamp(rx), S.drive);
+  /* a plugged-in pad has already written S.trackL/R/strafeX this frame; the keys add to it,
+     so a driver can hold a stick and tap a key without one cancelling the other */
+  let L = clamp(S.trackL + kb.L);
+  let R = clamp(S.trackR + kb.R);
+  let strafe = clamp(S.strafeX + kb.strafe);
   if (S.drive === "tank") strafe = 0;
   if (!L && !R && !strafe) return false;
 
@@ -4788,10 +4801,12 @@ function padAxis(pad, key) {
    yoke does not reverse those either. It is OFF by default, because in FTC pushing the
    stick forward drives the robot forward - GM0 is explicit about it: "if the left stick
    is pressed upwards ... causing the robot to move forward". */
-function padDrive(pad, driveType) {
-  const inv = S.padInvert ? -1 : 1;
-  const ly = padAxis(pad, "ly") * inv, ry = padAxis(pad, "ry") * inv;
-  const lx = padAxis(pad, "lx"), rx = padAxis(pad, "rx");
+/* THE mapping, and the only copy of it. A keyboard and a gamepad are the same four axes -
+   all that differs is where the numbers come from - so both go through here and cannot
+   drift apart. They used to be separate and they HAD drifted: the pad drove mecanum
+   properly while W/A/S/D was stuck on a tank-ish hybrid that ignored the drivetrain. */
+function mixDrive(ly, lx, ry, rx, driveType) {
+  /* A tank is two sticks, one per side, and has no sideways degree of freedom at all. */
   if (driveType === "tank")
     return { L: ly, R: ry, strafe: 0, live: !!(ly || ry) };
   /* GM0's normalisation, not a clamp. Full forward AND full turn together would each clip
@@ -4803,6 +4818,12 @@ function padDrive(pad, driveType) {
   const denom = Math.max(Math.abs(ly) + Math.abs(lx) + Math.abs(rx), 1);
   return { L: (ly + rx)/denom, R: (ly - rx)/denom, strafe: lx/denom,
            live: !!(ly || lx || rx) };
+}
+
+function padDrive(pad, driveType) {
+  const inv = S.padInvert ? -1 : 1;
+  return mixDrive(padAxis(pad, "ly") * inv, padAxis(pad, "lx"),
+                  padAxis(pad, "ry") * inv, padAxis(pad, "rx"), driveType);
 }
 /* which axis is doing what RIGHT NOW, so the green highlight tells the truth
    on both drivetrains instead of being hardcoded to one of them */
@@ -6302,9 +6323,14 @@ function updateHud(C) {
   $("hExit").textContent = isNaN(C.exit) ? "\u2014" : C.exit.toFixed(2) + " m/s";
   $("hAng").textContent = C.angle.toFixed(1) + "\u00b0 / " + S.tip.toFixed(1) + "\u00b0";
   const hint = $("hint");
+  /* This line is where a student learns the keys, so it names the ones that are LIVE on
+     the drivetrain they picked, rather than a generic "W A S D / I J K L" that is half
+     wrong whichever one that is. */
   if (hint) hint.textContent = S.padName
     ? ("\u25cf " + S.padName + " connected \u00b7 sticks drive \u00b7 A B X full/mid/slow \u00b7 Y aims")
-    : "click the field to place \u00b7 drag to orbit \u00b7 W A S D / I J K L drive \u00b7 1 2 3 4 \u00b7 Space shoots";
+    : (S.drive === "tank"
+        ? "TANK \u00b7 W/S left wheels \u00b7 I/K right wheels \u00b7 1 2 3 4 \u00b7 Space shoots"
+        : "MECANUM \u00b7 W/S drive \u00b7 A/D strafe \u00b7 J/L turn \u00b7 1 2 3 4 \u00b7 Space shoots");
   $("hMode").textContent = S.src === "fixed" ? "manual rpm"
     : (S.src === "code" ? "your java" : "auto-solved");
   const hAlly = $("hAlly");
