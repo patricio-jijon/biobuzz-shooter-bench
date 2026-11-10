@@ -1,3 +1,4 @@
+<meta charset="utf-8">
 <title>BIOBUZZ Shooter Bench</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -68,6 +69,29 @@ body{margin:0; background:var(--plane); color:var(--ink);
 .work{display:grid; grid-template-columns:minmax(0,1fr) 318px; gap:0; background:var(--chrome)}
 @media (max-width:1000px){ .work{grid-template-columns:1fr} }
 .stage{position:relative; width:100%; height:min(52vh,460px); min-height:300px; background:#0b0e12}
+/* ---- FULL SCREEN game mode ----
+   Fullscreen is taken on .stage rather than on the page, and that one choice is what
+   makes the mode playable: the HUD, the scoreboard, both minimaps and the SHOOT button
+   all live INSIDE .stage, so they come along. The camera is untouched - the orbit angle,
+   the distance and the chase-cam flag are plain state that nothing here writes - so
+   whatever perspective you were looking from is the perspective you get, just bigger.
+   Only the aspect changes, and resize() is what tells the camera about that. */
+.stage:fullscreen{height:100%; width:100%; max-height:none; min-height:0; border-radius:0}
+.stage:-webkit-full-screen{height:100%; width:100%; max-height:none; min-height:0}
+.fsbtn{position:absolute; top:10px; right:12px; z-index:6; font-family:var(--f-display);
+  font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#fff;
+  background:rgba(16,19,24,.82); border:1px solid rgba(255,255,255,.22); border-radius:4px;
+  padding:6px 11px; cursor:pointer; backdrop-filter:blur(3px)}
+.fsbtn:hover{background:rgba(216,32,60,.92); border-color:transparent}
+.fsbtn[aria-pressed="true"]{background:rgba(216,32,60,.86); border-color:transparent}
+/* The MATCH clock and the scoreboard live in this same corner. They are stood aside for
+   the button ALWAYS, not only in fullscreen - the button is on the field the whole time
+   now, so a shift that only applied in fullscreen would leave them overlapping on the
+   practice field, which is where you spend most of your time.
+   !important is load-bearing, not laziness: .fclock and .board are both declared LOWER
+   DOWN this stylesheet, so at equal specificity they would win on source order. */
+.fclock{right:154px !important}
+.board{top:88px !important}
 /* The count-in, as a corner badge. It was a full-screen curtain, which blacked out the one
    thing you are meant to be looking at during those three seconds - the FIELD, and where
    your ROBOT is standing on it. It only ever appears while a MATCH is counting in; the
@@ -117,9 +141,19 @@ body{margin:0; background:var(--plane); color:var(--ink);
   background:rgba(255,255,255,.07); border:0; border-radius:5px; padding:5px 4px; cursor:pointer}
 .dpreset button:hover{color:#fff; background:rgba(255,255,255,.13)}
 .dpreset button:focus-visible{outline:2px solid var(--amber); outline-offset:2px}
+/* the hood you dragged, handed to a 3D printer. It belongs ON the curve, in the corner the
+   drawing never uses, so the thing you export sits next to the thing you are shaping. */
+.hoodwrap{position:relative}
+.dxfbtn{position:absolute; top:8px; left:8px; z-index:3; font-family:var(--f-display);
+  font-size:10px; font-weight:700; letter-spacing:.05em; text-transform:uppercase;
+  color:#fff; background:#d8203c; border:0; border-radius:4px; padding:4px 8px;
+  cursor:pointer; white-space:nowrap; box-shadow:0 1px 6px rgba(0,0,0,.4)}
+.dxfbtn:hover{background:#ef2b48}
+.dxfbtn:active{transform:translateY(1px)}
+.dxfbtn:focus-visible{outline:2px solid var(--amber); outline-offset:2px}
 
 /* ---------- gamepad ---------- */
-.pad{display:grid; grid-template-columns:auto auto 1fr auto auto; gap:16px; align-items:center;
+.pad{display:grid; grid-template-columns:auto auto 1fr auto auto auto; gap:14px; align-items:center;
   padding:12px 16px; background:var(--chrome-2); border-top:1px solid rgba(255,255,255,.07)}
 @media (max-width:760px){ .pad{grid-template-columns:1fr; justify-items:center} }
 .stick{width:96px; height:96px; border-radius:50%; background:rgba(255,255,255,.055);
@@ -130,6 +164,55 @@ body{margin:0; background:var(--plane); color:var(--ink);
   border:1px solid rgba(255,255,255,.18); box-shadow:0 2px 7px rgba(0,0,0,.5)}
 .stick .lbl{position:absolute; left:0; right:0; bottom:-17px; text-align:center;
   font-family:var(--f-mono); font-size:9.5px; color:#8b97a4}
+/* ---------- how many ROBOTS are playing, and what each one drives ---------- */
+.plrs{display:flex; flex-direction:column; gap:6px; min-width:126px}
+.plrs-h{font-family:var(--f-mono); font-size:9px; letter-spacing:.12em; color:#8b97a4;
+  text-transform:uppercase}
+.plrsel{font-family:var(--f-body); font-size:11px; color:#e6ebf0; width:100%;
+  background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.14);
+  border-radius:5px; padding:4px 6px; cursor:pointer}
+.plrsel:hover{background:rgba(255,255,255,.12)}
+.plrsel:focus-visible{outline:2px solid var(--amber); outline-offset:2px}
+.plrsel-n{font-family:var(--f-display); font-size:12px; font-weight:700; letter-spacing:.04em}
+.plrs-rows{display:flex; flex-direction:column; gap:4px}
+.plrow{display:grid; grid-template-columns:26px 1fr; gap:6px; align-items:center}
+.plrow b{font-family:var(--f-display); font-size:10px; font-weight:700; text-align:center;
+  border-radius:3px; padding:3px 0; color:#fff; letter-spacing:.03em}
+.plrow b.red{background:#d8203c} .plrow b.blu{background:#2f6fd0}
+.plrow.nopad .plrsel{opacity:.62}
+.plrs-note{font-family:var(--f-mono); font-size:8.5px; color:#8b97a4; line-height:1.35}
+/* what the browser is ACTUALLY reporting from the pad, because "it will not drive" is three
+   different faults and the axis numbers tell them apart in one glance */
+.paddiag{font-family:var(--f-mono); font-size:8.5px; line-height:1.4; color:#8b97a4;
+  border-top:1px solid rgba(255,255,255,.09); padding-top:5px; margin-top:1px}
+.paddiag .nm{color:#e6ebf0; display:block; white-space:nowrap; overflow:hidden;
+  text-overflow:ellipsis; max-width:126px}
+.paddiag .warn{color:#fab219}
+.paddiag .ok{color:#4ade4a}
+.paddiag .ax{display:grid; grid-template-columns:auto 1fr auto; gap:2px 5px; margin-top:3px}
+.paddiag .ax i{font-style:normal; color:#6f7b87}
+.paddiag .ax u{text-decoration:none; height:3px; background:rgba(255,255,255,.1);
+  border-radius:2px; position:relative; align-self:center}
+.paddiag .ax u s{position:absolute; top:0; bottom:0; background:var(--amber); border-radius:2px}
+.paddiag .ax b{color:#e6ebf0; font-weight:500; min-width:30px; text-align:right}
+.paddiag .ax .used i, .paddiag .ax .used b{color:#4ade4a}
+.seg{font-family:var(--f-display); font-size:9.5px; font-weight:700; letter-spacing:.07em;
+  padding:3px 9px; border:1px solid var(--grid); background:var(--surface); color:var(--muted);
+  cursor:pointer}
+.seg:first-of-type{border-radius:3px 0 0 3px}
+.seg:last-of-type{border-radius:0 3px 3px 0; border-left:0}
+.seg[aria-pressed="true"]{background:var(--amber); border-color:var(--amber); color:#101010}
+.padinv{display:flex;align-items:center;gap:5px;margin-top:6px;cursor:pointer;
+  font-size:10px;letter-spacing:.03em;opacity:.8}
+.padinv input{margin:0;cursor:pointer}
+.padbtn{width:100%; margin-top:5px; font-family:var(--f-body); font-size:10px; color:#e6ebf0;
+  background:rgba(255,255,255,.09); border:1px solid rgba(255,255,255,.14); border-radius:4px;
+  padding:4px 6px; cursor:pointer}
+.padbtn:hover{background:rgba(255,255,255,.16)}
+.padbtn.live{background:#c9820c; border-color:#e0a52c; color:#fff; font-weight:600}
+.padbtn:focus-visible{outline:2px solid var(--amber); outline-offset:2px}
+.padask{color:#fab219; font-weight:600; white-space:normal; line-height:1.35}
+
 .btns{display:flex; gap:9px; justify-content:center; flex-wrap:wrap}
 .gbtn{display:flex; flex-direction:column; align-items:center; gap:4px; border:0; background:none;
   cursor:pointer; padding:0}
@@ -512,6 +595,12 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
     <div class="work">
     <div class="stage">
       <canvas id="gl"></canvas>
+      <!-- Top right of the FIELD, not up in the chrome bar. Two reasons, and the second
+           is the one that matters: the bar is NOT part of the fullscreen element, so a
+           button up there vanishes the moment you are in and there is nothing left to
+           click. One button that changes its own label covers both directions. -->
+      <button class="fsbtn" id="fsBtn" aria-pressed="false"
+              title="Play the field full screen on this whole display">Full screen</button>
       <div class="loading" id="loading">building the field&hellip;</div>
       <div class="hint" id="hint">click the field to place the robot &middot; drag to orbit &middot; W A S D / I J K L drive &middot; 1 2 3 4 buttons &middot; Space shoots</div>
       <div class="verdictpill" id="pill" style="color:#8b97a4">&mdash;</div>
@@ -560,8 +649,11 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
         <div class="dock-head"><span class="t">SHOOTER GEOMETRY</span>
           <span class="n">drag the nodes</span></div>
         <div class="dock-body">
-          <svg id="hoodEd" viewBox="0 0 460 340" role="img"
-               aria-label="Editable hood profile around the flywheel."></svg>
+          <div class="hoodwrap">
+            <svg id="hoodEd" viewBox="0 0 460 340" role="img"
+                 aria-label="Editable hood profile around the flywheel."></svg>
+            <button class="dxfbtn" id="bHoodDXF" title="Write the hood you just dragged out as a DXF, in millimetres, ready to extrude and print">Export DXF file</button>
+          </div>
           <div class="dpreset">
             <button id="bHoodStraight">Straight</button>
             <button id="bHoodHook">Hook</button>
@@ -637,6 +729,19 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
                 title="Place the ROBOT where RED starts a MATCH - in the red LOADING ZONE, against the red ALLIANCE wall (G304)">Red Parking</button>
         <button class="drv blu" id="gbParkBlue" aria-pressed="false"
                 title="Place the ROBOT where BLUE starts a MATCH - in the blue LOADING ZONE, against the blue ALLIANCE wall (G304)">Blue Parking</button>
+      </div>
+      <div class="plrs" role="group" aria-label="Players on the field">
+        <label class="plrs-h" for="selPlayers">Players</label>
+        <select class="plrsel plrsel-n" id="selPlayers"
+                title="How many ROBOTS take the FIELD. A BIOBUZZ MATCH is two ALLIANCES of two.">
+          <option value="1">1 player</option>
+          <option value="2">2 players</option>
+          <option value="3">3 players</option>
+          <option value="4">4 players</option>
+        </select>
+        <div class="plrs-rows" id="plrRows"></div>
+        <p class="plrs-note" id="plrNote"></p>
+        <div class="paddiag" id="padDiag"></div>
       </div>
       <div class="stick" id="stickR" role="slider" aria-label="Right track" aria-valuenow="0"
            tabindex="0"><div class="kn"></div><span class="lbl">RIGHT TRACK &middot; &uarr;/&darr;</span></div>
@@ -761,8 +866,11 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
         <div class="panel">
           <div class="panel-head"><span class="panel-title">Hood curvature</span>
             <span class="panel-note">drag the three nodes &middot; wheel and ball to scale</span></div>
-          <svg class="chart" id="hoodBig" viewBox="0 0 460 340" role="img"
-               aria-label="Hood profile around the flywheel, with the ball at entry and exit."></svg>
+          <div class="hoodwrap">
+            <svg class="chart" id="hoodBig" viewBox="0 0 460 340" role="img"
+                 aria-label="Hood profile around the flywheel, with the ball at entry and exit."></svg>
+            <button class="dxfbtn" id="bHoodDXF2" title="Write the hood you just dragged out as a DXF, in millimetres, ready to extrude and print">Export DXF file</button>
+          </div>
           <div class="ctlwrap" style="border-top:1px solid var(--grid)">
             <div class="dpreset" style="margin:0 0 12px">
               <button class="linkbtn" id="bHoodStraight2">Straight</button>
@@ -1047,7 +1155,11 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
       </div>
       <div class="panel">
         <div class="panel-head"><span class="panel-title">Exported OpMode</span>
-          <span class="panel-note">BioBuzzAutoRecorded.java</span></div>
+          <span class="panel-note">
+            <button class="seg" id="bCodeAuto" aria-pressed="true">AUTO</button><button
+                    class="seg" id="bCodeTele" aria-pressed="false">TELEOP</button>
+            <span id="codeFile" style="margin-left:8px">BioBuzzAutoRecorded.java</span>
+          </span></div>
         <pre id="javaOut" style="margin:0; padding:14px; overflow-x:auto; font-family:var(--f-mono);
           font-size:11.5px; line-height:1.5; color:var(--ink); background:var(--surface-2);
           max-height:460px; overflow-y:auto"></pre>
@@ -1759,7 +1871,7 @@ const S = {
   park:false, rec:null,
   rpmSlow:2050, rpmMid:2320, rpmFull:2650, trackL:0, trackR:0, strafeX:0, padName:"",
   trDist:71, trRpm:2320, autoT:30, autoRun:false, left:false,
-  angle:40, tip:0, wrap:135, launch:9.8, zFloorBase:3.5, zBaseAxis:3, hub:"h1309", ally:"red", drive:"mecanum", airT:20, airP:1017, airRH:35, gear:1, cell:59.55, tilt:30, eta:0.45, cd:0.75, rpm:3900,
+  angle:40, tip:0, wrap:135, launch:9.8, zFloorBase:3.5, zBaseAxis:3, hub:"h1309", ally:"red", drive:"mecanum", players:1, pDrive:["mecanum","mecanum","mecanum","mecanum"], padMap:null, airT:20, airP:1017, airRH:35, gear:1, cell:59.55, tilt:30, eta:0.45, cd:0.75, rpm:3900,
   wheelMass:85, robotMass:12, magSize:4, magLeft:4,
   ballCount:80, intakeOn:true, rejectBlue:false, tipMass:191, tipBalls:8,
   claw:null, armT:0, clawMsg:"", armFitted:false, human:{red:5, blue:5},
@@ -1769,13 +1881,14 @@ const S = {
   showTraj:true, showTags:true, showHud:true, chase:false,
   tab:"build", predict:5.5, pts:[], code:STARTER
 };
-const BUILD_ID = "2026-10-27 \u00b7 real photos, glass walls";
+const BUILD_ID = "2026-11-04 \u00b7 export the hood as DXF";
 const DEFAULTS = JSON.parse(JSON.stringify(S));
 /* Settings persist between visits; the robot pose, magazine and score do not - a stale pose
    from last time is a terrible way to open, and the match state should always start clean. */
 const TRANSIENT = ["rx","ry","heading","magLeft","tips","picked","scored","claw","armT","clawMsg","human",
                    "trackL","trackR","strafeX","autoT","autoRun","left","padName",
-                   "matchPhase","matchT","scoreAuto","park","recCount","zFloorBase","zBaseAxis","hub","ally","airT","airP","airRH","drive"];
+                   "matchPhase","matchT","scoreAuto","park","recCount","zFloorBase","zBaseAxis","hub","ally","airT","airP","airRH","drive",
+                   "players","pDrive"];
 try {
   const v = localStorage.getItem("biobuzz-bench-v7");
   if (v) { const o = JSON.parse(v); TRANSIENT.forEach(k => delete o[k]); Object.assign(S, o); }
@@ -1812,9 +1925,22 @@ function syncLaunchFromMeasurements() {
   } catch (e) {}
 }
 
-let saveT = null;
-const save = () => { clearTimeout(saveT); saveT = setTimeout(() => {
-  try { localStorage.setItem("biobuzz-bench-v7", JSON.stringify(S)); } catch (e) {} }, 300); };
+/* A debounce that is re-armed faster than it fires never fires at all. The 3D loop calls
+   save() on EVERY frame the ROBOT is moving, so for as long as you were driving - which is
+   exactly when the things worth keeping tend to change - the 300 ms timer was pushed out
+   sixty times a second and nothing reached localStorage. Measured: 1.5 s of driving, zero
+   writes. Keep the debounce, because a write per frame is wasteful, but never let it hold a
+   write back by more than SAVE_MAX. */
+const SAVE_MAX = 2000;
+let saveT = null, saveLast = 0;
+function saveNow() {
+  saveT = null; saveLast = Date.now();
+  try { localStorage.setItem("biobuzz-bench-v7", JSON.stringify(S)); } catch (e) {}
+}
+const save = () => {
+  if (Date.now() - saveLast >= SAVE_MAX) { clearTimeout(saveT); saveNow(); return; }
+  clearTimeout(saveT); saveT = setTimeout(saveNow, 300);
+};
 
 const motor = () => MOTORS[S.motor], wheelP = () => WHEELS[S.wheel];
 const hood  = () => HOODS[S.hood],   arch = () => cfg();
@@ -3433,7 +3559,8 @@ function recLive() {
        wipe it; the "Build from my recording" button is there for a deliberate rebuild. */
     const proc = ftcRunOpMode();
     const untouched = !proc || !proc.getInputTargetBlock("STACK");
-    if (untouched && REC.steps.length) blocksFromRecording();
+    /* TeleOp is not built from a recording and must not be wiped by one */
+    if (untouched && REC.steps.length && S.codeView !== "teleop") blocksFromRecording();
     blkRefreshJava();
   }
   const rb = $("recBody");
@@ -4533,8 +4660,12 @@ function drive(dt) {
   if (keys.s) L -= 1;
   if (keys.i) R += 1;
   if (keys.k) R -= 1;
-  if (keys.arrowup) R += 1;
-  if (keys.arrowdown) R -= 1;
+  /* The arrows are PLAYER 2's as soon as there is one. One keyboard, two drivers: a class
+     should never be unable to practise because a controller is the wrong model or missing. */
+  if (S.players < 2) {
+    if (keys.arrowup) R += 1;
+    if (keys.arrowdown) R -= 1;
+  }
   if (keys.a) { L -= 1; R += 1; }            // left stick X: pivot
   if (keys.d) { L += 1; R -= 1; }
   if (keys.j) strafe -= 1;                    // right stick X: strafe
@@ -4550,7 +4681,13 @@ function drive(dt) {
   if (!L && !R && !strafe) return false;
 
   const v = (L + R)/2 * TOP_SPEED;
-  const w = (R - L) * TOP_SPEED / TRACK_W;
+  /* (L - R), not (R - L). The heading runs from +x toward +z and the ROBOT's own right-hand
+     side IS +z - measured off the model, not assumed - so a right turn has to INCREASE the
+     heading. With the difference the other way round every turn went the wrong way: the
+     right stick spun the ROBOT left, and A and D on the keyboard were swapped. Strafe was
+     always correct, which is what made it confusing: pushed right the ROBOT slid right, but
+     turned right it span left. */
+  const w = (L - R) * TOP_SPEED / TRACK_W;
   S.heading += w*dt;
   const ch = Math.cos(S.heading), sh = Math.sin(S.heading);
   S.rx += (ch*v - sh*strafe*TOP_SPEED*0.7)*dt;
@@ -4561,22 +4698,241 @@ function drive(dt) {
   return true;
 }
 
+/* ---- what the browser says about the pad, live ----
+   "The joystick will not drive" is at least three different faults: the browser has not seen
+   the pad at all (it hides them until a button is pressed), the pad is seen but reports a
+   NON-STANDARD layout so the sticks are in other slots than the ones being read, or it is
+   not a gamepad at all. Printing the name, the mapping and every axis as it moves tells
+   those apart immediately, and it keeps telling you when somebody plugs in a different one.
+   An F310 is the reason this exists: the D/X switch on its back changes which of these you
+   get, and nothing on screen said which you were in. */
+/* ---- teaching the app YOUR controller ----
+   The three sticks the app reads are axes 1, 2 and 3, which is where the "standard" layout
+   puts them. Plenty of pads do not report the standard layout - an F310 reports a different
+   one on each side of the D/X switch on its back - and then those three slots hold the wrong
+   thing, or nothing, and the ROBOT sits still however hard you push.
+
+   Rather than keep a table of controllers that will never be complete, ask. Push each stick
+   in turn, watch which axis actually moves and in which direction, and remember it. It works
+   for a pad nobody has ever heard of, and it survives a reload. */
+const CAL_STEPS = [
+  { k:"ly", ask:"Hold the LEFT stick fully UP" },
+  { k:"lx", ask:"Hold the LEFT stick fully RIGHT" },
+  { k:"ry", ask:"Hold the RIGHT stick fully UP" },
+  { k:"rx", ask:"Hold the RIGHT stick fully RIGHT" }
+];
+const PAD_DEF = { ly:{ i:1, s:-1 }, lx:{ i:0, s:1 },
+                  ry:{ i:3, s:-1 }, rx:{ i:2, s:1 } };
+const CAL = { on:false, step:0, base:null, hold:-1, held:0, sign:1, wait:false, map:null, msg:"" };
+
+function padStartCalib() {
+  CAL.on = true; CAL.step = 0; CAL.base = null; CAL.hold = -1; CAL.held = 0;
+  CAL.wait = false; CAL.map = {}; CAL.msg = "";
+  PAD_SIG = "";
+}
+function padCancelCalib(clear) {
+  CAL.on = false; CAL.msg = clear ? "back to the standard layout" : "";
+  if (clear) { S.padMap = null; save(); }
+  PAD_SIG = "";
+}
+/* one frame of the wizard; driven from the poll, which already runs every frame */
+function stepCalib(pad) {
+  if (!CAL.on) return;
+  if (!pad) { CAL.msg = "no controller detected"; PAD_SIG = ""; return; }
+  if (!CAL.base) { CAL.base = Array.prototype.slice.call(pad.axes); }
+  let bi = -1, bd = 0, far = 0;
+  for (let i = 0; i < pad.axes.length; i++) {
+    const d = pad.axes[i] - (CAL.base[i] || 0);
+    far = Math.max(far, Math.abs(d));
+    if (Math.abs(d) > Math.abs(bd)) { bd = d; bi = i; }
+  }
+  /* after locking a step the stick is still pushed; wait for it to come home first */
+  if (CAL.wait) { if (far < 0.25) CAL.wait = false; PAD_SIG = ""; return; }
+  if (Math.abs(bd) > 0.55 && bi >= 0) {
+    if (CAL.hold === bi) CAL.held++;
+    else { CAL.hold = bi; CAL.held = 1; CAL.sign = bd < 0 ? -1 : 1; }
+    if (CAL.held >= 12) {                       /* about a fifth of a second, held steady */
+      CAL.map[CAL_STEPS[CAL.step].k] = { i:bi, s:CAL.sign };
+      CAL.step++; CAL.hold = -1; CAL.held = 0; CAL.wait = true;
+      if (CAL.step >= CAL_STEPS.length) {
+        S.padMap = CAL.map; CAL.on = false;
+        CAL.msg = "calibrated \u00b7 ax" + CAL.map.ly.i + " ax" + CAL.map.ry.i +
+                  " ax" + CAL.map.rx.i;
+        save();
+      }
+      PAD_SIG = "";
+    }
+  } else { CAL.hold = -1; CAL.held = 0; }
+}
+/* read one of the three controls off a pad, through whatever map is in force */
+function padAxis(pad, key) {
+  const m = (S.padMap && S.padMap[key]) || PAD_DEF[key];
+  const v = (pad.axes[m.i] || 0) * m.s;
+  return Math.abs(v) < 0.12 ? 0 : v;
+}
+/* ---- which stick does what, and it is NOT the same on both drivetrains ----
+
+   MECANUM is driven the way every FTC TeleOp drives one, which is also the way goBILDA's
+   own StarterBot sample and Game Manual 0 do it: the LEFT stick drives and strafes, the
+   RIGHT stick turns. One stick takes the robot anywhere on the field without rotating it;
+   the other spins it in place. That is the whole point of a mecanum.
+
+   TANK is two sticks, one per side - left stick to the left wheels, right stick to the
+   right wheels. Push both up and it drives; push one up and one down and it spins. That
+   is what the word tank MEANS, and it is what an FTC driver on a 2wd or 6wd chassis has
+   in their hands. GM0 itself only ever shows an arcade scheme, but it shows it as a
+   stepping stone on the way to explaining mecanum, not as a ruling on how to drive a tank.
+
+   padInvert flips the two FORWARD/BACK axes only, the way an aeroplane yoke is pitched:
+   pull back to climb, push forward to dive. It does NOT flip strafe or turn, because a
+   yoke does not reverse those either. It is OFF by default, because in FTC pushing the
+   stick forward drives the robot forward - GM0 is explicit about it: "if the left stick
+   is pressed upwards ... causing the robot to move forward". */
+function padDrive(pad, driveType) {
+  const inv = S.padInvert ? -1 : 1;
+  const ly = padAxis(pad, "ly") * inv, ry = padAxis(pad, "ry") * inv;
+  const lx = padAxis(pad, "lx"), rx = padAxis(pad, "rx");
+  if (driveType === "tank")
+    return { L: ly, R: ry, strafe: 0, live: !!(ly || ry) };
+  /* GM0's normalisation, not a clamp. Full forward AND full turn together would each clip
+     to 1 and the turn would be quietly swallowed; dividing by the summed demand keeps the
+     ratio the driver asked for and only scales the whole thing down. GM0 also multiplies
+     the strafe by 1.1 to make up for a real mecanum strafing badly - this ROBOT is a model
+     and does not strafe badly, so that fudge would just make it strafe too fast. The
+     honest version of it is already here: strafe runs at 0.7 of drive speed. */
+  const denom = Math.max(Math.abs(ly) + Math.abs(lx) + Math.abs(rx), 1);
+  return { L: (ly + rx)/denom, R: (ly - rx)/denom, strafe: lx/denom,
+           live: !!(ly || lx || rx) };
+}
+/* which axis is doing what RIGHT NOW, so the green highlight tells the truth
+   on both drivetrains instead of being hardcoded to one of them */
+function padUse(i) {
+  const tank = S.drive === "tank";
+  if (i === 1) return tank ? "left side"  : "drive";
+  if (i === 3) return tank ? "right side" : null;
+  if (i === 0) return tank ? null : "strafe";
+  if (i === 2) return tank ? null : "turn";
+  return null;
+}
+let PAD_SIG = "";
+function drawPadDiag() {
+  const host = $("padDiag"); if (!host) return;
+  const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+  const cp = [];
+  for (let i = 0; i < pads.length; i++) if (pads[i] && pads[i].connected) cp.push(pads[i]);
+  const p = cp[0];
+  const sig = (!p ? "none"
+    : p.id + "|" + p.mapping + "|" + cp.length + "|" +
+      p.axes.map(a => Math.round(a*20)).join(","))
+    + "|" + (CAL.on ? "cal" + CAL.step + (CAL.wait ? "w" : "") : "") + "|" + CAL.msg
+    + "|" + (S.padMap ? S.padMap.ly.i + "" + S.padMap.ry.i + "" + S.padMap.rx.i : "-")
+    + "|" + S.drive + "|" + (S.padInvert ? "inv" : "");
+  if (sig === PAD_SIG) return;                      /* only touch the DOM when it changed */
+  PAD_SIG = sig;
+  host.textContent = "";
+  const line = (cls, txt) => { const d = document.createElement("div");
+    if (cls) d.className = cls; d.textContent = txt; host.appendChild(d); return d; };
+  if (!p) {
+    line("warn", "no pad seen");
+    line("", "press a button on it \u2014 a browser hides a pad until you do");
+    line("", "on a Mac an F310 wants the D side of the switch on its back");
+    return;
+  }
+  line("nm", p.id.replace(/\s*\(.*$/, "").slice(0, 28));
+  const std = p.mapping === "standard";
+  line(std ? "ok" : "warn",
+       std ? "standard layout \u00b7 " + cp.length + " pad" + (cp.length > 1 ? "s" : "")
+           : "NON-STANDARD layout \u2014 calibrate below");
+  const ax = document.createElement("div"); ax.className = "ax";
+  for (let i = 0; i < p.axes.length && i < 6; i++) {
+    const v = p.axes[i], used = padUse(i);
+    const row = document.createDocumentFragment();
+    const lab = document.createElement("i"); lab.textContent = "ax" + i;
+    const bar = document.createElement("u");
+    const fill = document.createElement("s");
+    fill.style.left  = (50 + Math.min(0, v)*50) + "%";
+    fill.style.width = Math.abs(v)*50 + "%";
+    bar.appendChild(fill);
+    const num = document.createElement("b"); num.textContent = v.toFixed(2);
+    if (used) { lab.style.color = "#4ade4a"; num.style.color = "#4ade4a"; lab.title = used; }
+    row.appendChild(lab); row.appendChild(bar); row.appendChild(num);
+    ax.appendChild(row);
+  }
+  host.appendChild(ax);
+  if (CAL.on) {
+    line("padask", CAL.wait ? "let the stick go back to centre\u2026"
+                            : (CAL.step + 1) + "/" + CAL_STEPS.length + "  " + CAL_STEPS[CAL.step].ask);
+  } else {
+    line("ok", S.drive === "tank"
+      ? "TANK \u00b7 left stick = left wheels, right stick = right wheels \u00b7 no strafe"
+      : "MECANUM \u00b7 left stick drives + strafes, right stick turns 360");
+    if (S.padInvert) line("warn", "INVERTED \u00b7 push forward = drive BACK (not FTC standard)");
+    if (S.padMap) line("", "your map \u00b7 ax" + S.padMap.ly.i + "/" +
+      (S.padMap.lx ? S.padMap.lx.i : "-") + " left \u00b7 ax" + S.padMap.ry.i + "/" +
+      S.padMap.rx.i + " right");
+    if (CAL.msg) line("ok", CAL.msg);
+  }
+  const btn = document.createElement("button");
+  btn.className = "padbtn" + (CAL.on ? " live" : "");
+  btn.textContent = CAL.on ? "Cancel" : (S.padMap ? "Re-calibrate" : "Calibrate controller");
+  btn.title = "Push each stick in turn and the app learns where YOUR controller puts them";
+  btn.addEventListener("click", function () {
+    if (CAL.on) padCancelCalib(false); else padStartCalib();
+  });
+  host.appendChild(btn);
+  if (S.padMap && !CAL.on) {
+    const r = document.createElement("button");
+    r.className = "padbtn"; r.textContent = "Forget my map";
+    r.addEventListener("click", function () { padCancelCalib(true); });
+    host.appendChild(r);
+  }
+  if (!CAL.on) {
+    const lab = document.createElement("label");
+    lab.className = "padinv";
+    lab.title = "Aeroplane style: pull the stick back to go forward. " +
+                "A real FTC robot does NOT do this - push forward is forward.";
+    const cb = document.createElement("input");
+    cb.type = "checkbox"; cb.checked = !!S.padInvert;
+    cb.addEventListener("change", function () {
+      S.padInvert = cb.checked; save(); PAD_SIG = "";
+    });
+    const sp = document.createElement("span");
+    sp.textContent = "invert forward/back (aeroplane)";
+    lab.appendChild(cb); lab.appendChild(sp);
+    host.appendChild(lab);
+  }
+}
+
 /* ---- a real controller, if one is plugged in ----
    Standard mapping: axes 0/1 left stick, 2/3 right stick; buttons 0-3 are A/B/X/Y. */
 let padIndex = null, padPrev = [];
 function pollGamepad() {
   if (!navigator.getGamepads) return;
   const pads = navigator.getGamepads();
-  let pad = null;
-  for (let i = 0; i < pads.length; i++) if (pads[i] && pads[i].connected) { pad = pads[i]; break; }
+  /* One pad per player, in the order the browser hands them over: the first drives YOU, the
+     rest drive PLAYERS 2 to 4. A player with no pad simply holds still. */
+  const cp = [];
+  for (let i = 0; i < pads.length; i++) if (pads[i] && pads[i].connected) cp.push(pads[i]);
+  const DZ = v => Math.abs(v) < 0.12 ? 0 : v;
+  PLAYERS.forEach(function (p, k) {
+    const pd = cp[k+1], had = p.pad;
+    p.pad = !!pd;
+    if (had !== p.pad) needUI = true;
+    if (!pd) { p.trackL = p.trackR = p.strafeX = 0; return; }
+    const d = padDrive(pd, p.drive);
+    p.trackL = d.L; p.trackR = d.R; p.strafeX = d.strafe;
+  });
+  const pad0 = cp[0] || null;
+  stepCalib(pad0);                /* the wizard, if it is running */
+  drawPadDiag();
+  const pad = CAL.on ? null : pad0;   /* do not drive while somebody is calibrating */
   S.padName = pad ? pad.id.slice(0, 38) : "";
   if (!pad) { padIndex = null; return; }
   padIndex = pad.index;
-  const dz = v => Math.abs(v) < 0.12 ? 0 : v;
-  const ly = -dz(pad.axes[1] || 0), ry = -dz(pad.axes[3] || 0), rx = dz(pad.axes[2] || 0);
-  if (ly || ry || rx) { S.trackL = ly; S.trackR = ry; S.strafeX = rx; }
+  const d = padDrive(pad, S.drive);
+  if (d.live || d.strafe) { S.trackL = d.L; S.trackR = d.R; S.strafeX = d.strafe; }
   else if (padPrev.moved) { S.trackL = 0; S.trackR = 0; S.strafeX = 0; }
-  padPrev.moved = !!(ly || ry || rx);
+  padPrev.moved = !!(d.live || d.strafe);
   const press = i => pad.buttons[i] && pad.buttons[i].pressed;
   [0,1,2,3].forEach(i => {
     const now = press(i);
@@ -4725,6 +5081,7 @@ function loop(t) {
   if (stepGoto(dt)) moved = true;
   if (stepPlay(dt)) moved = true;
   stepBots(dt);
+  stepPlayers(dt);
   /* a recording is an AUTO routine and AUTO is 30 seconds, so it stops itself at 30 */
   if (REC.on && recElapsed() >= AUTO_SECS) { recStop(); needUI = true; }
   runIntake();
@@ -4841,6 +5198,7 @@ function shoot2D() {
 function step2D(dt) {
   pollGamepad();
   if (drive(dt)) { needUI = true; save(); }
+  stepPlayers(dt);
   stepFlywheel(dt, lastC && !isNaN(lastC.flyRpm) ? lastC.flyRpm : 0);
   stepAuto(dt); stepMatch(dt);
   /* the queued-shot gate, same as the 3D path */
@@ -5179,6 +5537,107 @@ function botShootSpot(ally, lane) {
   const away = ally === "red" ? -1 : 1;
   return { x:tx + (lane || 0)*26, z:tz + away*46 };
 }
+/* ---- one goBILDA ROBOT, built once and used by everybody on the FIELD ----
+   Everyone on the FIELD is the same machine you are: goBILDA's StarterBot, built from the
+   same CAD the player's own ROBOT is built from, in the drivetrain that ROBOT is running.
+   It used to be ninety lines of boxes standing in for it, which meant the ROBOT you drive
+   and the ROBOTS you drive against were not the same kit at all.
+
+   Each drivetrain's body is built ONCE and cloned per ROBOT, so four of them on the FIELD
+   share one set of geometries and materials rather than re-cutting three hundred parts each
+   time somebody joins.
+
+   Over the top go the two things the CAD cannot tell you: ALLIANCE bumpers, because on a
+   real FIELD that is exactly how you know whose ROBOT is whose, and the plow and arm, which
+   are this app's own additions and follow whatever you have fitted to yours. */
+/* ---- the same ROBOT, in a handful of draw calls instead of three hundred ----
+   goBILDA's StarterBot is 303 parts and the FIELD can hold four of them. Drawn part by part
+   that is fifteen hundred meshes a frame, which costs more than half the frame rate before
+   anything has moved. The parts never move relative to each other, so for the ROBOTS that
+   are not yours they are baked once into one mesh per material: identical geometry, same
+   shape to the millimetre, a few draw calls. three.js r128 ships no merge helper without
+   the addons bundle, so this is it.
+
+   Your own ROBOT keeps its parts separate - it is the one being measured and inspected. */
+function mergeByMaterial(src) {
+  src.updateMatrixWorld(true);
+  const groups = new Map();
+  src.traverse(function (o) {
+    if (!o.isMesh || !o.geometry || !o.geometry.attributes.position) return;
+    if (!groups.has(o.material)) groups.set(o.material, []);
+    groups.get(o.material).push({ g:o.geometry, m:o.matrixWorld.clone() });
+  });
+  const out = new THREE.Group();
+  const p = new THREE.Vector3(), q = new THREE.Vector3(), nm = new THREE.Matrix3();
+  groups.forEach(function (list, mat) {
+    let n = 0, uvs = true;
+    list.forEach(function (e) {
+      n += e.g.attributes.position.count;
+      if (!e.g.attributes.uv) uvs = false;
+    });
+    const pos = new Float32Array(n*3), nor = new Float32Array(n*3);
+    const uv = uvs ? new Float32Array(n*2) : null;
+    const idx = []; let v = 0;
+    list.forEach(function (e) {
+      const gp = e.g.attributes.position, gn = e.g.attributes.normal, gu = e.g.attributes.uv;
+      nm.getNormalMatrix(e.m);
+      for (let i = 0; i < gp.count; i++) {
+        p.fromBufferAttribute(gp, i).applyMatrix4(e.m);
+        pos[(v+i)*3] = p.x; pos[(v+i)*3+1] = p.y; pos[(v+i)*3+2] = p.z;
+        if (gn) { q.fromBufferAttribute(gn, i).applyMatrix3(nm).normalize();
+                  nor[(v+i)*3] = q.x; nor[(v+i)*3+1] = q.y; nor[(v+i)*3+2] = q.z; }
+        if (uv && gu) { uv[(v+i)*2] = gu.getX(i); uv[(v+i)*2+1] = gu.getY(i); }
+      }
+      const ix = e.g.index;
+      if (ix) for (let i = 0; i < ix.count; i++) idx.push(v + ix.getX(i));
+      else    for (let i = 0; i < gp.count; i++) idx.push(v + i);
+      v += gp.count;
+    });
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    geo.setAttribute("normal",   new THREE.BufferAttribute(nor, 3));
+    if (uv) geo.setAttribute("uv", new THREE.BufferAttribute(uv, 2));
+    geo.setIndex(idx);
+    geo.computeBoundingSphere();
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.castShadow = true;
+    out.add(mesh);
+  });
+  return out;
+}
+
+const BOT_TEMPLATE = {};
+function botTemplate(drive) {
+  const which = BOT_DATA[drive] ? drive : "mecanum";
+  if (!BOT_TEMPLATE[which])
+    BOT_TEMPLATE[which] = mergeByMaterial(buildBotBody(BOT_DATA[which], true));
+  return BOT_TEMPLATE[which];
+}
+function makeBotMesh(col, drive) {
+  const g = new THREE.Group();
+  const body = botTemplate(drive).clone();      /* shares geometry and materials */
+  g.add(body);
+  /* ALLIANCE bumpers, the way a real ROBOT carries them: low, around the frame perimeter */
+  const bump = new THREE.MeshStandardMaterial({ color:col, roughness:.72, metalness:.05 });
+  const HW = 9.1, HL = 8.7, TH = .75, BH = 1.9, BY = 2.6;
+  [[0, -HL, 2*HW, TH], [0, HL, 2*HW, TH]].forEach(function (r) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(r[2], BH, r[3]), bump);
+    m.position.set(r[0], BY, r[1]); m.castShadow = true; g.add(m);
+  });
+  [-HW, HW].forEach(function (x) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(TH, BH, 2*HL), bump);
+    m.position.set(x, BY, 0); m.castShadow = true; g.add(m);
+  });
+  g.add(makePlow(col));              /* they empty FLOWERS too */
+  const arm = makeArm(col);          /* only if YOU have fitted one - they match your ROBOT */
+  arm.visible = !!S.armFitted;
+  g.add(arm);
+  g.userData.arm = arm;
+  g.userData.body = body;
+  g.userData.drive = drive;
+  return g;
+}
+
 function makeBots() {
   BOTS.length = 0;
   /* you are red. One red partner, two blue opponents. */
@@ -5195,53 +5654,8 @@ function makeBots() {
                 mag:4, state:"shoot", cool:0, target:null, scored:0, mesh:null,
                 lane: s.lane };
     if (R3 && R3.scene) {
-      /* The same machine as yours, in the same language - open channel frame, yellow
-         mecanum wheels, the angled plate - with an ALLIANCE band over the top so you can
-         still tell at a glance whose ROBOT is whose on a crowded FIELD. */
-      const g = new THREE.Group();
-      [[0,-7.7],[0,7.7]].forEach(function (r) {
-        const m = new THREE.Mesh(new THREE.BoxGeometry(17, 2.5, 1.5), goChannel(6, 1));
-        m.position.set(r[0], 3.3, r[1]); m.castShadow = true; g.add(m);
-      });
-      [-7.7, 7.7].forEach(function (x) {
-        const m = new THREE.Mesh(new THREE.BoxGeometry(1.5, 2.5, 14), goChannel(5, 1));
-        m.position.set(x, 3.3, 0); m.castShadow = true; g.add(m);
-      });
-      const deck = new THREE.Mesh(new THREE.BoxGeometry(14.5, .4, 14.5), goChannel(5, 5));
-      deck.position.y = 6.1; deck.castShadow = true; g.add(deck);
-      [-1, 1].forEach(function (sgn) {
-        const pl = new THREE.Mesh(new THREE.BoxGeometry(9.5, 7.6, .35), goChannel(4, 3));
-        pl.position.set(-1.4, 9.6, sgn*3.3); pl.rotation.x = -sgn*0.46;
-        pl.castShadow = true; g.add(pl);
-      });
-      /* yellow wheels, dark rollers, same as yours */
-      const bh = new THREE.MeshStandardMaterial({ color:GB_YELLOW, roughness:.42, metalness:.45 });
-      const br = new THREE.MeshStandardMaterial({ color:0x23262b, roughness:.82 });
-      [[-8.5,-8.5],[8.5,-8.5],[-8.5,8.5],[8.5,8.5]].forEach(function (q) {
-        const w = new THREE.Mesh(new THREE.CylinderGeometry(1.5, 1.5, 2.3, 16), bh);
-        w.rotation.z = Math.PI/2; w.position.set(q[0], 2.05, q[1]); w.castShadow = true; g.add(w);
-        for (let i = 0; i < 6; i++) {
-          const a = i*Math.PI/3;
-          const r = new THREE.Mesh(new THREE.CylinderGeometry(.42, .42, 2.1, 7), br);
-          r.position.set(q[0], 2.05 + Math.cos(a)*1.75, q[1] + Math.sin(a)*1.75);
-          r.rotation.z = Math.PI/2; r.rotation.x = Math.PI/5; g.add(r);
-        }
-      });
-      /* the ALLIANCE band - the one part that is NOT goBILDA grey, on purpose */
-      const band = new THREE.Mesh(new THREE.BoxGeometry(15.5, 1.4, 15.5),
-        new THREE.MeshStandardMaterial({ color:s.col, roughness:.5 }));
-      band.position.y = 7.0; g.add(band);
-      /* the Gecko intake shaft across the front */
-      for (let i = -1; i <= 1; i++) {
-        const gw = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, 1.5, 14),
-          new THREE.MeshStandardMaterial({ color:0x2c3036, roughness:.85 }));
-        gw.rotation.x = Math.PI/2; gw.position.set(6.6, 2.7, i*3.6); g.add(gw);
-      }
-      g.add(makePlow(s.col));        /* they empty FLOWERS too */
-      const bArm = makeArm(s.col);   /* only if YOU have fitted one - they match your ROBOT */
-      bArm.visible = !!S.armFitted;
-      b.armMesh = bArm;
-      g.add(bArm);
+      const g = makeBotMesh(s.col, S.drive);
+      b.armMesh = g.userData.arm;
       R3.scene.add(g); b.mesh = g;
     }
     BOTS.push(b);
@@ -5254,8 +5668,130 @@ function clearBots() {
   needUI = true;
 }
 /* every ROBOT on the FIELD, so separation can consider all of them */
+/* ============================================================================================
+   MORE THAN ONE PLAYER ON THE FIELD.
+
+   A BIOBUZZ MATCH is two ALLIANCES of two, so the FIELD holds four ROBOTS. Say how many are
+   playing and that many goBILDA ROBOTS appear, each with its own DRIVETRAIN - because a real
+   ALLIANCE is rarely two identical machines, and a mecanum partner next to a tank partner is
+   the whole reason the choice is interesting.
+
+   PLAYER 1 is you, on the keyboard and on the first pad. PLAYERS 2 to 4 take the next pads in
+   the order the browser reports them. A player with no pad still takes the FIELD and still
+   occupies a TILE - it simply sits at its legal start, which is exactly what a ROBOT with no
+   DRIVER does.
+
+   The starts are the same G304-legal poses the sim ROBOTS use: touching a wall, on their own
+   ALLIANCE's half, clear of the FLOWERS and out of the LOADING ZONE. Two red, two blue.
+   ============================================================================================ */
+const MAX_PLAYERS = 4;
+const PLAYER_SEED = [
+  { nm:"P1", ally:"red",  col:0xd8203c, pose:null },                        /* you */
+  { nm:"P2", ally:"red",  col:0xd8203c, pose:{ x:40,          z:9,   h: Math.PI/2 } },
+  { nm:"P3", ally:"blue", col:0x2f6fd0, pose:{ x:F.size-9,    z:66,  h: Math.PI   } },
+  { nm:"P4", ally:"blue", col:0x2f6fd0, pose:{ x:104,         z:135, h:-Math.PI/2 } }
+];
+const PLAYERS = [];           /* index 0 is PLAYER 2 - you are not in here, you are S */
+
+/* Returns whether anything actually changed. It matters: this is called from
+   applyDriveLook, which runs on every UI refresh, and an unconditional needUI here turned
+   into a refresh every frame - rebuilding the player rows sixty times a second and costing
+   two thirds of the frame rate by four ROBOTS. Say nothing when nothing happened. */
+function syncPlayers() {
+  const want = Math.max(1, Math.min(MAX_PLAYERS, S.players|0)) - 1;
+  let changed = false;
+  while (PLAYERS.length > want) {
+    const p = PLAYERS.pop();
+    if (p.mesh && R3 && R3.scene) R3.scene.remove(p.mesh);
+    changed = true;
+  }
+  while (PLAYERS.length < want) {
+    changed = true;
+    const i = PLAYERS.length + 1, sd = PLAYER_SEED[i];
+    PLAYERS.push({ idx:i, nm:sd.nm, ally:sd.ally, col:sd.col,
+                   x:sd.pose.x, z:sd.pose.z, h:sd.pose.h,
+                   trackL:0, trackR:0, strafeX:0,
+                   drive:S.pDrive[i] || "mecanum", mesh:null, pad:false });
+  }
+  /* build the body, and rebuild it whenever its wheels stop matching its DRIVETRAIN */
+  PLAYERS.forEach(function (p) {
+    p.drive = S.pDrive[p.idx] || "mecanum";
+    if (!R3 || !R3.scene) return;
+    if (p.mesh && p.mesh.userData.drive === p.drive) return;
+    if (p.mesh) R3.scene.remove(p.mesh);
+    p.mesh = makeBotMesh(p.col, p.drive);
+    p.mesh.position.set(p.x, 0, p.z);
+    p.mesh.rotation.y = -p.h;
+    R3.scene.add(p.mesh);
+    changed = true;
+  });
+  if (changed) needUI = true;
+  return changed;
+}
+
+/* put every extra player back on its legal start, the way parkAt does for you */
+function parkPlayers() {
+  PLAYERS.forEach(function (p) {
+    const sd = PLAYER_SEED[p.idx];
+    p.x = sd.pose.x; p.z = sd.pose.z; p.h = sd.pose.h;
+    p.trackL = p.trackR = p.strafeX = 0;
+    if (p.mesh) { p.mesh.position.set(p.x, 0, p.z); p.mesh.rotation.y = -p.h; }
+  });
+}
+
+/* the same kinematics your ROBOT uses, so a second player drives exactly as you do -
+   including the one rule that makes the DRIVETRAIN choice real: a tank cannot strafe */
+function drivePlayer(p, dt) {
+  if (S.matchPhase === "countdown") { p.trackL = p.trackR = p.strafeX = 0; return; }
+  const L = p.trackL, R = p.trackR, strafe = p.drive === "tank" ? 0 : p.strafeX;
+  if (!L && !R && !strafe) return;
+  const v = (L + R)/2 * TOP_SPEED;
+  /* (L - R), not (R - L). The heading runs from +x toward +z and the ROBOT's own right-hand
+     side IS +z - measured off the model, not assumed - so a right turn has to INCREASE the
+     heading. With the difference the other way round every turn went the wrong way: the
+     right stick spun the ROBOT left, and A and D on the keyboard were swapped. Strafe was
+     always correct, which is what made it confusing: pushed right the ROBOT slid right, but
+     turned right it span left. */
+  const w = (L - R) * TOP_SPEED / TRACK_W;
+  p.h += w*dt;
+  const ch = Math.cos(p.h), sh = Math.sin(p.h);
+  p.x += (ch*v - sh*strafe*TOP_SPEED*0.7)*dt;
+  p.z += (sh*v + ch*strafe*TOP_SPEED*0.7)*dt;
+  p.x = Math.max(BOT_HALF, Math.min(F.size-BOT_HALF, p.x));
+  p.z = Math.max(BOT_HALF, Math.min(F.size-BOT_HALF, p.z));
+}
+/* PLAYER 2 drives on the arrow keys when no pad has claimed them - arcade rather than tank,
+   because one hand on four arrows cannot work two tracks independently. A real pad always
+   wins; this is the fallback, not a competitor. */
+function keyDrivePlayer2(p) {
+  if (p.pad) return;                              /* a controller outranks the keyboard */
+  let f = 0, t = 0, st = 0;
+  if (keys.arrowup)    f += 1;
+  if (keys.arrowdown)  f -= 1;
+  if (keys.arrowright) t += 1;
+  if (keys.arrowleft)  t -= 1;
+  if (keys["."])       st += 1;
+  if (keys[","])       st -= 1;
+  if (!f && !t && !st) {
+    if (p.kbd) { p.trackL = p.trackR = p.strafeX = 0; p.kbd = false; }
+    return;
+  }
+  p.kbd = true;
+  p.trackL  = Math.max(-1, Math.min(1, f + t));
+  p.trackR  = Math.max(-1, Math.min(1, f - t));
+  p.strafeX = st;
+}
+function stepPlayers(dt) {
+  PLAYERS.forEach(function (p, k) {
+    if (k === 0) keyDrivePlayer2(p);
+    drivePlayer(p, dt);
+    if (p.mesh) { p.mesh.position.set(p.x, 0, p.z); p.mesh.rotation.y = -p.h; }
+  });
+}
+
 function allBodies() {
   const list = BOTS.map(b => ({ x:b.x, z:b.z, self:b }));
+  PLAYERS.forEach(p => list.push({ x:p.x, z:p.z, self:p }));
   list.push({ x:S.rx, z:S.ry, self:null });
   return list;
 }
@@ -6024,6 +6560,151 @@ function drawTestRange() {
 }
 
 /* ---- the recorded step list and the generated OpMode ---- */
+/* ---- the TeleOp the DRIVER actually runs ----
+   Everything this bench exported was @Autonomous: a recorded path, with no driver and no
+   gamepad anywhere in it. But TeleOp is what a student spends the season writing, and the
+   drive code in it is EXACTLY the code this bench has been simulating under their thumbs.
+   Exporting it closes the loop - drive the robot here, read the OpMode that drives it the
+   same way, change it, run it on a real Control Hub.
+   It is built from live state, so switching the drivetrain rewrites it, and so does the
+   invert switch on the controller panel. */
+function toJavaTeleOp() {
+  const L = [], p = s => L.push(s);
+  const C = gbCfg(), K = GBOT.common;
+  const tank = S.drive === "tank";
+  const sgn  = S.padInvert ? " " : "-";     /* the sign in front of the Y axes */
+  /* two different reasons for the sign, and a student reading the export deserves the
+     right one rather than a comment that contradicts the code in front of them */
+  const yNote = S.padInvert
+    ? "NO minus here ON PURPOSE - the bench is set to aeroplane style, so pushing the\n            // stick FORWARD drives the ROBOT BACKWARD. No FTC field works this way."
+    : "the SDK reports the stick UP as NEGATIVE, so the minus makes up = forward";
+
+  p("package org.firstinspires.ftc.teamcode;");
+  p("");
+  p("import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;");
+  p("import com.qualcomm.robotcore.eventloop.opmode.TeleOp;");
+  p("import com.qualcomm.robotcore.hardware.DcMotor;");
+  p("import com.qualcomm.robotcore.hardware.DcMotorEx;");
+  p("import com.qualcomm.robotcore.hardware.DcMotorSimple;");
+  p("import com.qualcomm.robotcore.hardware.CRServo;");
+  p("");
+  p("/* BIOBUZZ TeleOp - " + (tank ? "TANK, left and right sides"
+                                   : "MECANUM, 4 independent wheels") + ".");
+  p(" * Generated by the BIOBUZZ Shooter Bench from the drivetrain you have selected.");
+  p(" * Hardware names are goBILDA's, from " + C.sku + " (" + C.guide + ").");
+  p(" */");
+  p("@TeleOp(name = \"BIOBUZZ TeleOp (" + (tank ? "tank" : "mecanum") + ")\", group = \"BIOBUZZ\")");
+  p("public class BioBuzzTeleOp extends LinearOpMode {");
+  p("");
+  p("    // ---- bound shot speeds, flywheel rpm - the three the bench binds ----");
+  p("    static final double RPM_SLOW      = " + Math.round(S.rpmSlow) + ";");
+  p("    static final double RPM_MID       = " + Math.round(S.rpmMid)  + ";");
+  p("    static final double RPM_FULL      = " + Math.round(S.rpmFull) + ";");
+  p("    static final double TICKS_PER_REV = " + K.TICKS_PER_REV + ";");
+  p("");
+  p("    // ---- the stick deadband. Below this a stick that is physically centred");
+  p("    //      still reports a few hundredths, and the ROBOT creeps on its own. ----");
+  p("    static final double DEADBAND = 0.12;");
+  p("");
+  C.drive.forEach(function (d) { p("    private DcMotor " + d[0] + " = null;"); });
+  p("    private DcMotorEx launcher = null;");
+  p("    private DcMotor intake = null;");
+  p("    private CRServo " + C.windmill + " = null;");
+  p("");
+  p("    private static double band(double v) {");
+  p("        return Math.abs(v) < DEADBAND ? 0.0 : v;");
+  p("    }");
+  p("");
+  p("    @Override");
+  p("    public void runOpMode() {");
+  C.drive.forEach(function (d) {
+    p("        " + d[0] + " = hardwareMap.get(DcMotor.class, \"" + d[1] + "\");");
+  });
+  p("        launcher = hardwareMap.get(DcMotorEx.class, \"" + K.launcher + "\");");
+  p("        intake   = hardwareMap.get(DcMotor.class, \"" + K.intake + "\");");
+  p("        " + C.windmill + " = hardwareMap.get(CRServo.class, \"" + C.windmill + "\");");
+  p("");
+  p("        // Left side reversed, right side forward - goBILDA's own setting.");
+  p("        // If YOUR robot drives backwards when you push forward, change THIS.");
+  p("        // Do not change the minus signs on the sticks below.");
+  C.drive.forEach(function (d) {
+    const left = /left/i.test(d[0]);
+    p("        " + d[0] + ".setDirection(DcMotorSimple.Direction." +
+      (left ? "REVERSE" : "FORWARD") + ");");
+  });
+  p("");
+  p("        boolean intakeOn = false, lastLeftBumper = false;");
+  p("        double  targetRpm = 0.0;");
+  p("");
+  p("        telemetry.addData(\"Drivetrain\", \"" + (tank ? "TANK" : "MECANUM") + "\");");
+  p("        telemetry.addData(\"Ready\", \"press PLAY\");");
+  p("        telemetry.update();");
+  p("        waitForStart();");
+  p("");
+  p("        while (opModeIsActive()) {");
+  p("");
+  if (tank) {
+    p("            // ================= TANK: one stick per side =================");
+    p("            // Left stick drives the LEFT wheels, right stick the RIGHT wheels.");
+    p("            // Push both up and it drives; push one up and one down and it spins.");
+    p("            // " + yNote);
+    p("            double left  = band(" + sgn + "gamepad1.left_stick_y);");
+    p("            double right = band(" + sgn + "gamepad1.right_stick_y);");
+    p("");
+    p("            " + C.drive[0][0] + ".setPower(left);");
+    p("            " + C.drive[1][0] + ".setPower(right);");
+    p("");
+    p("            // A tank has no sideways degree of freedom. There is no strafe here,");
+    p("            // and no arrangement of these two motors can produce one. That is the");
+    p("            // whole reason a team pays for mecanum wheels.");
+  } else {
+    p("            // =============== MECANUM: Game Manual 0's TeleOp ===============");
+    p("            // Left stick DRIVES and STRAFES, right stick TURNS on the spot.");
+    p("            // " + yNote);
+    p("            double y  = band(" + sgn + "gamepad1.left_stick_y);   // forward / back");
+    p("            double x  = band( gamepad1.left_stick_x);   // strafe");
+    p("            double rx = band( gamepad1.right_stick_x);  // turn");
+    p("");
+    p("            // GM0's denominator, and it is NOT a clamp. Ask for full forward AND");
+    p("            // full turn together and each wheel would want more than 1.0; clipping");
+    p("            // them would quietly swallow the turn. Dividing by the total demand");
+    p("            // keeps the RATIO the driver asked for and scales the whole thing down.");
+    p("            double denom = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1.0);");
+    p("");
+    p("            " + C.drive[0][0] + ".setPower((y + x + rx) / denom);   // front left");
+    p("            " + C.drive[2][0] + ".setPower((y - x + rx) / denom);   // back  left");
+    p("            " + C.drive[1][0] + ".setPower((y - x - rx) / denom);   // front right");
+    p("            " + C.drive[3][0] + ".setPower((y + x - rx) / denom);   // back  right");
+  }
+  p("");
+  p("            // ================== BUTTONS ==================");
+  p("            // The same three speeds the bench fires on A, B and X.");
+  p("            if (gamepad1.a) targetRpm = RPM_FULL;");
+  p("            if (gamepad1.b) targetRpm = RPM_MID;");
+  p("            if (gamepad1.x) targetRpm = RPM_SLOW;");
+  p("            launcher.setVelocity(targetRpm * TICKS_PER_REV / 60.0);");
+  p("");
+  p("            // Left bumper TOGGLES the intake. Edge detected on purpose: without");
+  p("            // remembering last loop, one press flips it on every pass of the loop");
+  p("            // and the intake buzzes instead of switching.");
+  p("            if (gamepad1.left_bumper && !lastLeftBumper) intakeOn = !intakeOn;");
+  p("            lastLeftBumper = gamepad1.left_bumper;");
+  p("            intake.setPower(intakeOn ? 1.0 : 0.0);");
+  p("");
+  p("            // Y aims at the HIVE on the bench. On a real ROBOT that needs a heading");
+  p("            // you do not have yet - an IMU or an AprilTag off the CELL. Left for you.");
+  p("            if (gamepad1.y) telemetry.addData(\"Aim\", \"TODO: turn to the HIVE\");");
+  p("");
+  p("            telemetry.addData(\"Drive\", \"" + (tank ? "tank, 2 sticks" : "mecanum, GM0") + "\");");
+  p("            telemetry.addData(\"Target rpm\", targetRpm);");
+  p("            telemetry.addData(\"Intake\", intakeOn ? \"ON\" : \"off\");");
+  p("            telemetry.update();");
+  p("        }");
+  p("    }");
+  p("}");
+  return L.join("\n");
+}
+
 function drawRec() {
   const tb = $("recBody"); if (!tb) return;
   tb.textContent = "";
@@ -6043,7 +6724,13 @@ function drawRec() {
     ? "RECORDING \u00b7 " + REC.steps.length + " steps \u00b7 " + recT().toFixed(1) + "s"
     : REC.steps.length + " steps captured";
   const out = $("javaOut");
-  if (out) out.textContent = toJava();
+  if (out) out.textContent = S.codeView === "teleop" ? toJavaTeleOp() : toJava();
+  const fn = $("codeFile");
+  if (fn) fn.textContent = S.codeView === "teleop"
+    ? "BioBuzzTeleOp.java" : "BioBuzzAutoRecorded.java";
+  const ba = $("bCodeAuto"), bt = $("bCodeTele");
+  if (ba) ba.setAttribute("aria-pressed", S.codeView !== "teleop");
+  if (bt) bt.setAttribute("aria-pressed", S.codeView === "teleop");
 }
 
 function drawPoints() {
@@ -6480,8 +7167,11 @@ function blocksStarter() {
   const fwd = Math.round(24*TICKS);           // drive 24 in
   const spin = Math.round(90*TURN);           // turn 90 deg
   if (S.drive === "tank") {
-    put(dual(GBOT.mecanum.drive[0][1], GBOT.mecanum.drive[1][1], "TargetPosition", fwd, fwd));
-    put(dual(GBOT.mecanum.drive[0][1], GBOT.mecanum.drive[1][1], "TargetPosition", -spin, spin));
+    /* these were GBOT.mecanum, which put left_front_drive / right_front_drive into a TANK
+       program - names that do not exist on a 2-motor Control Hub config, so the OpMode
+       would have thrown on init. A tank has exactly two drive motors; use THEIRS. */
+    put(dual(GBOT.tank.drive[0][1], GBOT.tank.drive[1][1], "TargetPosition", fwd, fwd));
+    put(dual(GBOT.tank.drive[0][1], GBOT.tank.drive[1][1], "TargetPosition", -spin, spin));
   } else {
     const side = Math.round(12*TICKS);        // strafe 12 in - no tank equivalent
     put(dual(GBOT.mecanum.drive[0][1], GBOT.mecanum.drive[2][1],   "TargetPosition", fwd, fwd));
@@ -6494,6 +7184,88 @@ function blocksStarter() {
   }
   blkRefreshJava();
   return BLK.ws.getAllBlocks(false).length;
+}
+
+/* ---- the same TeleOp, in BLOCKS ----
+   The blocks workspace only ever held AUTONOMOUS: encoder targets from a recorded path.
+   A student driving on this bench had no way to see the code behind the sticks in their
+   hands. This builds it out of the REAL FTC gamepad and motor blocks, so it is draggable,
+   editable, and the Java pane under it is written by FTC's own generator - not by us.
+   Switching the drivetrain rebuilds the stack, because the stack IS the difference. */
+function blocksTeleOp() {
+  if (!BLK.ws) return 0;
+  BLK.ws.clear();
+  ftcEnsureRunOpMode();
+  const C = gbCfg(), tank = S.drive === "tank";
+  const have = t => Blockly.Blocks[t];
+  if (!have("gamepad_getProperty_Number") || !have("dcMotor_setProperty_Number")) return 0;
+
+  const mk  = t => { const b = BLK.ws.newBlock(t); b.initSvg(); b.render(); return b; };
+  const put = b => { const tail = ftcBodyTail(); if (b && tail) tail.connect(b.previousConnection); };
+  const ax  = prop => { const b = mk("gamepad_getProperty_Number");
+    b.setFieldValue("gamepad1", "IDENTIFIER"); b.setFieldValue(prop, "PROP"); return b; };
+  const neg = inner => { const b = mk("math_single"); b.setFieldValue("NEG", "OP");
+    b.getInput("NUM").connection.connect(inner.outputConnection); return b; };
+  const op  = (o, a, bb) => { const b = mk("math_arithmetic"); b.setFieldValue(o, "OP");
+    b.getInput("A").connection.connect(a.outputConnection);
+    b.getInput("B").connection.connect(bb.outputConnection); return b; };
+  const pow = (id, val) => { const b = mk("dcMotor_setProperty_Number");
+    b.setFieldValue(id, "IDENTIFIER"); b.setFieldValue("Power", "PROP");
+    b.getInput("VALUE").connection.connect(val.outputConnection); return b; };
+
+  put(mk("linearOpMode_waitForStart"));
+
+  const loop = mk("controls_whileUntil");
+  loop.setFieldValue("WHILE", "MODE");
+  loop.getInput("BOOL").connection.connect(mk("linearOpMode_opModeIsActive").outputConnection);
+  put(loop);
+
+  /* the stick, already the right way up: the SDK reports UP as negative, so every
+     forward/back axis is negated - unless the bench is in aeroplane mode, when it is not */
+  const Y  = p => S.padInvert ? ax(p) : neg(ax(p));
+  const body = [];
+  if (tank) {
+    body.push(pow(C.drive[0][1], Y("LeftStickY")));    /* left stick  -> left wheels  */
+    body.push(pow(C.drive[1][1], Y("RightStickY")));   /* right stick -> right wheels */
+  } else {
+    /* GM0's four wheel sums. No denominator here on purpose: dividing by
+       max(|y|+|x|+|rx|, 1) needs four more blocks per wheel and buries the idea.
+       The exported Java has it in full - this stack is the shape of it. */
+    const X = () => ax("LeftStickX"), R = () => ax("RightStickX");
+    body.push(pow(C.drive[0][1], op("ADD",  op("ADD",   Y("LeftStickY"), X()), R())));
+    body.push(pow(C.drive[2][1], op("ADD",  op("MINUS", Y("LeftStickY"), X()), R())));
+    body.push(pow(C.drive[1][1], op("MINUS",op("MINUS", Y("LeftStickY"), X()), R())));
+    body.push(pow(C.drive[3][1], op("MINUS",op("ADD",   Y("LeftStickY"), X()), R())));
+  }
+  /* the A button, so the BUTTONS are in the picture too and not only the sticks */
+  if (have("gamepad_getProperty_Boolean") && have("controls_if")) {
+    const iff = mk("controls_if");
+    const btn = mk("gamepad_getProperty_Boolean");
+    btn.setFieldValue("gamepad1", "IDENTIFIER"); btn.setFieldValue("A", "PROP");
+    iff.getInput("IF0").connection.connect(btn.outputConnection);
+    const num = mk("math_number");
+    num.setFieldValue(String(gbRpmToTicks(S.rpmFull)), "NUM");
+    const setV = mk("dcMotor_setProperty_Number");
+    setV.setFieldValue(GBOT.common.launcher, "IDENTIFIER");
+    setV.setFieldValue("Velocity", "PROP");
+    setV.getInput("VALUE").connection.connect(num.outputConnection);
+    iff.getInput("DO0").connection.connect(setV.previousConnection);
+    body.push(iff);
+  }
+  /* chain the body and drop it into the loop */
+  for (let i = 1; i < body.length; i++)
+    body[i-1].nextConnection.connect(body[i].previousConnection);
+  if (body.length) loop.getInput("DO").connection.connect(body[0].previousConnection);
+
+  blkRefreshJava();
+  return BLK.ws.getAllBlocks(false).length;
+}
+
+/* one door into the workspace, so every caller gets the view the student picked */
+function blocksRebuild() {
+  if (!BLK.ready || !BLK.ws) return 0;
+  if (S.codeView === "teleop") return blocksTeleOp();
+  return REC.steps.length ? blocksFromRecording() : blocksStarter();
 }
 
 function initBlockly() {
@@ -6514,7 +7286,7 @@ function initBlockly() {
       $("blkLoading").style.display = "none";
       ftcEnsureRunOpMode();
       BLK.ws.addChangeListener(function () { blkRefreshJava(); });
-      if (REC.steps.length) blocksFromRecording(); else blocksStarter();
+      blocksRebuild();
       blkRefreshJava();
     } catch (e) {
       $("blkLoading").textContent = "could not start the editor: " + e.message;
@@ -6847,6 +7619,235 @@ function svgTxtTo(svg, x, y, t, col, anchor, weight) {
   svg.appendChild(svgTxt(x, y, t, { fill:col, "text-anchor":anchor || "start",
     "font-size":10.5, "font-weight":weight || 500 }));
 }
+/* ============================================================================================
+   EXPORTING THE HOOD AS DXF, SO THE CURVE YOU DRAGGED CAN BE PRINTED.
+
+   Read at the moment the button is pressed, never cached: the three nodes wherever you last
+   dragged them, both sliders, the wheel and the ball you picked. Adjust the curvature, press
+   the button, and the file that lands is that shape. There is no stored or default profile.
+
+   The editor thinks in WHEEL RADII about the flywheel axis. A printer thinks in millimetres,
+   so everything below converts the one into the other and writes DXF R12 - the one flavour
+   every package still reads, from Fusion and SolidWorks to Onshape, FreeCAD and Blender.
+
+   The curve with the three nodes is the path the BALL CENTRE rides. It is NOT the hood. The
+   hood is the wall the ball is pressed against, so the face you print sits one BALL RADIUS
+   further out, measured along the line from the flywheel axis through the ball centre -
+   which is the direction the wheel actually squeezes the ball. Push that face out once more
+   by the wall thickness, close the two ends, and you have a profile you can extrude.
+   ============================================================================================ */
+const DXF_WALL_MM = 4;        // printed wall: thin enough to print fast, stiff enough to hold
+
+function hoodProfileMM(wall) {
+  const Rw    = wheelP().mm / 2;                        // flywheel radius, mm
+  const ballU = BALL[S.ball].dia * 25.4 / wheelP().mm;  // ball RADIUS, in wheel radii
+  const m     = curveMetrics(S.curve);                  // m.pts: the live ball-centre path
+  const mm    = q => [q[0]*Rw, q[1]*Rw];
+  const push  = (q, by) => {                            // outward, away from the axis
+    const r = Math.hypot(q[0], q[1]);
+    if (r < 1e-9) return mm(q);
+    return mm([q[0] + q[0]/r*by, q[1] + q[1]/r*by]);
+  };
+  return { Rw:Rw, ballR:ballU*Rw, m:m,
+           path: m.pts.map(mm),                         // ball centre  - reference only
+           face: m.pts.map(q => push(q, ballU)),        // what the ball touches
+           back: m.pts.map(q => push(q, ballU + wall/Rw)) };
+}
+
+/* everything the person opening the DXF needs to know, in the order they need it */
+function NOTE_LINES(P, m, W, B, M, VARY) {
+  return [
+    "BIOBUZZ SHOOTER BENCH - HOOD PROFILE",
+    "units MILLIMETRES   origin FLYWHEEL AXIS   plane XY",
+    "",
+    "flywheel      " + W.nm + "  " + W.mm + " mm dia",
+    "ball          " + B.label + "  " + B.dia.toFixed(1) + " in / " +
+                       (B.dia*25.4).toFixed(1) + " mm dia",
+    "motor         " + M.nm,
+    "",
+    "hood angle    " + m.angle.toFixed(1) + " deg at the exit tangent",
+    "wrap          " + m.wrap.toFixed(0) + " deg",
+    "contact arc   " + (m.len*P.Rw).toFixed(1) + " mm",
+    "ball squeeze  " + (m.squeeze*P.Rw).toFixed(1) + " mm",
+    "launch height " + S.launch.toFixed(1) + " in above the tiles",
+    "",
+    "SCORING ELEMENTS, Competition Manual 9.8 - drawn full size on REF_POLLEN / REF_NECTAR",
+    "  POLLEN  " + BALL.pollen.dia.toFixed(1) + " in / " +
+                   (BALL.pollen.dia*25.4).toFixed(2) + " mm dia   yellow   40 per MATCH",
+    "  NECTAR  " + BALL.nectar.dia.toFixed(1) + " in / " +
+                   (BALL.nectar.dia*25.4).toFixed(2) + " mm dia   red+blue  8 + 8 per MATCH",
+    "  9.8 warns they are NOT perfectly spherical and vary in size. The outer ring on each",
+    "  gauge is that element " + (VARY*100).toFixed(0) + "% oversize - size the channel to the RING, not the circle.",
+    "",
+    "HOOD_PROFILE is closed - extrude it " + (B.dia*25.4 + 6).toFixed(0) + " mm or wider.",
+    "HOOD_FACE is the surface the ball touches. BALL_PATH is the ball centre, reference only.",
+    "BALL_SWEEP is the " + B.label + " rolled along the path - the channel it has to clear.",
+    "wall " + DXF_WALL_MM + " mm. Add your own mounting tabs in CAD.",
+    "exported from build " + BUILD_ID
+  ];
+}
+
+function hoodDXF() {
+  const P = hoodProfileMM(DXF_WALL_MM), m = P.m;
+  const W = wheelP(), B = BALL[S.ball], M = motor();
+  const out = [], g = (c, v) => { out.push(String(c)); out.push(String(v)); };
+  const n = v => (Math.round(v*1e4)/1e4).toFixed(4);
+  const ascii = t => String(t).replace(/[^\x20-\x7e]/g, "");
+
+  /* the closed loop you extrude: the contact face out, the back of the wall home again */
+  const profile = P.face.concat(P.back.slice().reverse());
+  const ext = profile.concat(P.path).reduce(
+    (a, q) => [Math.min(a[0], q[0]), Math.min(a[1], q[1]),
+               Math.max(a[2], q[0]), Math.max(a[3], q[1])],
+    [-P.Rw, -P.Rw, P.Rw, P.Rw]);
+
+  /* ---- this year's SCORING ELEMENTS, drawn full size beside the part ----
+     A hood is only right for the ball it has to swallow, so the designer gets both of them
+     to measure the channel against - not just the one that happens to be selected. Sizes
+     are Manual 9.8: POLLEN 2.8 in., NECTAR 3.6 in. The same clause warns they are not
+     perfectly spherical and vary, which is why the gauges carry a tolerance ring too.
+     Laid out here, before the header, so $EXTMIN and $EXTMAX can take them in. */
+  const VARY = 0.04;                                    // plan for +/- 4% out of round
+  const GAUGE_GAP = 26;
+  const refs = [];
+  let gx = ext[0];
+  [["REF_POLLEN", "POLLEN", BALL.pollen.dia], ["REF_NECTAR", "NECTAR", BALL.nectar.dia]]
+    .forEach(e => {
+      const r = e[2]*25.4/2, rMax = r*(1+VARY);
+      gx += rMax;                                       // the RING is the widest thing here
+      refs.push({ ly:e[0], nm:e[1], dIn:e[2], r:r, rMax:rMax,
+                  live: BALL[S.ball].dia === e[2], c:[gx, 0] });
+      gx += rMax + GAUGE_GAP;
+    });
+  const gaugeR  = Math.max.apply(null, refs.map(o => o.rMax));
+  const gaugeCY = ext[1] - 34 - gaugeR;                 // a clear band under the part
+  refs.forEach(o => { o.c[1] = gaugeCY; });
+  ext[1] = Math.min(ext[1], gaugeCY - gaugeR - 16);
+  ext[2] = Math.max(ext[2], gx);
+
+  const notes = NOTE_LINES(P, m, W, B, M, VARY);
+  const notesTop = ext[1] - 16;                         // pinned before the extents grow
+  ext[1] = Math.min(ext[1], notesTop - notes.length*7.5);
+
+  const LAYERS = [["HOOD_PROFILE",1], ["HOOD_FACE",2], ["BALL_PATH",8], ["FLYWHEEL",4],
+                  ["BALL",3], ["BALL_SWEEP",8], ["LAUNCH_TANGENT",3], ["AXIS",7],
+                  ["REF_POLLEN",2], ["REF_NECTAR",5], ["NOTES",7]];
+
+  /* The entities go into their own buffer and report their own corners as they are written.
+     The launch tangent runs well past the part, the ball circles hang off both ends of the
+     path and the gauges sit below it, so a header written from the profile alone understates
+     the drawing - and a CAD package that honours $EXTMIN/$EXTMAX then opens it cropped. */
+  const ent = [], ge = (c, v) => { ent.push(String(c)); ent.push(String(v)); };
+  const BB = [Infinity, Infinity, -Infinity, -Infinity];
+  const see = (px, py) => { BB[0] = Math.min(BB[0], px); BB[1] = Math.min(BB[1], py);
+                            BB[2] = Math.max(BB[2], px); BB[3] = Math.max(BB[3], py); };
+
+  const poly = (ly, pts, closed) => {
+    ge(0,"POLYLINE"); ge(8,ly); ge(66,1); ge(70, closed ? 1 : 0);
+    ge(10,"0.0"); ge(20,"0.0"); ge(30,"0.0");
+    pts.forEach(q => { ge(0,"VERTEX"); ge(8,ly); ge(10,n(q[0])); ge(20,n(q[1])); ge(30,"0.0");
+                       see(q[0], q[1]); });
+    ge(0,"SEQEND"); ge(8,ly);
+  };
+  const circ = (ly, c, r) => { ge(0,"CIRCLE"); ge(8,ly);
+    ge(10,n(c[0])); ge(20,n(c[1])); ge(30,"0.0"); ge(40,n(r));
+    see(c[0]-r, c[1]-r); see(c[0]+r, c[1]+r); };
+  const line = (ly, a, b) => { ge(0,"LINE"); ge(8,ly);
+    ge(10,n(a[0])); ge(20,n(a[1])); ge(30,"0.0"); ge(11,n(b[0])); ge(21,n(b[1])); ge(31,"0.0");
+    see(a[0], a[1]); see(b[0], b[1]); };
+  const text = (ly, p, h, t) => { const str = ascii(t);
+    ge(0,"TEXT"); ge(8,ly);
+    ge(10,n(p[0])); ge(20,n(p[1])); ge(30,"0.0"); ge(40,n(h)); ge(1,str);
+    see(p[0], p[1]); see(p[0] + str.length*h*0.62, p[1] + h); };   /* the default font is 0.6 wide */
+
+  poly("HOOD_PROFILE", profile, true);
+  poly("HOOD_FACE",    P.face,  false);
+  poly("BALL_PATH",    P.path,  false);
+  circ("FLYWHEEL", [0,0], P.Rw);
+  circ("BALL", P.path[0], P.ballR);                        /* where it enters */
+  circ("BALL", P.path[P.path.length-1], P.ballR);          /* where it leaves */
+
+  /* the launch tangent, at whatever angle the curve currently leaves at */
+  const exit = P.path[P.path.length-1], ar = m.angle*Math.PI/180, reach = P.Rw*2.5;
+  line("LAUNCH_TANGENT", exit, [exit[0]+Math.cos(ar)*reach, exit[1]+Math.sin(ar)*reach]);
+
+  /* the axis, so you can line the hood up with the motor shaft in CAD */
+  const x = P.Rw*0.22;
+  line("AXIS", [-x,0], [x,0]); line("AXIS", [0,-x], [0,x]);
+
+  /* the ball rolled along the path at intervals: the channel it actually occupies, which is
+     the thing you check the hood against before you print it */
+  for (let i = 0; i < P.path.length; i += Math.max(1, Math.round(P.path.length/14)))
+    circ("BALL_SWEEP", P.path[i], P.ballR);
+
+  /* the gauges: each element at full size, with a tolerance ring, a crosshair, a diameter
+     line you can snap to and the figure spelled out underneath */
+  refs.forEach(o => {
+    circ(o.ly, o.c, o.r);                                       /* nominal, Manual 9.8 */
+    circ(o.ly, o.c, o.rMax);                                    /* and the oversize case */
+    const t = o.r*0.18;
+    line(o.ly, [o.c[0]-t, o.c[1]], [o.c[0]+t, o.c[1]]);         /* crosshair */
+    line(o.ly, [o.c[0], o.c[1]-t], [o.c[0], o.c[1]+t]);
+    line(o.ly, [o.c[0]-o.r, o.c[1]], [o.c[0]+o.r, o.c[1]]);     /* snap to this for dia */
+    [-1, 1].forEach(k => line(o.ly, [o.c[0]+k*o.r, o.c[1]-t], [o.c[0]+k*o.r, o.c[1]+t]));
+    text(o.ly, [o.c[0]-o.r, o.c[1]+o.rMax+7], 5.5,
+         o.nm + (o.live ? "  (this hood)" : ""));
+    text(o.ly, [o.c[0]-o.r, o.c[1]-o.rMax-12], 4.5,
+         "dia " + (o.dIn*25.4).toFixed(2) + " mm / " + o.dIn.toFixed(1) + " in" +
+         "   max " + (o.rMax*2).toFixed(1) + " mm");
+  });
+
+  notes.forEach((t, i) => { if (t) text("NOTES", [ext[0], notesTop - i*7.5], 4, t); });
+
+  /* now that every entity has reported itself, the header can tell the truth */
+  g(0,"SECTION"); g(2,"HEADER");
+  g(9,"$ACADVER");  g(1,"AC1009");
+  g(9,"$INSUNITS"); g(70,4);                               /* 4 = millimetres */
+  g(9,"$EXTMIN"); g(10,n(BB[0])); g(20,n(BB[1])); g(30,"0.0");
+  g(9,"$EXTMAX"); g(10,n(BB[2])); g(20,n(BB[3])); g(30,"0.0");
+  g(0,"ENDSEC");
+
+  g(0,"SECTION"); g(2,"TABLES"); g(0,"TABLE"); g(2,"LAYER"); g(70,LAYERS.length);
+  LAYERS.forEach(L => { g(0,"LAYER"); g(2,L[0]); g(70,0); g(62,L[1]); g(6,"CONTINUOUS"); });
+  g(0,"ENDTAB"); g(0,"ENDSEC");
+
+  g(0,"SECTION"); g(2,"ENTITIES");
+  for (let i = 0; i < ent.length; i++) out.push(ent[i]);
+  g(0,"ENDSEC"); g(0,"EOF");
+  return { dxf: out.join("\r\n") + "\r\n",
+           name: "biobuzz-hood_" + W.mm + "mm_" + S.ball + "_" +
+                 Math.round(m.angle) + "deg_" + Math.round(m.wrap) + "wrap.dxf",
+           m: m };
+}
+
+function saveTextFile(name, body, mime) {
+  const url = URL.createObjectURL(new Blob([body], { type: mime || "application/dxf" }));
+  const a = document.createElement("a");
+  a.href = url; a.download = name; a.style.display = "none";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 8000);
+}
+
+/* one handler for both buttons; it reads the curve fresh every single press */
+function exportHoodDXF(btn) {
+  let r;
+  try { r = hoodDXF(); }
+  catch (e) { if (btn) dxfSaid(btn, "COULD NOT EXPORT", "that curve is not readable"); return; }
+  saveTextFile(r.name, r.dxf);
+  if (btn) dxfSaid(btn, "DXF SAVED",
+                   r.m.angle.toFixed(1) + "\u00b0 \u00b7 " + r.m.wrap.toFixed(0) +
+                   "\u00b0 wrap \u00b7 " + (r.dxf.length/1024).toFixed(0) + " KB \u00b7 " + r.name);
+}
+/* say what just left, then put the button back the way it was. The button is a corner chip
+   now, so only the verdict goes on it and the numbers go to the tooltip. */
+function dxfSaid(btn, head, sub) {
+  if (btn._dxfT) { clearTimeout(btn._dxfT); }
+  else { btn._dxfHTML = btn.innerHTML; btn._dxfTitle = btn.title; }
+  btn.innerHTML = head; btn.title = sub;
+  btn._dxfT = setTimeout(() => {
+    btn.innerHTML = btn._dxfHTML; btn.title = btn._dxfTitle; btn._dxfT = null; }, 3400);
+}
+
 function drawHood() { drawHoodInto($("hoodEd")); }
 function drawHoodInto(svg) {
   if (!svg) return;
@@ -7701,6 +8702,16 @@ const START_POSE = {
 };
 const PARK_BTNS = [["gbParkRed","red"], ["gbParkBlue","blue"]];
 
+/* how many ROBOTS take the FIELD */
+(function () {
+  const sel = $("selPlayers"); if (!sel) return;
+  sel.value = String(S.players);
+  sel.addEventListener("change", function () {
+    S.players = Math.max(1, Math.min(MAX_PLAYERS, parseInt(sel.value, 10) || 1));
+    syncPlayers(); parkPlayers(); drawPlayers(); needUI = true;
+  });
+})();
+
 /* Park on an ALLIANCE: this is the pose a MATCH opens from, so it sets the ALLIANCE too -
    starting in blue's LOADING ZONE while still playing red is not a position G304 allows.
    Anything that was driving the ROBOT is stopped first, or the goto would walk it straight
@@ -7858,8 +8869,74 @@ function ensureBotBody(which, then) {
     then && then();
   });
 }
+/* one row per player: who they are, which ALLIANCE, and what they drive. PLAYER 1's row is
+   the same choice as the big Mecanum/Tank buttons, so it is set through setDrive and the two
+   can never disagree. */
+/* rebuilding four <select>s on every refresh is wasted work and it steals focus from a box
+   somebody is in the middle of using, so the rows are redrawn only when they would read
+   differently than they already do */
+let PLR_SIG = "";
+function playersSig() {
+  return S.players + "|" + S.drive + "|" + S.pDrive.join(",") + "|" +
+         PLAYERS.map(p => (p.pad ? 1 : 0)).join("");
+}
+function drawPlayersIfChanged() {
+  const sig = playersSig();
+  if (sig === PLR_SIG) return;
+  drawPlayers();
+}
+function drawPlayers() {
+  PLR_SIG = playersSig();
+  const sel = $("selPlayers"); if (sel) sel.value = String(S.players);
+  const host = $("plrRows"); if (!host) return;
+  host.textContent = "";
+  for (let i = 0; i < S.players; i++) {
+    const sd = PLAYER_SEED[i];
+    const pl = i === 0 ? null : PLAYERS[i-1];
+    const row = document.createElement("div");
+    row.className = "plrow" + (pl && !pl.pad ? " nopad" : "");
+    const tag = document.createElement("b");
+    tag.className = sd.ally === "red" ? "red" : "blu";
+    tag.textContent = sd.nm;
+    tag.title = sd.nm + " \u00b7 " + sd.ally.toUpperCase() + " ALLIANCE";
+    row.appendChild(tag);
+    const ds = document.createElement("select");
+    ds.className = "plrsel"; ds.id = "pDrive" + i;
+    [["mecanum","Mecanum"], ["tank","Tank"]].forEach(function (o) {
+      const op = document.createElement("option");
+      op.value = o[0]; op.textContent = o[1]; ds.appendChild(op);
+    });
+    ds.value = i === 0 ? S.drive : (S.pDrive[i] || "mecanum");
+    ds.title = i === 0 ? "Your DRIVETRAIN - the same choice as the big buttons"
+                       : sd.nm + " DRIVETRAIN \u00b7 " +
+                         (pl && pl.pad ? "pad " + (i+1) + " is driving it"
+                                       : (i === 1 ? "no pad - driving on the arrow keys"
+                                                  : "no pad on this player yet"));
+    ds.addEventListener("change", function () {
+      S.pDrive[i] = ds.value;
+      if (i === 0) setDrive(ds.value);
+      else { syncPlayers(); drawPlayers(); }
+    });
+    row.appendChild(ds);
+    host.appendChild(row);
+  }
+  const note = $("plrNote");
+  if (note) {
+    if (S.players === 1) note.textContent = "pad 1 \u00b7 keyboard W A S D / I J K L";
+    else {
+      const live = PLAYERS.filter(p => p.pad).length;
+      note.textContent = "P1 W A S D / I J K L \u00b7 P2 arrow keys + , ."
+        + (S.players > 2 ? " \u00b7 P3" + (S.players > 3 ? " and P4" : "") + " need pads" : "")
+        + (live ? " \u00b7 " + live + " pad" + (live > 1 ? "s" : "") + " connected" : "");
+    }
+  }
+}
+
 function applyDriveLook() {
   const mec = S.drive === "mecanum";
+  S.pDrive[0] = S.drive;
+  syncPlayers();                 /* idempotent, and it self-heals once the scene is up */
+  drawPlayersIfChanged();
   if (R3 && R3.bodies) {
     ["mecanum", "tank"].forEach(function (w) {
       if (R3.bodies[w]) R3.bodies[w].visible = (w === S.drive);
@@ -7876,7 +8953,7 @@ function setDrive(mode) {
   if (S.drive === mode) return;
   S.drive = mode;
   applyDriveLook();
-  if (BLK.ready) { if (REC.steps.length) blocksFromRecording(); else blocksStarter(); }
+  if (BLK.ready) blocksRebuild();
   if (typeof drawRec === "function") drawRec();
   refreshAll();
 }
@@ -8042,6 +9119,13 @@ const hoodPreset = (id, ang, wrap) => $(id).addEventListener("click", () => {
 hoodPreset("bHoodStraight", 55, 40);
 hoodPreset("bHoodHook", 55, 135);
 hoodPreset("bHoodDeep", 55, 175);
+
+/* EXPORT DXF - in the dock and on the curvature page. Whatever the curve reads at the
+   instant you press it is what gets written, so drag first and export second. */
+[["bHoodDXF"], ["bHoodDXF2"]].forEach(id => {
+  const b = $(id[0]); if (!b) return;
+  b.addEventListener("click", () => exportHoodDXF(b));
+});
 /* ---- the measured stack-up: floor -> base -> axis -> wheel -> ball = LAUNCH HEIGHT ---- */
 function launchFromMeasurements() {
   const fb = parseFloat($("mFloorBase").value);
@@ -8272,6 +9356,7 @@ $("bHome").addEventListener("click", () => { goHome(); refreshAll(); });
     if (!BLK.ready) { $("blkRunMsg").textContent = "editor still loading"; return; }
     if (id === "bBlkRun") blkRun();
     else if (id === "bBlkFromRec") {
+      S.codeView = "auto"; save(); drawRec();
       const n = blocksFromRecording();
       $("blkRunMsg").textContent = n ? "built " + n + " block" + (n===1?"":"s") + " from your recording"
                                      : "record an AUTO first";
@@ -8365,6 +9450,13 @@ $("bAddPt").addEventListener("click", () => {
 });
 $("bSeed").addEventListener("click", () => { S.pts = seedPoints(); drawLabRows(); drawLabOut(); save(); });
 $("cPredict").addEventListener("input", e => { S.predict = parseFloat(e.target.value)||5.5; drawLabOut(); save(); });
+["bCodeAuto","bCodeTele"].forEach(function (id) {
+  const b = $(id); if (!b) return;
+  b.addEventListener("click", function () {
+    S.codeView = (id === "bCodeTele") ? "teleop" : "auto"; save(); drawRec();
+    if (BLK.ready) blocksRebuild();
+  });
+});
 $("code").value = S.code;
 $("code").addEventListener("input", e => { S.code = e.target.value; save(); });
 $("bRun").addEventListener("click", () => {
@@ -8493,7 +9585,9 @@ TABS.forEach(t => $("tb-"+t).addEventListener("click", () => showTab(t)));
 
 /* keyboard: WASD drive, QE strafe, space shoot, C works the NECTAR claw */
 const DRIVE_KEYS = { w:1, a:1, s:1, d:1, q:1, e:1,
-                     i:1, j:1, k:1, l:1, arrowup:1, arrowdown:1 };
+                     i:1, j:1, k:1, l:1, arrowup:1, arrowdown:1,
+                     /* PLAYER 2: arrows to drive and turn, comma and full stop to strafe */
+                     arrowleft:1, arrowright:1, ",":1, ".":1 };
 addEventListener("keydown", e => {
   const tag = (e.target.tagName || "").toLowerCase();
   if (tag === "input" || tag === "textarea") return;
@@ -8517,6 +9611,68 @@ addEventListener("keyup", e => {
 });
 addEventListener("blur", () => { for (const k in keys) keys[k] = false; });
 addEventListener("resize", () => { if (R3) resize(); });
+/* ---- FULL SCREEN ----
+   Nothing in here touches the camera. S.chase, CAM.az, CAM.el and CAM.dist are exactly
+   where you left them, so the perspective survives the trip in both directions by doing
+   nothing at all - which is the only way to be sure it survives.
+   Escape is the browser's own, not ours: while an element is fullscreen the browser eats
+   the key itself and a page keydown handler never sees it. So rather than pretend to
+   handle it, listen for the change event the browser fires either way - Escape, F11, our
+   own button, or the user dragging the window somewhere else - and resync from that. */
+function fsElement() {
+  return document.fullscreenElement || document.webkitFullscreenElement || null;
+}
+function fsActive() { return !!fsElement(); }
+
+function fsSync() {
+  const on = fsActive();
+  const c = $("fsBtn");
+  if (c) { c.textContent = on ? "Exit full screen \u00b7 Esc" : "Full screen";
+           c.title = on ? "Back to the bench \u00b7 Esc does it too"
+                        : "Play the field full screen on this whole display";
+           c.setAttribute("aria-pressed", on ? "true" : "false"); }
+  /* The element is not at its new size yet when this event lands, and one resize() now
+     would read the OLD box and stretch the field. Measure again on the next frame, when
+     the browser has actually laid it out. */
+  if (R3) resize();
+  requestAnimationFrame(function () { if (R3) resize(); });
+  setTimeout(function () { if (R3) resize(); }, 120);
+}
+
+function fsToggle() {
+  const st = document.querySelector(".stage");
+  if (!st) return;
+  if (fsActive()) {
+    const ex = document.exitFullscreen || document.webkitExitFullscreen;
+    if (ex) ex.call(document);
+    return;
+  }
+  /* Say so ON THE CHIP, not in #hint. #hint is rewritten from live state on every UI
+     refresh, so a message left there is gone within a frame and the button just looks
+     broken. The chip's own label is written by nothing but fsSync. */
+  const fail = function (why) {
+    const c = $("fsBtn"); if (!c) return;
+    c.textContent = "Full screen blocked";
+    c.title = why + " \u2014 an embedded or sandboxed page is usually the reason; " +
+              "open this file in a normal browser tab";
+  };
+  const req = st.requestFullscreen || st.webkitRequestFullscreen;
+  if (!req) { fail("this browser has no element full screen"); return; }
+  let p = null;
+  /* Safari returns nothing; Chrome returns a promise that REJECTS when the page is not
+     permitted to go fullscreen at all. Both can also THROW synchronously. */
+  try { p = req.call(st); }
+  catch (e) { fail(e && e.message ? e.message : "refused"); return; }
+  if (p && p.catch) p.catch(function (e) {
+    fail(e && e.message ? e.message : "refused by the browser");
+  });
+}
+
+["fullscreenchange", "webkitfullscreenchange"].forEach(function (ev) {
+  document.addEventListener(ev, fsSync);
+});
+(function () { const b = $("fsBtn"); if (b) b.addEventListener("click", fsToggle); })();
+fsSync();
 
 /* ================= boot ================= */
 function boot() {
