@@ -2030,7 +2030,7 @@ const S = {
   showTraj:true, showTags:true, showHud:true, chase:false,
   tab:"build", predict:5.5, pts:[], code:STARTER
 };
-const BUILD_ID = "2026-11-12s \u00b7 match horns, the buzzer stops play, final score";
+const BUILD_ID = "2026-11-12t \u00b7 the HIVE rocks instead of spinning on";
 const DEFAULTS = JSON.parse(JSON.stringify(S));
 /* Settings persist between visits; the robot pose, magazine and score do not - a stale pose
    from last time is a terrible way to open, and the match state should always start clean. */
@@ -4671,7 +4671,13 @@ function checkTip(st, up) {
        radially outward from the pivot, so only a half turn actually swaps which one faces
        up - a 2 x tilt throw leaves the same CELL up and scores nothing. The cost is that
        the ridges invert while tipped; see the note in the Spec sheet. */
-    st.target = (st.target || 0) + Math.PI;
+    /* ROCK BACK, do not keep turning. This added half a turn every TIP, so the angle
+       climbed 180, 360, 540... and the HIVE went round and round like a rotor - two TIPS
+       and it had been through a full 360. 9.6.2 is explicit that it does not: "Each HIVE
+       rotates around a pivot... and has TWO STABLE POSITIONS: each one with one CELL
+       facing upwards", and 9.6 calls the motion a TIP. So it swings between those two
+       positions and back again, which is also what the dampers below are for. */
+    st.target = (Math.abs((st.target || 0) - Math.PI) < 0.01) ? 0 : Math.PI;
     st.releasing = true;
     st.w = 0.25;                                 // it starts to go
     needUI = true;
