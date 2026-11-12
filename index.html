@@ -2030,7 +2030,7 @@ const S = {
   showTraj:true, showTags:true, showHud:true, chase:false,
   tab:"build", predict:5.5, pts:[], code:STARTER
 };
-const BUILD_ID = "2026-11-13 \u00b7 the HIVE rocks a quarter turn, CELLS go up and down";
+const BUILD_ID = "2026-11-13b · the HIVE turns one way, a quarter at a time";
 const DEFAULTS = JSON.parse(JSON.stringify(S));
 /* Settings persist between visits; the robot pose, magazine and score do not - a stale pose
    from last time is a terrible way to open, and the match state should always start clean. */
@@ -3175,6 +3175,15 @@ function buildScene() {
       tg.rotation.x = Math.PI/2;
       tg.position.set(0, -hh - .6, -dep/2);
       g.add(tg);
+      /* A CLUSTER ON THE OPPOSITE FACE TOO. The CELLS are bolted to the arm and the rotor
+         only ever turns one way, so every second TIP leaves a CELL inverted - with a single
+         cluster underneath, the CELL you are meant to score in would be showing its tags at
+         the ceiling and the camera could not read them. Carrying the same cluster on both
+         faces means one is always looking at the TILES, whatever the rotor has done. */
+      const tg2 = new THREE.Mesh(tg.geometry, tg.material);
+      tg2.rotation.x = -Math.PI/2;
+      tg2.position.set(0, hh + .6, -dep/2);
+      g.add(tg2);
 
       /* Sit the cage at the end of the rocker arm, mouth pointing away from the pivot.
          ARM_TO_OPENING is already the distance from the pivot to the OPENING - it is solved
@@ -3205,7 +3214,7 @@ function buildScene() {
       const qRoll = new THREE.Quaternion()
         .setFromAxisAngle(new THREE.Vector3(0, 0, 1), side < 0 ? Math.PI : 0);
       g.quaternion.copy(qRidge).multiply(qFace).multiply(qRoll);
-      g.userData = { tag:tg, contents:[], levelSign:sign,
+      g.userData = { tag:tg, tagTop:tg2, contents:[], levelSign:sign,
                      edges:edges, hw:hw, hh:hh, dep:dep };
       rocker.add(g);
       return g;
@@ -4705,8 +4714,15 @@ function checkTip(st, up) {
        opposite sides of the two pivots: rocking both the SAME way sent RED's CELLS across
        the field at a constant height - swapping sides instead of going up and down - while
        BLUE's behaved. The swing has to carry `side`. */
-    const sw = (st.side || 1)*TIP_SWING;
-    st.target = (Math.abs(st.target || 0) > TIP_SWING/2) ? 0 : sw;
+    /* A HIVE ALWAYS TURNS THE SAME WAY. In the build video the operator pushes the raised
+       CELL down again and again and the assembly keeps advancing - it never springs back
+       the way it came. That is simply what a two-CELL rotor does: whichever CELL is up is
+       the one that gets loaded, and loading it carries the rotation onward.
+
+       This used to alternate between two targets, so every second TIP ran the rotor
+       BACKWARDS and the CELLS retraced the arc they had just travelled. A quarter turn
+       each time, always the same way: four TIPS bring it back round to where it started. */
+    st.target = (st.target || 0) + (st.side || 1)*TIP_SWING;
     st.releasing = true;
     st.w = 0.25;                                 // it starts to go
     needUI = true;
