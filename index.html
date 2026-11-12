@@ -2030,7 +2030,7 @@ const S = {
   showTraj:true, showTags:true, showHud:true, chase:false,
   tab:"build", predict:5.5, pts:[], code:STARTER
 };
-const BUILD_ID = "2026-11-12u \u00b7 CELLS go up and down; score alternates sides";
+const BUILD_ID = "2026-11-13 \u00b7 the HIVE rocks a quarter turn, CELLS go up and down";
 const DEFAULTS = JSON.parse(JSON.stringify(S));
 /* Settings persist between visits; the robot pose, magazine and score do not - a stale pose
    from last time is a terrible way to open, and the match state should always start clean. */
@@ -2316,19 +2316,19 @@ const ARM_TO_OPENING = HIVE_SPAN/2;            // 21.455 in. from the pivot
 const ARM_ANGLE = Math.acos(Math.max(-1, Math.min(1,
                     (OPEN_CENTRE - F.pivotH) / ARM_TO_OPENING)));   // radians from vertical
 const rockerArm = () => ARM_TO_OPENING;
-/* THE ROCK.
-   The CELLS sit on the two ends of ONE beam through the pivot, and the beam rocks between
-   two mirrored angles - so each CELL stays on its own side of the FIELD and simply rises
-   and falls. It does not travel round the pivot, which is what "the baskets just go up and
-   down, they don't turn 360" means and what 9.6's word TIP means.
+/* ===== HOW A HIVE MOVES: A QUARTER TURN, NOT A HALF ONE =====
+   The two CELLS hang on opposite ends of one beam through the axle (Initial Field Element
+   Assembly Guide V1.0 s7). A HALF turn maps each CELL exactly onto where the other one was,
+   so the raised OPENING came back to the same spot and a robot could sit still and keep
+   scoring - and the CELLS swept a full circle on the way, which is not what a HIVE does.
 
-   The angle is not a choice. The raised MOUTH has to land at 9.6.2's opening height, so
-   sin(TIP_SWING) = (59.55 - 43.95) / 21.455, which is 46.6 degrees either side of
-   horizontal. That also fixes everything else: the raised CELL sits 14.73 in. from the
-   centreline, so the two raised positions are 29.5 in. apart and a ROBOT really does have
-   to cross to the other side after each TIP. */
-const TIP_SWING = Math.asin(Math.max(-1, Math.min(1,
-                    (OPEN_CENTRE - F.pivotH) / ARM_TO_OPENING)));
+   A QUARTER turn is the real motion. Run the arm from 0 to 90 degrees and each CELL barely
+   changes which side of the pivot it is on, but swaps height:
+       CELL A   y 59.6 -> 29.2    z +14.7 -> +15.6      straight DOWN, same side
+       CELL B   y 28.4 -> 58.7    z -14.7 -> -15.6      straight UP,   same side
+   That is "the baskets go up and down, they do not turn 360", and the OPENING you can score
+   into moves 30.3 in. across the field - so the robot has to cross to keep scoring. */
+const TIP_SWING = Math.PI/2;
 const cellMouthZ = () => F.pivotH + ARM_TO_OPENING*Math.cos(ARM_ANGLE);
 const cellSeparation = () => 2*ARM_TO_OPENING*Math.cos(ARM_ANGLE);
 
@@ -3183,12 +3183,9 @@ function buildScene() {
          So there is nothing to add here. The half-depth that used to be added put the 3D
          opening 5.2 in. above the height the solver aims at, and every ball sailed under the
          rim and through a side wall. */
-      /* On the beam, level with the pivot, one at each end. The old line put one CELL
-         ABOVE the pivot and the other BELOW it - diametrically opposite - and the only way
-         to swap which was up was to turn the whole thing half a circle. That is why the
-         CELLS went round, and why the raised one came back to the SAME place every time
-         so a ROBOT never had to move. */
-      g.position.set(0, 0, sign*side*ARM_TO_OPENING);
+      const out = 0;
+      g.position.set(0, sign*(armY + out*Math.cos(ARM_ANGLE)),
+                        sign*side*(armZ + out*Math.sin(ARM_ANGLE)));
       /* Figure 9-9 shows BOTH CELLS of a HIVE built identically - same house, ridge up,
          neither one inverted. Only their MOUTHS face opposite ways, because each opens
          radially outward from the pivot.
@@ -3215,7 +3212,7 @@ function buildScene() {
     }
     const cellA = mkCell( 1, row[3]);   // the far-side CELL
     const cellB = mkCell(-1, row[4]);   // the audience-side CELL
-    rocker.add(tube([0, 0, ARM_TO_OPENING], [0, 0, -ARM_TO_OPENING], .8, steel));
+    rocker.add(tube([0, dv, dh], [0, -dv, -dh], .8, steel));
     /* dampers, the parts the TIP criteria actually watches (10.5.1) */
     [[0, 1],[0, -1]].forEach(function (d) {
       const dm = new THREE.Mesh(new THREE.BoxGeometry(2.4, 1.2, 2.4),
@@ -3227,13 +3224,8 @@ function buildScene() {
        that rotates on a pivot" and Figure 9-9 draws both CELLS identical and ridge-up, so the
        CELLS are carried by the assembly rather than spun with it. Storing the two build
        orientations lets the tip hand each CELL the other's pose instead of turning it over. */
-    /* at rest the beam is already tilted - one CELL up, one down. A level beam would have
-       neither facing upwards, which 9.6.2 does not allow: both stable positions have a
-       CELL up. */
-    rocker.rotation.x = -TIP_SWING;
     cells[ally] = { rocker:rocker, a:cellA, b:cellB, upIsA:true,
-                    flip:-TIP_SWING, target:-TIP_SWING, ang:-TIP_SWING, w:0,
-                    tiltRad:tiltRad, dv:dv, dh:dh, side:side,
+                    flip:0, target:0, tiltRad:tiltRad, dv:dv, dh:dh, side:side,
                     qA: cellA.quaternion.clone(), qB: cellB.quaternion.clone() };
   });
   scene.add(hive);
@@ -4257,10 +4249,9 @@ function stageAuto(solvePreload) {
      three staged NECTAR went into whichever CELL happened to be up rather than the right one. */
   if (R3 && R3.cells) Object.keys(R3.cells).forEach(function (a) {
     const st = R3.cells[a];
-    st.ang = -TIP_SWING; st.w = 0; st.target = -TIP_SWING;
-    st.flip = -TIP_SWING; st.flipFrom = -TIP_SWING;
+    st.ang = 0; st.w = 0; st.target = 0; st.flip = 0; st.flipFrom = 0;
     st.releasing = false; st.upIsA = true;
-    st.rocker.rotation.x = -TIP_SWING;
+    st.rocker.rotation.x = 0;
     st.a.quaternion.copy(st.qA); st.b.quaternion.copy(st.qB);
   });
   R3.fieldBalls.forEach(b => R3.fieldGroup.remove(b.mesh));
@@ -4654,9 +4645,15 @@ function levelCells(st) {
      swapped while the position kept going round: the CELL sitting at the top had its mouth
      pointing down, and the one at the bottom held its load with the mouth up and could never
      empty. Triangular in ang, period 2*PI: 0 at 0, 1 at PI, back to 0 at 2*PI. */
-  const TAU = Math.PI*2;
-  let ph = (st.ang || 0) % TAU; if (ph < 0) ph += TAU;
-  const t = ph <= Math.PI ? ph/Math.PI : 2 - ph/Math.PI;
+  /* qA and qB differ by a half turn about the CELL's own VERTICAL axis, so sliding between
+     them swings the MOUTH from up to down while the AprilTag Cluster on the CELL's bottom
+     face keeps pointing at the TILES the whole way (9.6, 9.9). The raised CELL therefore
+     holds its load and the lowered one empties, and a tag is readable in both states.
+
+     The ramp has to span the SWING. It used to run over 2*PI, back when a TIP was half a
+     turn; against a quarter turn only a quarter of the ramp got used and the CELLS came to
+     rest part-turned - the twisted baskets. */
+  const t = Math.max(0, Math.min(1, (st.ang || 0) / ((st.side || 1)*TIP_SWING)));
   _tA.copy(st.qA).slerp(st.qB, t);
   _tB.copy(st.qB).slerp(st.qA, t);
   st.a.quaternion.copy(_rqi).multiply(_tA);
@@ -4699,7 +4696,12 @@ function checkTip(st, up) {
        rotates around a pivot... and has TWO STABLE POSITIONS: each one with one CELL
        facing upwards", and 9.6 calls the motion a TIP. So it swings between those two
        positions and back again, which is also what the dampers below are for. */
-    st.target = ((st.target || 0) > 0) ? -TIP_SWING : TIP_SWING;
+    /* Which WAY it rocks is the HIVE's own. RED and BLUE are mirrored, so CELL A hangs on
+       opposite sides of the two pivots: rocking both the SAME way sent RED's CELLS across
+       the field at a constant height - swapping sides instead of going up and down - while
+       BLUE's behaved. The swing has to carry `side`. */
+    const sw = (st.side || 1)*TIP_SWING;
+    st.target = (Math.abs(st.target || 0) > TIP_SWING/2) ? 0 : sw;
     st.releasing = true;
     st.w = 0.25;                                 // it starts to go
     needUI = true;
@@ -4821,7 +4823,7 @@ function stepTips(dt) {
   const h = Math.min(dt, 0.02);
   Object.keys(R3.cells).forEach(ally => {
     const st = R3.cells[ally];
-    if (st.w === undefined) { st.w = 0; st.ang = (st.flip === undefined ? -TIP_SWING : st.flip); }
+    if (st.w === undefined) { st.w = 0; st.ang = st.flip || 0; }
     /* Re-test the TIP every frame, not only at the instant a ball lands. checkTip used to be
        called from dropIntoCell alone, and it refuses while the rocker is still settling - so a
        ball arriving during that settle skipped the check, and if no further ball came the CELL
@@ -4834,15 +4836,14 @@ function stepTips(dt) {
     if (settled && !st.releasing) {
       st.ang = target; st.w = 0;
       st.rocker.rotation.x = st.ang;
-      levelCells(st);          /* this was here twice, once mis-indented */
+      levelCells(st);
       return;
     }
     /* torque: the detent pulls toward the nearest stable state, the released mass drives it over */
-    /* The detent has to hold the states the HIVE actually HAS. sin(2*ang) is zero at 0 and
-       at +/-90 degrees, so it held the beam LEVEL - which is not a stable state at all, and
-       is why a TIP ran out of push and died flat with neither CELL up. sin(PI*ang/TIP_SWING)
-       is zero at +/-TIP_SWING and pushes AWAY from level, which is what bi-stable means. */
-    let torque = DETENT*Math.sin(Math.PI*st.ang/TIP_SWING) * (st.releasing ? 0.18 : 1.0);
+    const rel = st.ang - target;
+    /* Bi-stable at 0 and at a QUARTER turn, unstable half way between. sin(2*ang) put the
+       stable points a HALF turn apart, which is the motion this is replacing. */
+    let torque = -DETENT*Math.sin(4*st.ang) * (st.releasing ? 0.18 : 1.0);
     if (st.releasing) {
       const dirn = Math.sign(target - st.ang) || 1;
       torque += dirn * 240;                       // the loaded CELL toppling
@@ -5981,7 +5982,11 @@ function draw2D() {
   g.fillStyle = "rgba(255,255,255,.10)";
   g.fillRect(X(c-F.frameW/2), Z(c+F.frameD/2), F.frameW*k, F.frameD*k);
   const dv = (S.cell - F.cellDepth/2) - F.pivotH;
-  const dh = Math.sqrt(Math.max(1, (F.cellSpacing/2)**2 - dv*dv));
+  /* Fore-and-aft reach of a CELL from the pivot. Solved against F.cellSpacing/2 (9.4 in.)
+     this went NEGATIVE - 9.4 is smaller than dv - and clamped to 1, collapsing both CELLS of
+     a HIVE onto the pivot: they reported the same range and bearing and the robot could score
+     from one spot. The arm is ARM_TO_OPENING. */
+  const dh = Math.sqrt(Math.max(1, ARM_TO_OPENING*ARM_TO_OPENING - dv*dv));
   [["red", -12, 1], ["blue", 12, -1]].forEach(row => {
     const up = [X(c+row[1]-F.cellW/2), Z(c+row[2]*dh+F.cellSpan/2)];
     g.fillStyle = row[0] === "red" ? "rgba(163,18,43,.75)" : "rgba(31,111,208,.75)";
@@ -7552,7 +7557,11 @@ function visibleTags(C) {
   if (!cam.fovH) return [];
   const out = [];
   const dv = S.cell - F.pivotH;
-  const dh = Math.sqrt(Math.max(1, (F.cellSpacing/2)**2 - dv*dv));
+  /* Fore-and-aft reach of a CELL from the pivot. Solved against F.cellSpacing/2 (9.4 in.)
+     this went NEGATIVE - 9.4 is smaller than dv - and clamped to 1, collapsing both CELLS of
+     a HIVE onto the pivot: they reported the same range and bearing and the robot could score
+     from one spot. The arm is ARM_TO_OPENING. */
+  const dh = Math.sqrt(Math.max(1, ARM_TO_OPENING*ARM_TO_OPENING - dv*dv));
   /* Each HIVE carries TWO clusters, one per CELL, and the CELLS are 18.8 in. apart on
      opposite sides of the pivot (9.6.2). Placing both at one point made the audience-side and
      far-side clusters report the same range and bearing, which is the whole thing the camera
@@ -9504,10 +9513,9 @@ function goHome() {
       cl.userData.contents.forEach(o => cl.remove(o.mesh));
       cl.userData.contents.length = 0;
     });
-    st.ang = -TIP_SWING; st.w = 0; st.target = -TIP_SWING;
-    st.flip = -TIP_SWING; st.flipFrom = -TIP_SWING;
+    st.ang = 0; st.w = 0; st.target = 0; st.flip = 0; st.flipFrom = 0;
     st.releasing = false; st.upIsA = true;
-    st.rocker.rotation.x = -TIP_SWING;
+    st.rocker.rotation.x = 0;
     if (st.qA) { st.a.quaternion.copy(st.qA); st.b.quaternion.copy(st.qB); }
   });
   if (typeof clearFalling === "function") clearFalling();
