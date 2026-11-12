@@ -87,6 +87,22 @@ body{margin:0; background:var(--plane); color:var(--ink);
   background:rgba(16,19,24,.82); border:1px solid rgba(255,255,255,.22); border-radius:4px;
   padding:6px 11px; cursor:pointer; backdrop-filter:blur(3px)}
 .fsbtn:hover{background:rgba(216,32,60,.92); border-color:transparent}
+/* the recorder, on the FIELD, left of the MATCH clock so the top edge reads
+   [REC][PLAY]  [2:30]  [FULL SCREEN] */
+.fieldrec{position:absolute; top:10px; right:244px; z-index:6; display:flex; gap:7px;
+  align-items:center}
+.frbtn{font-family:var(--f-display); font-size:13px; font-weight:700; letter-spacing:.06em;
+  padding:9px 15px; border-radius:6px; cursor:pointer; color:#fff; border:1px solid transparent;
+  box-shadow:0 2px 8px rgba(0,0,0,.5); transition:filter .12s, transform .08s}
+.frbtn:hover{filter:brightness(1.22)}
+.frbtn:active{transform:translateY(1px)}
+.frbtn.rec{background:#d8203c}
+.frbtn.play{background:#1f9d4d}
+.frbtn.rec.live{animation:recpulse 1.1s ease-in-out infinite}
+.frbtn:disabled{opacity:.4; cursor:not-allowed; filter:none}
+.frn{font-family:var(--f-mono); font-size:11px; color:#cfd8e3; min-width:22px;
+  text-shadow:0 1px 3px rgba(0,0,0,.8)}
+@media (max-width:900px){ .fieldrec{right:12px; top:48px} }
 .fsbtn[aria-pressed="true"]{background:rgba(216,32,60,.86); border-color:transparent}
 /* The MATCH clock and the scoreboard live in this same corner. They are stood aside for
    the button ALWAYS, not only in fullscreen - the button is on the field the whole time
@@ -443,6 +459,15 @@ input[type=range]:focus-visible{outline:2px solid var(--amber); outline-offset:3
   border:1px solid var(--rule); border-radius:4px; padding:5px 10px; cursor:pointer}
 .linkbtn:hover{color:var(--ink); border-color:var(--amber)}
 .linkbtn:focus-visible{outline:2px solid var(--amber); outline-offset:2px}
+/* the recorder's own buttons, which a student hunts for - bigger, and coloured the way
+   every recorder on earth is coloured */
+.linkbtn.big{font-family:var(--f-display); font-size:14px; font-weight:700; letter-spacing:.04em;
+  padding:9px 16px; border-radius:6px}
+.linkbtn.rec{background:#d8203c; border-color:#d8203c; color:#fff}
+.linkbtn.play{background:#1f9d4d; border-color:#1f9d4d; color:#fff}
+.linkbtn.rec:hover, .linkbtn.play:hover{filter:brightness(1.15); color:#fff}
+.linkbtn.rec.live{animation:recpulse 1.1s ease-in-out infinite}
+.linkbtn.big:disabled{opacity:.42; cursor:not-allowed; filter:none}
 
 /* ---------- stats ---------- */
 .spec{display:grid; grid-template-columns:repeat(auto-fit,minmax(124px,1fr)); gap:1px; background:var(--grid)}
@@ -633,6 +658,14 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
            click. One button that changes its own label covers both directions. -->
       <button class="fsbtn" id="fsBtn" aria-pressed="false"
               title="Play the field full screen on this whole display">Full screen</button>
+      <!-- On the FIELD itself, top right, next to FULL SCREEN - the recorder belongs where
+           you are looking while you drive the routine, not under the field or behind a tab.
+           Inside .stage so it survives full screen too. -->
+      <div class="fieldrec" role="group" aria-label="Record an AUTO">
+        <button class="frbtn rec" id="bRecF">&#9679; REC</button>
+        <button class="frbtn play" id="bPlayF">&#9654; PLAY</button>
+        <span class="frn" id="recFieldNote">0</span>
+      </div>
       <div class="loading" id="loading">building the field&hellip;</div>
       <div class="hint" id="hint">click the field to place the robot &middot; drag to orbit &middot; W A S D / I J K L drive &middot; 1 2 3 4 buttons &middot; Space shoots</div>
       <div class="verdictpill" id="pill" style="color:#8b97a4">&mdash;</div>
@@ -1122,10 +1155,12 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
           <span class="panel-note" id="recNote"></span></div>
         <div class="ctlwrap" style="padding:11px 14px">
           <div class="foot" style="margin:0; padding:0; border:0">
-            <button class="linkbtn" id="bRec2">&#9679; Record</button>
-            <button class="linkbtn" id="bRecStop">Stop</button>
-            <button class="linkbtn" id="bRecClear">Clear</button>
-            <button class="linkbtn" id="bCopyJava">Copy Java</button>
+            <!-- These were plain outlined buttons, and this panel had no PLAY at all. -->
+            <button class="linkbtn big rec" id="bRec2">&#9679; Record</button>
+            <button class="linkbtn big play" id="bPlay2">&#9654; Play</button>
+            <button class="linkbtn big" id="bRecStop">Stop</button>
+            <button class="linkbtn big" id="bRecClear">Clear</button>
+            <button class="linkbtn big" id="bCopyJava">Copy Java</button>
             <span style="font-size:11px; color:var(--muted); font-family:var(--f-mono)" id="copyMsg"></span>
           </div>
         </div>
@@ -1927,7 +1962,7 @@ const S = {
   showTraj:true, showTags:true, showHud:true, chase:false,
   tab:"build", predict:5.5, pts:[], code:STARTER
 };
-const BUILD_ID = "2026-11-12 \u00b7 AUTO recorder on the field \u00b7 red REC / green PLAY";
+const BUILD_ID = "2026-11-12b \u00b7 REC + PLAY on the FIELD, top right";
 const DEFAULTS = JSON.parse(JSON.stringify(S));
 /* Settings persist between visits; the robot pose, magazine and score do not - a stale pose
    from last time is a terrible way to open, and the match state should always start clean. */
@@ -9772,16 +9807,36 @@ $("bBots").addEventListener("click", () => {
    went dead to the touch. Every handler calls this directly now, and the loop still calls
    it for the counting-down clock. */
 function syncRecPad() {
+  const nSteps = REC.steps.length;
   const r3 = $("bRec3"), p3 = $("bPlay3"), n3 = $("recPadNote");
   if (r3) { r3.textContent = REC.on ? "\u25a0 STOP REC" : "\u25cf RECORD";
             r3.classList.toggle("live", REC.on); }
   if (p3) { p3.textContent = PLAY.on ? "\u25a0 STOP" : "\u25b6 PLAY";
-            p3.disabled = !REC.steps.length && !PLAY.on; }
+            p3.disabled = !nSteps && !PLAY.on; }
   const s3 = $("bRecStop3"); if (s3) s3.disabled = !REC.on;
-  const c3 = $("bRecClear3"); if (c3) c3.disabled = !REC.steps.length || REC.on;
+  const c3 = $("bRecClear3"); if (c3) c3.disabled = !nSteps || REC.on;
   if (n3) n3.textContent = REC.on
     ? Math.max(0, AUTO_SECS - recElapsed()).toFixed(1) + "s left"
-    : REC.steps.length + (REC.steps.length === 1 ? " step" : " steps");
+    : nSteps + (nSteps === 1 ? " step" : " steps");
+
+  /* the pair ON THE FIELD - short labels, because they sit over the playing surface */
+  const rf = $("bRecF"), pf = $("bPlayF"), nf = $("recFieldNote");
+  if (rf) { rf.textContent = REC.on ? "\u25a0 STOP" : "\u25cf REC";
+            rf.classList.toggle("live", REC.on); }
+  if (pf) { pf.textContent = PLAY.on ? "\u25a0 STOP" : "\u25b6 PLAY";
+            pf.disabled = !nSteps && !PLAY.on; }
+  if (nf) nf.textContent = REC.on
+    ? Math.max(0, AUTO_SECS - recElapsed()).toFixed(0) + "s"
+    : String(nSteps);
+
+  /* and the set in the Auto tab, which had no PLAY and never changed colour */
+  const r2 = $("bRec2"), p2 = $("bPlay2");
+  if (r2) { r2.innerHTML = REC.on ? "\u25a0 Stop" : "\u25cf Record";
+            r2.classList.toggle("live", REC.on); }
+  if (p2) { p2.innerHTML = PLAY.on ? "\u25a0 Stop" : "\u25b6 Play";
+            p2.disabled = !nSteps && !PLAY.on; }
+  const s2 = $("bRecStop"); if (s2) s2.disabled = !REC.on;
+  const c2 = $("bRecClear"); if (c2) c2.disabled = !nSteps || REC.on;
 }
 const toggleRec = () => { REC.on ? recStop() : recStart();
                           drawRec(); syncRecPad(); refreshAll(); };
@@ -9807,13 +9862,14 @@ if (bcbj) bcbj.addEventListener("click", () => {
   if (!t.trim()) { const m = $("blkMsg"); if (m) m.textContent = "no blocks yet"; return; }
   copyText(t, "the Blocks Java");
 });
-["bRec","bRec2","bRec3"].forEach(id => { const e = $(id);
+["bRec","bRec2","bRec3","bRecF"].forEach(id => { const e = $(id);
   if (e) e.addEventListener("click", toggleRec); });
 ["bRecStop","bRecStop3"].forEach(id => { const e = $(id);
   if (e) e.addEventListener("click", stopRec); });
 ["bRecClear","bRecClear3"].forEach(id => { const e = $(id);
   if (e) e.addEventListener("click", clearRec); });
-const bp3 = $("bPlay3"); if (bp3) bp3.addEventListener("click", playRec);
+["bPlay3", "bPlayF", "bPlay2"].forEach(id => { const e = $(id);
+  if (e) e.addEventListener("click", playRec); });
 /* One copier. navigator.clipboard needs a secure context, so it is NOT there when the page
    is opened straight off the Desktop as a file:// URL - which is exactly how this gets used
    while a routine is being driven. Fall back to selecting the text so Ctrl/Cmd+C still
