@@ -1871,7 +1871,7 @@ const S = {
   park:false, rec:null,
   rpmSlow:2050, rpmMid:2320, rpmFull:2650, trackL:0, trackR:0, strafeX:0, padName:"",
   trDist:71, trRpm:2320, autoT:30, autoRun:false, left:false,
-  angle:40, tip:0, wrap:135, launch:9.8, zFloorBase:3.5, zBaseAxis:3, hub:"h1309", ally:"red", drive:"mecanum", players:1, pDrive:["mecanum","mecanum","mecanum","mecanum"], padMap:null, airT:20, airP:1017, airRH:35, gear:1, cell:59.55, tilt:30, eta:0.45, cd:0.75, rpm:3900,
+  angle:40, tip:0, wrap:135, launch:9.8, zFloorBase:3.5, zBaseAxis:3, hub:"h1309", ally:"red", drive:"mecanum", keySwap:true, players:1, pDrive:["mecanum","mecanum","mecanum","mecanum"], padMap:null, airT:20, airP:1017, airRH:35, gear:1, cell:59.55, tilt:30, eta:0.45, cd:0.75, rpm:3900,
   wheelMass:85, robotMass:12, magSize:4, magLeft:4,
   ballCount:80, intakeOn:true, rejectBlue:false, tipMass:191, tipBalls:8,
   claw:null, armT:0, clawMsg:"", armFitted:false, human:{red:5, blue:5},
@@ -3475,11 +3475,33 @@ function recStop() {
 }
 const recT = () => REC.on ? (performance.now()/1000 - REC.t0) : 0;
 
-/* fold whatever driving happened since the last step into turn + travel */
+/* fold whatever driving happened since the last step into turn + travel
+
+   On a MECANUM this resolves the move in the ROBOT's OWN frame, so a sideways slide is
+   recorded as a STRAFE. It used to take the bearing of the move and emit turn-drive-turn,
+   which put the robot in the right place facing the right way but SPUN IT TWICE to get
+   there - throwing away the one thing a mecanum can do that a tank cannot, and burning
+   several seconds of a 30-second AUTO doing it.
+
+   A TANK keeps the old decomposition, because a tank genuinely cannot strafe and turning
+   to the bearing is exactly how it has to get there. */
 function recMove() {
   if (!REC.on || !REC.last) return;
   const dx = S.rx - REC.last.x, dy = S.ry - REC.last.y;
   const dist = Math.hypot(dx, dy);
+  if (S.drive === "mecanum") {
+    const h = REC.last.h, ch = Math.cos(h), sh = Math.sin(h);
+    const fwd =  dx*ch + dy*sh;            /* along the nose */
+    const lat = -dx*sh + dy*ch;            /* out of the right-hand side */
+    const spin = norm(S.heading - REC.last.h);
+    if (Math.abs(fwd)  > 1.0) REC.steps.push({ t:recT(), type:"drive",  inches: fwd });
+    if (Math.abs(lat)  > 1.0) REC.steps.push({ t:recT(), type:"strafe", inches: lat });
+    if (Math.abs(spin) > 2*Math.PI/180)
+      REC.steps.push({ t:recT(), type:"turn", deg: spin*180/Math.PI });
+    REC.last = { x:S.rx, y:S.ry, h:S.heading };
+    if (typeof recLive === "function") recLive();
+    return;
+  }
   if (dist > 1.0) {
     const bearing = Math.atan2(dy, dx);
     const turn = norm(bearing - REC.last.h);
@@ -3684,6 +3706,15 @@ function toJava() {
     const at = "   // t=" + st.t.toFixed(1) + "s";
     if (st.type === "turn")   p("        turnDegrees(" + st.deg.toFixed(1) + ");" + at);
     else if (st.type === "drive") p("        driveInches(" + st.inches.toFixed(1) + ");" + at);
+    else if (st.type === "strafe") {
+      /* strafeInches() only exists on a mecanum. A recording made on a mecanum and then
+         exported as a TANK would otherwise call a method that is not in the file. */
+      if (S.drive === "mecanum")
+        p("        strafeInches(" + st.inches.toFixed(1) + ");" + at);
+      else
+        p("        // RECORDED A STRAFE OF " + st.inches.toFixed(1) +
+          " in - a TANK cannot strafe." + at);
+    }
     else if (st.type === "shoot") p("        shoot(" + Math.round(st.rpm) + ");" + at +
       "  range " + (st.dist/12).toFixed(2) + " ft");
     else if (st.type === "intake") p("        setIntake(" + (st.on ? "true" : "false") + ");" + at);
@@ -4666,24 +4697,36 @@ function drive(dt) {
      right stick has no forward axis and a tank has no sideways one - and a key that
      plainly does nothing is the clearest way to feel why a team pays for mecanum wheels. */
   const clamp = v => Math.max(-1, Math.min(1, v));
-  let ly = 0, lx = 0, ry = 0, rx = 0;
-  if (keys.w) ly += 1;
-  if (keys.s) ly -= 1;
-  if (keys.a) lx -= 1;
-  if (keys.d) lx += 1;
-  if (keys.q) lx -= 1;                        /* Q/E kept as strafe aliases */
-  if (keys.e) lx += 1;
-  if (keys.i) ry += 1;
-  if (keys.k) ry -= 1;
-  if (keys.j) rx -= 1;
-  if (keys.l) rx += 1;
+  /* Read the two CLUSTERS first - the left hand's and the right hand's - and only then
+     decide which stick each one is. Keeping those two steps apart is what makes the swap
+     below a two-line choice instead of ten edits that can disagree with each other. */
+  let Ly = 0, Lx = 0, Ry = 0, Rx = 0;
+  if (keys.w) Ly += 1;
+  if (keys.s) Ly -= 1;
+  if (keys.a) Lx -= 1;
+  if (keys.d) Lx += 1;
+  if (keys.q) Lx -= 1;                        /* Q/E kept as left-hand sideways aliases */
+  if (keys.e) Lx += 1;
+  if (keys.i) Ry += 1;
+  if (keys.k) Ry -= 1;
+  if (keys.j) Rx -= 1;
+  if (keys.l) Rx += 1;
   /* The arrows are PLAYER 2's as soon as there is one. One keyboard, two drivers: a class
      should never be unable to practise because a controller is the wrong model or missing.
-     Solo they are a second right stick, which is exactly what I/K are. */
+     Solo they join the right hand's cluster, which is where I/K already are. */
   if (S.players < 2) {
-    if (keys.arrowup)   ry += 1;
-    if (keys.arrowdown) ry -= 1;
+    if (keys.arrowup)   Ry += 1;
+    if (keys.arrowdown) Ry -= 1;
   }
+  /* S.keySwap hands the DRIVING to the right hand and the TURNING to the left - asked for
+     directly, and off the FTC pad's own layout, so it is a setting rather than the law.
+
+     It applies to MECANUM only, on purpose. A tank has no turn stick to swap: each hand
+     simply owns one side of the robot, and crossing them so the left hand drove the RIGHT
+     wheels would be an absurdity that nothing in the request asks for. */
+  const swap = S.keySwap && S.drive !== "tank";
+  const ly = swap ? Ry : Ly, lx = swap ? Rx : Lx;
+  const ry = swap ? Ly : Ry, rx = swap ? Lx : Rx;
   const kb = mixDrive(clamp(ly), clamp(lx), clamp(ry), clamp(rx), S.drive);
   /* a plugged-in pad has already written S.trackL/R/strafeX this frame; the keys add to it,
      so a driver can hold a stick and tap a key without one cancelling the other */
@@ -4748,6 +4791,25 @@ function padCancelCalib(clear) {
   if (clear) { S.padMap = null; save(); }
   PAD_SIG = "";
 }
+/* The keyboard swap lives in this panel, and it has to be reachable when NO pad is
+   plugged in - which is precisely when somebody is driving on the keys. The panel used
+   to bail out early on "no pad seen" and took every control below it along. */
+function addKeySwapToggle(host) {
+  const lab = document.createElement("label");
+  lab.className = "padinv";
+  lab.title = "Right hand (I J K L) drives and strafes, left hand (A/D) turns. " +
+              "MECANUM only - a tank keeps one hand per side. Keys only, never the pad.";
+  const cb = document.createElement("input");
+  cb.type = "checkbox"; cb.checked = S.keySwap !== false;
+  cb.addEventListener("change", function () {
+    S.keySwap = cb.checked; save(); PAD_SIG = ""; needUI = true;
+  });
+  const sp = document.createElement("span");
+  sp.textContent = "keys: right hand drives (mecanum)";
+  lab.appendChild(cb); lab.appendChild(sp);
+  host.appendChild(lab);
+}
+
 /* one frame of the wizard; driven from the poll, which already runs every frame */
 function stepCalib(pad) {
   if (!CAL.on) return;
@@ -4847,7 +4909,8 @@ function drawPadDiag() {
       p.axes.map(a => Math.round(a*20)).join(","))
     + "|" + (CAL.on ? "cal" + CAL.step + (CAL.wait ? "w" : "") : "") + "|" + CAL.msg
     + "|" + (S.padMap ? S.padMap.ly.i + "" + S.padMap.ry.i + "" + S.padMap.rx.i : "-")
-    + "|" + S.drive + "|" + (S.padInvert ? "inv" : "");
+    + "|" + S.drive + "|" + (S.padInvert ? "inv" : "")
+    + "|" + (S.keySwap !== false ? "swap" : "");
   if (sig === PAD_SIG) return;                      /* only touch the DOM when it changed */
   PAD_SIG = sig;
   host.textContent = "";
@@ -4857,6 +4920,7 @@ function drawPadDiag() {
     line("warn", "no pad seen");
     line("", "press a button on it \u2014 a browser hides a pad until you do");
     line("", "on a Mac an F310 wants the D side of the switch on its back");
+    addKeySwapToggle(host);
     return;
   }
   line("nm", p.id.replace(/\s*\(.*$/, "").slice(0, 28));
@@ -4921,6 +4985,8 @@ function drawPadDiag() {
     sp.textContent = "invert forward/back (aeroplane)";
     lab.appendChild(cb); lab.appendChild(sp);
     host.appendChild(lab);
+
+    addKeySwapToggle(host);
   }
 }
 
@@ -5513,13 +5579,23 @@ function stepPlay(dt) {
     const list = PLAY.list || REC.steps;
     if (PLAY.i >= list.length) { PLAY.on = false; S.autoRun = false; needUI = true; return false; }
     PLAY.cur = list[PLAY.i++];
-    PLAY.rem = PLAY.cur.type === "drive" ? PLAY.cur.inches
-             : PLAY.cur.type === "turn"  ? PLAY.cur.deg*Math.PI/180 : 0;
+    PLAY.rem = PLAY.cur.type === "drive"  ? PLAY.cur.inches
+             : PLAY.cur.type === "strafe" ? PLAY.cur.inches
+             : PLAY.cur.type === "turn"   ? PLAY.cur.deg*Math.PI/180 : 0;
   }
   const a = PLAY.cur;
   if (a.type === "drive") {
     const step = Math.sign(PLAY.rem)*Math.min(Math.abs(PLAY.rem), TOP_SPEED*dt);
     S.rx += Math.cos(S.heading)*step; S.ry += Math.sin(S.heading)*step;
+    PLAY.rem -= step;
+    if (Math.abs(PLAY.rem) < 0.4) PLAY.cur = null;
+  } else if (a.type === "strafe") {
+    /* Without this a strafe fell through to the catch-all below and was DROPPED, so
+       replaying your own recording put the ROBOT somewhere you never drove it. Sideways
+       runs at the same 0.7 of top speed the live mecanum strafe does. */
+    const step = Math.sign(PLAY.rem)*Math.min(Math.abs(PLAY.rem), TOP_SPEED*0.7*dt);
+    S.rx += -Math.sin(S.heading)*step;
+    S.ry +=  Math.cos(S.heading)*step;
     PLAY.rem -= step;
     if (Math.abs(PLAY.rem) < 0.4) PLAY.cur = null;
   } else if (a.type === "turn") {
@@ -6330,7 +6406,9 @@ function updateHud(C) {
     ? ("\u25cf " + S.padName + " connected \u00b7 sticks drive \u00b7 A B X full/mid/slow \u00b7 Y aims")
     : (S.drive === "tank"
         ? "TANK \u00b7 W/S left wheels \u00b7 I/K right wheels \u00b7 1 2 3 4 \u00b7 Space shoots"
-        : "MECANUM \u00b7 W/S drive \u00b7 A/D strafe \u00b7 J/L turn \u00b7 1 2 3 4 \u00b7 Space shoots");
+        : S.keySwap
+          ? "MECANUM \u00b7 I/K drive \u00b7 J/L strafe \u00b7 A/D turn \u00b7 1 2 3 4 \u00b7 Space shoots"
+          : "MECANUM \u00b7 W/S drive \u00b7 A/D strafe \u00b7 J/L turn \u00b7 1 2 3 4 \u00b7 Space shoots");
   $("hMode").textContent = S.src === "fixed" ? "manual rpm"
     : (S.src === "code" ? "your java" : "auto-solved");
   const hAlly = $("hAlly");
@@ -6738,6 +6816,9 @@ function drawRec() {
     const tr = document.createElement("tr");
     const val = st.type === "turn" ? st.deg.toFixed(1) + "\u00b0"
               : st.type === "drive" ? st.inches.toFixed(1) + "\u2033"
+              /* strafe was missing here, so every strafe row showed an empty cell */
+              : st.type === "strafe" ? st.inches.toFixed(1) + "\u2033 " +
+                  (st.inches >= 0 ? "right" : "left")
               : st.type === "shoot" ? Math.round(st.rpm) + " rpm"
               : st.type === "intake" ? (st.on ? "on" : "off") : "";
     tr.innerHTML = "<td>" + st.t.toFixed(1) + "s</td><td>" + st.type + "</td><td>" + val +
@@ -6858,6 +6939,11 @@ function blocksFromRec() {
     else if (st.type === "turn")
       out.push({ c:BLK_COL.motion, t:"call turnDegrees  " + st.deg.toFixed(0),
                  j:"turnDegrees(" + st.deg.toFixed(0) + ");", recIdx:idx });
+    /* a strafe produced NO row at all, so sliding sideways while recording showed
+       nothing on the strip over the field even though the step was counted */
+    else if (st.type === "strafe")
+      out.push({ c:BLK_COL.motion, t:"call strafeInches  " + st.inches.toFixed(1),
+                 j:"strafeInches(" + st.inches.toFixed(1) + ");", recIdx:idx });
     else if (st.type === "shoot")
       out.push({ c:BLK_COL.my, t:"call shoot  " + Math.round(st.rpm || S.rpm) + " rpm",
                  j:"shoot(" + Math.round(st.rpm || S.rpm) + ");", my:true, recIdx:idx });
@@ -6913,6 +6999,10 @@ const FTC_SRC = [
   "ftc/blocks/linear_op_mode.js",
   "ftc/blocks/dc_motor.js",
   "ftc/blocks/servo.js",
+  /* The windmill feeder and both intake servos are CRServos. This file sat in ftc/blocks
+     unloaded, so crServo_* blocks did not exist, the recorder's feed and intake steps were
+     skipped without a word, and an exported AUTO spun the flywheel but never fed a ball. */
+  "ftc/blocks/cr_servo.js",
   "ftc/blocks/telemetry.js",
   "ftc/blocks/gamepad.js",
   "ftc/blocks/elapsed_time2.js",
@@ -6944,6 +7034,8 @@ function ftcToolboxXml() {
           "dcMotor_setProperty_ZeroPowerBehavior","dcMotor_getProperty_Boolean"])
     + cat("Servo", "#4a7fd4", ["servo_setProperty_Number","servo_getProperty_Number",
           "servo_setProperty_Direction"])
+    + cat("CRServo", "#4a7fd4", ["crServo_setProperty_Number","crServo_getProperty_Number",
+          "crServo_setProperty_Direction"])
     + cat("Telemetry", "#8a8f97", ["telemetry_addTextData_All","telemetry_addNumericData_All",
           "telemetry_update","telemetry_speak_Text"])
     + cat("Gamepad", "#7e57c2", ["gamepad_getProperty_Boolean","gamepad_getProperty_Number"])
@@ -7042,6 +7134,42 @@ function blocksToSteps() {
      still recognised when it is read back on the other */
   const DRIVE = ["left_front_drive","left_back_drive","right_front_drive","right_back_drive",
                  "left_drive","right_drive"];
+  /* The blocks carry a RUNNING TOTAL of encoder ticks, because the program resets the
+     encoders once and every step is an absolute target from there. Reading a target
+     straight off as a distance therefore reads the whole journey so far, not the step -
+     so the totals are differenced back into per-step deltas here, and the four wheels'
+     deltas are resolved into the drive / strafe / turn that produced them. */
+  const ORD = (S.drive === "tank") ? ["left_drive","right_drive"]
+            : ["left_front_drive","right_front_drive","left_back_drive","right_back_drive"];
+  const TARG = {}, pend = {};
+  /* "a bare setPower means drive a bit" is a guess for a hand-built program that has no
+     target positions in it at all. In a RUN_TO_POSITION program the power is just the
+     speed the targets are chased at, and reading it as motion invented two phantom
+     12-inch drives out of the setup block. */
+  let runToPos = false;
+  const noteTarget = (id, v) => {
+    if (DRIVE.indexOf(id) < 0) return;
+    pend[id] = (pend[id] || 0) + (v - (TARG[id] || 0));
+    TARG[id] = v;
+  };
+  const flushDrive = () => {
+    if (!Object.keys(pend).length) return;
+    const g = id => pend[id] || 0;
+    let D = 0, T = 0, X = 0;
+    if (ORD.length >= 4) {
+      const a = g(ORD[0]), b2 = g(ORD[1]), c = g(ORD[2]), d = g(ORD[3]);  /* lf rf lb rb */
+      D = (a + b2 + c + d)/4;          /* all four together  = forward   */
+      T = (b2 + d - a - c)/4;          /* right minus left   = turn      */
+      X = (a + d - b2 - c)/4;          /* the diagonal pairs = strafe    */
+    } else {
+      const a = g(ORD[0]), b2 = g(ORD[1]);
+      D = (a + b2)/2; T = (b2 - a)/2;
+    }
+    Object.keys(pend).forEach(k => delete pend[k]);
+    if (Math.abs(D) > 4) steps.push({ type:"drive",  inches: D/43.0 });
+    if (Math.abs(X) > 4) steps.push({ type:"strafe", inches: X/43.0 });
+    if (Math.abs(T) > 2) steps.push({ type:"turn",   deg: T/9.6 });
+  };
   BLK.ws.getTopBlocks(true).forEach(function walk(b) {
     while (b) {
       const t = b.type || "";
@@ -7050,18 +7178,40 @@ function blocksToSteps() {
           const id = b.getFieldValue("IDENTIFIER") || b.getFieldValue("IDENTIFIER1") || "";
           const prop = b.getFieldValue("PROP") || "";
           const v = ftcNumberFrom(b, "VALUE") || ftcNumberFrom(b, "VALUE1") || 0;
-          if (id === GBOT.common.launcher && (prop === "Velocity" || prop === "Power")) {
-            steps.push({ type:"shoot", rpm: prop === "Velocity" ? Math.abs(v)*60/28
+          if (prop === "Mode") {
+            /* this block type ALSO starts with dcMotor_setProperty, so it lands here and
+               has to be recognised here - a separate else-if further down never runs */
+            const e = b.getInputTargetBlock && b.getInputTargetBlock("VALUE");
+            if (e && e.getFieldValue && e.getFieldValue("RUN_MODE") === "RUN_TO_POSITION")
+              runToPos = true;
+          } else if (id === GBOT.common.launcher && (prop === "Velocity" || prop === "Power")) {
+            /* the inverse of rpmToTicks(), gear ratio and all - it used to divide by a
+               hardcoded 28 and ignore the gearing, so reading a program back gave a
+               different rpm from the one that wrote it */
+            const Mx = (typeof motor === "function") ? motor() : { ppr:28 };
+            const div = (S.gear || 1) * (Mx.ppr || 28);
+            flushDrive();
+            steps.push({ type:"shoot", rpm: prop === "Velocity" ? Math.abs(v)*60/div
                                             : Math.abs(v)*maxFlyRpm() });
           } else if (id === "intake") {
+            flushDrive();
             steps.push({ type:"intake", on: Math.abs(v) > 0.05 });
           } else if (DRIVE.indexOf(id) >= 0 && prop === "TargetPosition") {
-            steps.push({ type:"drive", inches: v/43.0 });   // DRIVE_TICKS_PER_IN in the export
-          } else if (DRIVE.indexOf(id) >= 0 && prop === "Power" && Math.abs(v) > 0.05) {
+            noteTarget(id, v);
+            const id2 = b.getFieldValue("IDENTIFIER2");
+            if (id2) noteTarget(id2, ftcNumberFrom(b, "VALUE2"));
+          } else if (DRIVE.indexOf(id) >= 0 && prop === "Power" && Math.abs(v) > 0.05
+                     && !runToPos) {
             steps.push({ type:"drive", inches: 12*Math.sign(v) });
           }
+        } else if (t === "controls_whileUntil") {
+          flushDrive();            /* while (isBusy) is where one move ends */
         } else if (t === "linearOpMode_sleep_Number") {
-          steps.push({ type:"wait", sec:(ftcNumberFrom(b, "MILLISECONDS") || 0)/1000 });
+          flushDrive();
+          const ms = ftcNumberFrom(b, "MILLISECONDS") || 0;
+          /* carry BOTH spellings: toJava() reads .ms, the field player reads .sec, and
+             before this the two disagreed and the export wrote sleep(NaN) */
+          steps.push({ type:"wait", sec: ms/1000, ms: ms });
         }
       } catch (e) { /* a block we cannot read is simply not a step */ }
       const inner = b.getInputTargetBlock && (b.getInputTargetBlock("DO") || b.getInputTargetBlock("STACK"));
@@ -7069,6 +7219,7 @@ function blocksToSteps() {
       b = b.getNextBlock ? b.getNextBlock() : null;
     }
   });
+  flushDrive();                   /* the last move has no block after it to trigger a flush */
   return steps;
 }
 function ftcNumberFrom(block, inputName) {
@@ -7105,63 +7256,136 @@ function blocksFromRecording() {
   BLK.ws.clear();
   ftcEnsureRunOpMode();
   let made = 0;
-  const TICKS = 43.0;                         // DRIVE_TICKS_PER_IN in the export
-  const mk = t => { const b = BLK.ws.newBlock(t); b.initSvg(); b.render(); return b; };
-  const num = v => { const n = mk("math_number"); n.setFieldValue(String(v), "NUM"); return n; };
-  const put = b => { const tail = ftcBodyTail(); if (tail) tail.connect(b.previousConnection); made++; };
+  const TICKS = 43.0, TURN = 9.6;   /* DRIVE_TICKS_PER_IN / TURN_TICKS_PER_DEG in the export */
+  const C = gbCfg(), K = GBOT.common, tank = S.drive === "tank";
+  const have = t => Blockly.Blocks[t];
+  if (!have("dcMotor_setDualProperty_Number")) return 0;
+
+  const mk  = t => { const b = BLK.ws.newBlock(t); b.initSvg(); b.render(); return b; };
+  /* Do NOT round everything: ticks arrive already rounded, but DRIVE_POWER is 0.55 and
+     Math.round turned it into setPower(1) - full power into every target. */
+  const num = v => { const n = mk("math_number");
+    const near = Math.abs(v - Math.round(v)) < 1e-9;
+    n.setFieldValue(near ? String(Math.round(v)) : String(+Number(v).toFixed(3)), "NUM");
+    return n; };
+  const put = b => { if (!b) return; const tail = ftcBodyTail();
+                     if (tail) { tail.connect(b.previousConnection); made++; } };
 
   const dual = (idA, idB, prop, vA, vB) => {
-    if (!Blockly.Blocks["dcMotor_setDualProperty_Number"]) return null;
     const b = mk("dcMotor_setDualProperty_Number");
     b.setFieldValue(prop, "PROP");
-    b.setFieldValue(idA, "IDENTIFIER1");
-    b.setFieldValue(idB, "IDENTIFIER2");
+    b.setFieldValue(idA, "IDENTIFIER1"); b.setFieldValue(idB, "IDENTIFIER2");
     b.getInput("VALUE1").connection.connect(num(vA).outputConnection);
     b.getInput("VALUE2").connection.connect(num(vB).outputConnection);
     return b;
   };
   const single = (id, prop, v) => {
-    if (!Blockly.Blocks["dcMotor_setProperty_Number"]) return null;
+    if (!have("dcMotor_setProperty_Number")) return null;
     const b = mk("dcMotor_setProperty_Number");
-    b.setFieldValue(id, "IDENTIFIER");
-    b.setFieldValue(prop, "PROP");
+    b.setFieldValue(id, "IDENTIFIER"); b.setFieldValue(prop, "PROP");
     b.getInput("VALUE").connection.connect(num(v).outputConnection);
     return b;
   };
+  const mode = (id, m) => {
+    if (!have("dcMotor_setProperty_RunMode") || !have("dcMotor_typedEnum_runMode")) return null;
+    const b = mk("dcMotor_setProperty_RunMode");
+    b.setFieldValue(id, "IDENTIFIER"); b.setFieldValue("Mode", "PROP");
+    const e = mk("dcMotor_typedEnum_runMode"); e.setFieldValue(m, "RUN_MODE");
+    b.getInput("VALUE").connection.connect(e.outputConnection);
+    return b;
+  };
+  const crs = (id, v) => {
+    if (!have("crServo_setProperty_Number")) return null;
+    const b = mk("crServo_setProperty_Number");
+    b.setFieldValue(id, "IDENTIFIER"); b.setFieldValue("Power", "PROP");
+    b.getInput("VALUE").connection.connect(num(v).outputConnection);
+    return b;
+  };
+  const nap = ms => {
+    if (!have("linearOpMode_sleep_Number")) return null;
+    const b = mk("linearOpMode_sleep_Number");
+    b.getInput("MILLISECONDS").connection.connect(num(ms).outputConnection);
+    return b;
+  };
+  /* while (motor.isBusy()) { idle(); } - the wait that was missing entirely. Without it
+     every step fired in the same microsecond and the last target won. */
+  const waitBusy = () => {
+    if (!have("controls_whileUntil") || !have("dcMotor_isBusy")) return null;
+    const w = mk("controls_whileUntil"); w.setFieldValue("WHILE", "MODE");
+    const q = mk("dcMotor_isBusy"); q.setFieldValue(DR[0], "IDENTIFIER");
+    w.getInput("BOOL").connection.connect(q.outputConnection);
+    if (have("linearOpMode_idle"))
+      w.getInput("DO").connection.connect(mk("linearOpMode_idle").previousConnection);
+    return w;
+  };
 
-  const start = mk("linearOpMode_waitForStart");
-  if (start) put(start);
+  /* config names, in the order the export declares them */
+  const DR = C.drive.map(d => d[1]);
+  /* mecanum: 0 lf, 1 rf, 2 lb, 3 rb      tank: 0 left, 1 right */
+  const acc = DR.map(() => 0);
+
+  /* ---- ONE setup, then every step is just a new target ----
+     The old version emitted setTargetPosition and NOTHING else: no RunMode, so the SDK
+     ignored the target; no power, so the motors were never energised; and no wait, so the
+     steps overwrote each other. It also used ABSOLUTE ticks while the Java used relative
+     ones, so a second shorter drive ran BACKWARDS. Resetting the encoders once here means
+     a running total is absolute AND correct, which keeps the block count sane. */
+  DR.forEach(id => put(mode(id, "STOP_AND_RESET_ENCODER")));
+  if (tank) put(dual(DR[0], DR[1], "TargetPosition", 0, 0));
+  else { put(dual(DR[0], DR[1], "TargetPosition", 0, 0));
+         put(dual(DR[2], DR[3], "TargetPosition", 0, 0)); }
+  DR.forEach(id => put(mode(id, "RUN_TO_POSITION")));
+  if (tank) put(dual(DR[0], DR[1], "Power", 0.55, 0.55));
+  else { put(dual(DR[0], DR[1], "Power", 0.55, 0.55));
+         put(dual(DR[2], DR[3], "Power", 0.55, 0.55)); }
+
+  put(mk("linearOpMode_waitForStart"));
+
+  const emitTargets = () => {
+    if (tank) put(dual(DR[0], DR[1], "TargetPosition", acc[0], acc[1]));
+    else { put(dual(DR[0], DR[1], "TargetPosition", acc[0], acc[1]));
+           put(dual(DR[2], DR[3], "TargetPosition", acc[2], acc[3])); }
+    put(waitBusy());
+  };
 
   REC.steps.forEach(function (st) {
     if (st.type === "drive") {
       const t = Math.round(st.inches*TICKS);
-      if (S.drive === "tank") {
-        const b = dual(GBOT.tank.drive[0][1], GBOT.tank.drive[1][1], "TargetPosition", t, t);
-        if (b) put(b);
-      } else {
-        const b1 = dual(GBOT.mecanum.drive[0][1], GBOT.mecanum.drive[2][1],  "TargetPosition", t, t);
-        const b2 = dual(GBOT.mecanum.drive[1][1],GBOT.mecanum.drive[3][1], "TargetPosition", t, t);
-        if (b1) put(b1); if (b2) put(b2);
-      }
+      acc.forEach((_, i) => acc[i] += t);            /* every wheel forward */
+      emitTargets();
     } else if (st.type === "turn") {
-      /* a turn is the two sides in opposition, on either drivetrain */
-      const t = Math.round(st.deg*9.6);       // TURN_TICKS_PER_DEG in the export
-      if (S.drive === "tank") {
-        const b = dual(GBOT.tank.drive[0][1], GBOT.tank.drive[1][1], "TargetPosition", -t, t);
-        if (b) put(b);
-      } else {
-        const b1 = dual(GBOT.mecanum.drive[0][1], GBOT.mecanum.drive[2][1],  "TargetPosition", -t, -t);
-        const b2 = dual(GBOT.mecanum.drive[1][1],GBOT.mecanum.drive[3][1], "TargetPosition",  t,  t);
-        if (b1) put(b1); if (b2) put(b2);
-      }
+      const t = Math.round(st.deg*TURN);
+      if (tank) { acc[0] -= t; acc[1] += t; }
+      else { acc[0] -= t; acc[2] -= t; acc[1] += t; acc[3] += t; }   /* left back, right fwd */
+      emitTargets();
+    } else if (st.type === "strafe" && !tank) {
+      /* front-left and back-right one way, the other pair the other - the same four signs
+         strafeInches() uses in the Java export */
+      const t = Math.round(st.inches*TICKS);
+      acc[0] += t; acc[3] += t; acc[1] -= t; acc[2] -= t;
+      emitTargets();
     } else if (st.type === "shoot") {
-      const b = single(GBOT.common.launcher, "Velocity", Math.round((st.rpm || S.rpm)*28/60));
-      if (b) put(b);
+      /* the SAME maths as the Java rpmToTicks(): rpm * gear * ticksPerRev / 60. It used to
+         be a hardcoded rpm*28/60, which ignored the gear ratio entirely - at a 2:1 the
+         Java asked for 2800 and the blocks for 1400, so every shot fell short. */
+      const Mx = (typeof motor === "function") ? motor() : { ppr:28 };
+      const rpm = st.rpm || S.rpm;
+      put(single(K.launcher, "Velocity", rpm * (S.gear || 1) * (Mx.ppr || 28) / 60));
+      put(nap(900));                                  /* let it come up to speed */
+      put(crs(C.windmill, 1)); put(nap(260)); put(crs(C.windmill, 0));
     } else if (st.type === "intake") {
-      const b = single("intake", "Power", st.on ? 1 : 0);
-      if (b) put(b);
+      /* the roller AND both corner servos, the way the Java setIntake() drives them */
+      const q = st.on ? 1 : 0;
+      put(single(K.intake, "Power", q));
+      K.intakeServos.forEach(v => put(crs(v[1], q)));
     }
   });
+
+  /* stop, so the OpMode does not end with the drive still powered into its last target */
+  if (tank) put(dual(DR[0], DR[1], "Power", 0, 0));
+  else { put(dual(DR[0], DR[1], "Power", 0, 0));
+         put(dual(DR[2], DR[3], "Power", 0, 0)); }
+
   blkRefreshJava();
   return made;
 }
@@ -9026,8 +9250,9 @@ function syncInputs() {
   const dx = $("dtExplain");
   if (dx) dx.textContent = S.drive === "mecanum"
     ? "Four wheels, each driven independently, with rollers at 45\u00b0. It can go sideways: "
-      + "J and L strafe. The exported OpMode gets strafeInches() and drives all four wheels "
-      + "separately, which is why a mecanum program is longer than a tank one."
+      + "J and L strafe. Strafe while RECORDING and the AUTO keeps it as a strafe: the "
+      + "exported OpMode calls strafeInches() and drives all four wheels separately, "
+      + "which is why a mecanum program is longer than a tank one."
     : "Two sides, left and right. No sideways travel - to move right you turn, drive, and "
       + "turn back, which costs time in AUTO. The exported OpMode drives the two sides "
       + "together and has no strafe. Simpler, cheaper, and faster in a straight line.";
