@@ -101,7 +101,7 @@ body{margin:0; background:var(--plane); color:var(--ink);
 .frbtn.rec.live{animation:recpulse 1.1s ease-in-out infinite}
 .frbtn:disabled{opacity:.4; cursor:not-allowed; filter:none}
 .frn{font-family:var(--f-mono); font-size:11px; color:#cfd8e3; min-width:22px;
-  text-shadow:0 1px 3px rgba(0,0,0,.8)}
+  white-space:nowrap; text-shadow:0 1px 3px rgba(0,0,0,.8)}
 @media (max-width:900px){ .fieldrec{right:12px; top:48px} }
 .fsbtn[aria-pressed="true"]{background:rgba(216,32,60,.86); border-color:transparent}
 /* The MATCH clock and the scoreboard live in this same corner. They are stood aside for
@@ -1962,7 +1962,7 @@ const S = {
   showTraj:true, showTags:true, showHud:true, chase:false,
   tab:"build", predict:5.5, pts:[], code:STARTER
 };
-const BUILD_ID = "2026-11-12b \u00b7 REC + PLAY on the FIELD, top right";
+const BUILD_ID = "2026-11-12d \u00b7 blocks show YOUR recording, and they run";
 const DEFAULTS = JSON.parse(JSON.stringify(S));
 /* Settings persist between visits; the robot pose, magazine and score do not - a stale pose
    from last time is a terrible way to open, and the match state should always start clean. */
@@ -7276,8 +7276,13 @@ function blkRefreshJava() {
     : "// drag blocks in from the toolbox\n// the FTC Java generator writes this pane";
   const n = BLK.ws.getAllBlocks(false).length;
   const note = $("blkNote");
-  if (note) note.textContent = n + " block" + (n===1?"":"s")
-    + " \u00b7 real FTC toolbox \u00b7 Java by the FTC generator";
+  /* "20 blocks" alone does not say WHOSE 20 blocks. Without a recording this panel shows a
+     worked example, and somebody who has just driven a routine needs to know at a glance
+     whether they are looking at it or at the demo. */
+  if (note) note.textContent = n + " block" + (n===1?"":"s") + " \u00b7 "
+    + (REC.steps.length ? "from your recording \u00b7 " + REC.steps.length + " steps"
+                        : "worked example \u2014 record a routine to replace it")
+    + " \u00b7 Java by the FTC generator";
 }
 
 /* Map the real FTC blocks onto this simulator. A dcMotor block that sets "launcher" power is
@@ -7407,8 +7412,16 @@ function blkRun() {
    block, two motors, one value each. MECANUM has to address all four wheels independently,
    so it takes two dual blocks and the signs differ when it strafes. Showing the same drive as
    two or as four blocks is the clearest way to see what the extra wheels cost you in code. */
-function blocksFromRecording() {
-  if (!BLK.ws || !REC.steps.length) return 0;
+/* ONE block builder, for the recording and for the worked example alike.
+
+   blocksStarter() used to be a second, older copy of this, and it kept every bug this one
+   had already had fixed: no RunMode, so the SDK ignored the targets; no power, so nothing
+   turned; no wait, so the steps overwrote each other in the same microsecond. Somebody
+   opening the Blocks tab without a recording saw that broken program and had no way to
+   know it was the stale twin. There is no twin now - the example is just a short step
+   list fed through here. */
+function blocksFromSteps(steps, startPose) {
+  if (!BLK.ws || !steps || !steps.length) return 0;
   BLK.ws.clear();
   ftcEnsureRunOpMode();
   let made = 0;
@@ -7497,13 +7510,13 @@ function blocksFromRecording() {
 
   /* the same "put the ROBOT here" the Java export carries, so a blocks student is not the
      only one left guessing where the routine begins */
-  if (REC.start && have("telemetry_addTextData_All") && have("text")) {
+  if (startPose && have("telemetry_addTextData_All") && have("text")) {
     const txt = v => { const b = mk("text"); b.setFieldValue(v, "TEXT"); return b; };
     const t = mk("telemetry_addTextData_All");
     t.getInput("KEY").connection.connect(txt("Place the ROBOT at").outputConnection);
     t.getInput("TEXT").connection.connect(txt(
-      "x " + REC.start.x.toFixed(1) + " in, y " + REC.start.y.toFixed(1) +
-      " in, " + (REC.start.h*180/Math.PI).toFixed(0) + " deg").outputConnection);
+      "x " + startPose.x.toFixed(1) + " in, y " + startPose.y.toFixed(1) +
+      " in, " + (startPose.h*180/Math.PI).toFixed(0) + " deg").outputConnection);
     put(t);
     if (have("telemetry_update")) put(mk("telemetry_update"));
   }
@@ -7517,7 +7530,7 @@ function blocksFromRecording() {
     put(waitBusy());
   };
 
-  REC.steps.forEach(function (st) {
+  steps.forEach(function (st) {
     if (st.type === "drive") {
       const t = Math.round(st.inches*TICKS);
       acc.forEach((_, i) => acc[i] += t);            /* every wheel forward */
@@ -7559,6 +7572,8 @@ function blocksFromRecording() {
   return made;
 }
 
+function blocksFromRecording() { return blocksFromSteps(REC.steps, REC.start); }
+
 /* With nothing recorded there is nothing drivetrain-specific to look at, so choosing mecanum
    appeared to do nothing at all. Each drivetrain now opens with a short worked example of
    ITS OWN driving - which is also the clearest statement of the difference between them:
@@ -7566,121 +7581,17 @@ function blocksFromRecording() {
    record something, and the Clear button wipes it. */
 function blocksStarter() {
   if (!BLK.ws) return 0;
-  BLK.ws.clear();
-  ftcEnsureRunOpMode();
-  const TICKS = 43.0, TURN = 9.6;
-  const mk = t => { const b = BLK.ws.newBlock(t); b.initSvg(); b.render(); return b; };
-  const num = v => { const n = mk("math_number"); n.setFieldValue(String(v), "NUM"); return n; };
-  const put = b => { const tail = ftcBodyTail(); if (b && tail) tail.connect(b.previousConnection); };
-  const dual = (a, bb, prop, va, vb) => {
-    if (!Blockly.Blocks["dcMotor_setDualProperty_Number"]) return null;
-    const b = mk("dcMotor_setDualProperty_Number");
-    b.setFieldValue(prop, "PROP");
-    b.setFieldValue(a, "IDENTIFIER1"); b.setFieldValue(bb, "IDENTIFIER2");
-    b.getInput("VALUE1").connection.connect(num(va).outputConnection);
-    b.getInput("VALUE2").connection.connect(num(vb).outputConnection);
-    return b;
-  };
-  put(mk("linearOpMode_waitForStart"));
-
-  const fwd = Math.round(24*TICKS);           // drive 24 in
-  const spin = Math.round(90*TURN);           // turn 90 deg
-  if (S.drive === "tank") {
-    /* these were GBOT.mecanum, which put left_front_drive / right_front_drive into a TANK
-       program - names that do not exist on a 2-motor Control Hub config, so the OpMode
-       would have thrown on init. A tank has exactly two drive motors; use THEIRS. */
-    put(dual(GBOT.tank.drive[0][1], GBOT.tank.drive[1][1], "TargetPosition", fwd, fwd));
-    put(dual(GBOT.tank.drive[0][1], GBOT.tank.drive[1][1], "TargetPosition", -spin, spin));
-  } else {
-    const side = Math.round(12*TICKS);        // strafe 12 in - no tank equivalent
-    put(dual(GBOT.mecanum.drive[0][1], GBOT.mecanum.drive[2][1],   "TargetPosition", fwd, fwd));
-    put(dual(GBOT.mecanum.drive[1][1],GBOT.mecanum.drive[3][1],  "TargetPosition", fwd, fwd));
-    /* strafing right: front-left and back-right one way, the other pair the other */
-    put(dual(GBOT.mecanum.drive[0][1], GBOT.mecanum.drive[3][1],  "TargetPosition",  side,  side));
-    put(dual(GBOT.mecanum.drive[1][1],GBOT.mecanum.drive[2][1],   "TargetPosition", -side, -side));
-    put(dual(GBOT.mecanum.drive[0][1], GBOT.mecanum.drive[2][1],   "TargetPosition", -spin, -spin));
-    put(dual(GBOT.mecanum.drive[1][1],GBOT.mecanum.drive[3][1],  "TargetPosition",  spin,  spin));
-  }
-  blkRefreshJava();
-  return BLK.ws.getAllBlocks(false).length;
+  /* a short worked example of THIS drivetrain's driving - mecanum gets the strafe a tank
+     cannot do, which is the clearest statement of the difference between them */
+  const demo = S.drive === "tank"
+    ? [{ type:"drive", inches:24 }, { type:"turn", deg:90 }]
+    : [{ type:"drive", inches:24 }, { type:"strafe", inches:12 }, { type:"turn", deg:90 }];
+  return blocksFromSteps(demo, null);
 }
 
-/* ---- the same TeleOp, in BLOCKS ----
-   The blocks workspace only ever held AUTONOMOUS: encoder targets from a recorded path.
-   A student driving on this bench had no way to see the code behind the sticks in their
-   hands. This builds it out of the REAL FTC gamepad and motor blocks, so it is draggable,
-   editable, and the Java pane under it is written by FTC's own generator - not by us.
-   Switching the drivetrain rebuilds the stack, because the stack IS the difference. */
-function blocksTeleOp() {
-  if (!BLK.ws) return 0;
-  BLK.ws.clear();
-  ftcEnsureRunOpMode();
-  const C = gbCfg(), tank = S.drive === "tank";
-  const have = t => Blockly.Blocks[t];
-  if (!have("gamepad_getProperty_Number") || !have("dcMotor_setProperty_Number")) return 0;
-
-  const mk  = t => { const b = BLK.ws.newBlock(t); b.initSvg(); b.render(); return b; };
-  const put = b => { const tail = ftcBodyTail(); if (b && tail) tail.connect(b.previousConnection); };
-  const ax  = prop => { const b = mk("gamepad_getProperty_Number");
-    b.setFieldValue("gamepad1", "IDENTIFIER"); b.setFieldValue(prop, "PROP"); return b; };
-  const neg = inner => { const b = mk("math_single"); b.setFieldValue("NEG", "OP");
-    b.getInput("NUM").connection.connect(inner.outputConnection); return b; };
-  const op  = (o, a, bb) => { const b = mk("math_arithmetic"); b.setFieldValue(o, "OP");
-    b.getInput("A").connection.connect(a.outputConnection);
-    b.getInput("B").connection.connect(bb.outputConnection); return b; };
-  const pow = (id, val) => { const b = mk("dcMotor_setProperty_Number");
-    b.setFieldValue(id, "IDENTIFIER"); b.setFieldValue("Power", "PROP");
-    b.getInput("VALUE").connection.connect(val.outputConnection); return b; };
-
-  put(mk("linearOpMode_waitForStart"));
-
-  const loop = mk("controls_whileUntil");
-  loop.setFieldValue("WHILE", "MODE");
-  loop.getInput("BOOL").connection.connect(mk("linearOpMode_opModeIsActive").outputConnection);
-  put(loop);
-
-  /* the stick, already the right way up: the SDK reports UP as negative, so every
-     forward/back axis is negated - unless the bench is in aeroplane mode, when it is not */
-  const Y  = p => S.padInvert ? ax(p) : neg(ax(p));
-  const body = [];
-  if (tank) {
-    body.push(pow(C.drive[0][1], Y("LeftStickY")));    /* left stick  -> left wheels  */
-    body.push(pow(C.drive[1][1], Y("RightStickY")));   /* right stick -> right wheels */
-  } else {
-    /* GM0's four wheel sums. No denominator here on purpose: dividing by
-       max(|y|+|x|+|rx|, 1) needs four more blocks per wheel and buries the idea.
-       The exported Java has it in full - this stack is the shape of it. */
-    const X = () => ax("LeftStickX"), R = () => ax("RightStickX");
-    body.push(pow(C.drive[0][1], op("ADD",  op("ADD",   Y("LeftStickY"), X()), R())));
-    body.push(pow(C.drive[2][1], op("ADD",  op("MINUS", Y("LeftStickY"), X()), R())));
-    body.push(pow(C.drive[1][1], op("MINUS",op("MINUS", Y("LeftStickY"), X()), R())));
-    body.push(pow(C.drive[3][1], op("MINUS",op("ADD",   Y("LeftStickY"), X()), R())));
-  }
-  /* the A button, so the BUTTONS are in the picture too and not only the sticks */
-  if (have("gamepad_getProperty_Boolean") && have("controls_if")) {
-    const iff = mk("controls_if");
-    const btn = mk("gamepad_getProperty_Boolean");
-    btn.setFieldValue("gamepad1", "IDENTIFIER"); btn.setFieldValue("A", "PROP");
-    iff.getInput("IF0").connection.connect(btn.outputConnection);
-    const num = mk("math_number");
-    num.setFieldValue(String(gbRpmToTicks(S.rpmFull)), "NUM");
-    const setV = mk("dcMotor_setProperty_Number");
-    setV.setFieldValue(GBOT.common.launcher, "IDENTIFIER");
-    setV.setFieldValue("Velocity", "PROP");
-    setV.getInput("VALUE").connection.connect(num.outputConnection);
-    iff.getInput("DO0").connection.connect(setV.previousConnection);
-    body.push(iff);
-  }
-  /* chain the body and drop it into the loop */
-  for (let i = 1; i < body.length; i++)
-    body[i-1].nextConnection.connect(body[i].previousConnection);
-  if (body.length) loop.getInput("DO").connection.connect(body[0].previousConnection);
-
-  blkRefreshJava();
-  return BLK.ws.getAllBlocks(false).length;
-}
-
-/* one door into the workspace, so every caller gets the view the student picked */
+/* One door into the workspace, so every caller gets the view the student picked. This was
+   lost when the stale blocksStarter twin was cut out around it - three call sites were left
+   calling a function that no longer existed, and the Blocks tab threw on open. */
 function blocksRebuild() {
   if (!BLK.ready || !BLK.ws) return 0;
   if (S.codeView === "teleop") return blocksTeleOp();
@@ -9806,48 +9717,78 @@ $("bBots").addEventListener("click", () => {
    when they have nothing to do, a lagging refresh left them disabled and the whole set
    went dead to the touch. Every handler calls this directly now, and the loop still calls
    it for the counting-down clock. */
+/* The keys that actually move the ROBOT right now. With the right-hand swap on a MECANUM,
+   W and S do NOTHING - I and K drive - and somebody who presses W A S D out of habit sees a
+   motionless ROBOT, records nothing, and concludes that STOP and PLAY are broken. */
+function driveKeysNow() {
+  if (S.drive === "tank") return "W/S + I/K";
+  return S.keySwap ? "I/K drive \u00b7 J/L strafe \u00b7 A/D turn"
+                   : "W/S drive \u00b7 A/D strafe \u00b7 J/L turn";
+}
+/* A message pinned on the recorder until something else happens to it. */
+let RECSAY = "", RECSAY_T = 0;
+function recSay(msg) {
+  RECSAY = msg; RECSAY_T = Date.now();
+  syncRecPad();
+  setTimeout(function () { if (Date.now() - RECSAY_T >= 3400) { RECSAY = ""; syncRecPad(); } }, 3600);
+}
+
 function syncRecPad() {
   const nSteps = REC.steps.length;
   const r3 = $("bRec3"), p3 = $("bPlay3"), n3 = $("recPadNote");
   if (r3) { r3.textContent = REC.on ? "\u25a0 STOP REC" : "\u25cf RECORD";
             r3.classList.toggle("live", REC.on); }
-  if (p3) { p3.textContent = PLAY.on ? "\u25a0 STOP" : "\u25b6 PLAY";
-            p3.disabled = !nSteps && !PLAY.on; }
+  /* NOT disabled when there is nothing recorded. A greyed-out button tells a student
+     nothing; pressing it and being told why tells them everything. */
+  if (p3) { p3.textContent = PLAY.on ? "\u25a0 STOP" : "\u25b6 PLAY"; p3.disabled = false; }
   const s3 = $("bRecStop3"); if (s3) s3.disabled = !REC.on;
   const c3 = $("bRecClear3"); if (c3) c3.disabled = !nSteps || REC.on;
-  if (n3) n3.textContent = REC.on
-    ? Math.max(0, AUTO_SECS - recElapsed()).toFixed(1) + "s left"
+  if (n3) n3.textContent = RECSAY ? RECSAY
+    : REC.on ? Math.max(0, AUTO_SECS - recElapsed()).toFixed(1) + "s left"
     : nSteps + (nSteps === 1 ? " step" : " steps");
 
   /* the pair ON THE FIELD - short labels, because they sit over the playing surface */
   const rf = $("bRecF"), pf = $("bPlayF"), nf = $("recFieldNote");
   if (rf) { rf.textContent = REC.on ? "\u25a0 STOP" : "\u25cf REC";
             rf.classList.toggle("live", REC.on); }
-  if (pf) { pf.textContent = PLAY.on ? "\u25a0 STOP" : "\u25b6 PLAY";
-            pf.disabled = !nSteps && !PLAY.on; }
-  if (nf) nf.textContent = REC.on
-    ? Math.max(0, AUTO_SECS - recElapsed()).toFixed(0) + "s"
-    : String(nSteps);
+  if (pf) { pf.textContent = PLAY.on ? "\u25a0 STOP" : "\u25b6 PLAY"; pf.disabled = false; }
+  /* While recording this says which keys move the ROBOT, because that is the moment it
+     matters and the FIELD is where you are looking. */
+  if (nf) nf.textContent = RECSAY ? RECSAY
+    : REC.on ? Math.max(0, AUTO_SECS - recElapsed()).toFixed(0) + "s \u00b7 " + driveKeysNow()
+    : nSteps ? nSteps + (nSteps === 1 ? " step" : " steps") : "0 steps";
 
   /* and the set in the Auto tab, which had no PLAY and never changed colour */
   const r2 = $("bRec2"), p2 = $("bPlay2");
   if (r2) { r2.innerHTML = REC.on ? "\u25a0 Stop" : "\u25cf Record";
             r2.classList.toggle("live", REC.on); }
-  if (p2) { p2.innerHTML = PLAY.on ? "\u25a0 Stop" : "\u25b6 Play";
-            p2.disabled = !nSteps && !PLAY.on; }
+  if (p2) { p2.innerHTML = PLAY.on ? "\u25a0 Stop" : "\u25b6 Play"; p2.disabled = false; }
   const s2 = $("bRecStop"); if (s2) s2.disabled = !REC.on;
   const c2 = $("bRecClear"); if (c2) c2.disabled = !nSteps || REC.on;
 }
-const toggleRec = () => { REC.on ? recStop() : recStart();
-                          drawRec(); syncRecPad(); refreshAll(); };
-const stopRec  = () => { recStop(); drawRec(); syncRecPad(); refreshAll(); };
+const toggleRec = () => {
+  if (REC.on) { stopRec(); return; }
+  recStart(); drawRec(); refreshAll();
+  recSay("recording \u2014 " + driveKeysNow());
+};
+const stopRec  = () => {
+  recStop(); drawRec(); refreshAll();
+  /* The Blocks tab used to keep whatever was in it, so a student drove a routine, opened
+     the tab, and read the worked EXAMPLE believing it was their own driving. Rebuild from
+     what they just drove - it is their recording that the panel is for. */
+  if (BLK.ready && REC.steps.length && S.codeView !== "teleop") blocksFromRecording();
+  if (!REC.steps.length) recSay("nothing recorded \u2014 " + driveKeysNow());
+  else recSay(REC.steps.length + " steps captured");
+};
 const clearRec = () => { REC.steps = []; S.recCount = 0; REC.start = null;
                          recPlayStop(); drawRec(); syncRecPad(); refreshAll(); };
 const playRec  = () => {
   if (PLAY.on) { recPlayStop(); syncRecPad(); refreshAll(); return; }
   if (REC.on) recStop();                 /* pressing PLAY while recording ends the take */
-  if (!recPlay()) { const m = $("recPadNote");
-    if (m) m.textContent = "record something first"; return; }
+  if (!recPlay()) {
+    recSay("nothing to play \u2014 press REC, then " + driveKeysNow());
+    return;
+  }
   syncRecPad(); refreshAll();
 };
 const bcj3 = $("bCopyJava3");
