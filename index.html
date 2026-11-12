@@ -97,7 +97,11 @@ body{margin:0; background:var(--plane); color:var(--ink);
    So display:flex here quietly cancelled hidden, and the bar stayed on screen for the rest
    of the session - while box.hidden read back true, which is how my own check passed. */
 .solvebar[hidden]{display:none !important}
-.solvebar{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:9;
+/* FIXED, not absolute. It lived inside .stage, so it only ever appeared over the FIELD -
+   and the longest job it covers, building a recording into blocks, is one you watch from
+   the Blocks tab, where the FIELD is scrolled off screen entirely. Fixed puts it in the
+   middle of whatever you are actually looking at. */
+.solvebar{position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); z-index:60;
   display:flex; flex-direction:column; gap:9px; align-items:center; min-width:290px;
   padding:18px 24px; border-radius:10px; background:rgba(10,13,17,.93);
   border:1px solid rgba(255,255,255,.16); box-shadow:0 10px 34px rgba(0,0,0,.6)}
@@ -693,7 +697,7 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
       <div class="solvebar" id="solveBar" hidden>
         <span class="t" id="solveBarT">working out a shootable pre-load&hellip;</span>
         <span class="track"><i></i></span>
-        <small>about 5 seconds, once &middot; remembered after this</small>
+        <small id="solveBarSub">about 5 seconds, once &middot; remembered after this</small>
       </div>
       <div class="fieldrec" role="group" aria-label="Record an AUTO">
         <button class="frbtn rec" id="bRecF">&#9679; REC</button>
@@ -1996,7 +2000,7 @@ const S = {
   showTraj:true, showTags:true, showHud:true, chase:false,
   tab:"build", predict:5.5, pts:[], code:STARTER
 };
-const BUILD_ID = "2026-11-12q \u00b7 both CLEAR buttons behave the same";
+const BUILD_ID = "2026-11-12r \u00b7 blocks show YOUR routine, however long";
 const DEFAULTS = JSON.parse(JSON.stringify(S));
 /* Settings persist between visits; the robot pose, magazine and score do not - a stale pose
    from last time is a terrible way to open, and the match state should always start clean. */
@@ -4155,11 +4159,19 @@ function solveSig() {
    style change and the paint happen in different frames, and starting the solve in between
    means the bar never appears at all. The animation itself is CSS, so it carries on moving
    through the blocking search. */
-function withSolveBar(label, fn) {
-  if (!preloadSolveNeeded()) { fn(); return; }
+function withSolveBar(label, fn) { withLoadingBar(label, preloadSolveNeeded(), fn); }
+
+/* The same bar for anything that takes long enough to look broken. `needed` says whether
+   this particular job will actually be slow - when it will not be, the work just runs and
+   no bar appears at all. */
+function withLoadingBar(label, needed, fn) {
+  if (!needed) { fn(); return; }
   const box = $("solveBar"), txt = $("solveBarT");
   if (!box) { fn(); return; }
   if (txt && label) txt.textContent = label;
+  const sub = $("solveBarSub");
+  if (sub) sub.textContent = (typeof needed === "string") ? needed
+                                                         : "about 5 seconds, once \u00b7 remembered after this";
   box.hidden = false;
   requestAnimationFrame(function () {
     requestAnimationFrame(function () {
@@ -7638,7 +7650,7 @@ function blkRefreshJava() {
   /* "20 blocks" alone does not say WHOSE 20 blocks. Without a recording this panel shows a
      worked example, and somebody who has just driven a routine needs to know at a glance
      whether they are looking at it or at the demo. */
-  const tooLong = REC.steps.length > BLK_MAX_AUTO_STEPS;
+  const tooLong = false;
   if (note) note.textContent = n + " block" + (n===1?"":"s") + " \u00b7 "
     /* cleared comes FIRST. The blocks panel's own Clear leaves the recording alone - only
        the blocks are wiped - so a label that keyed off REC.steps announced "from your
@@ -7813,8 +7825,24 @@ function blocksFromSteps(steps, startPose) {
     const near = Math.abs(v - Math.round(v)) < 1e-9;
     n.setFieldValue(near ? String(Math.round(v)) : String(+Number(v).toFixed(3)), "NUM");
     return n; };
-  const put = b => { if (!b) return; const tail = ftcBodyTail();
-                     if (tail) { tail.connect(b.previousConnection); made++; } };
+  /* Remember the end of the stack instead of hunting for it.
+
+     This called ftcBodyTail() for every block, and that walks the whole chain from the
+     start - so appending the Nth block cost N steps and building the program cost N
+     squared. A 55-step routine is 182 blocks and took NINETEEN SECONDS, which is why
+     there was a cap stopping long recordings from being built at all. Holding the tail
+     in a variable makes it linear. */
+  let _tail = null;
+  const put = b => {
+    if (!b) return;
+    if (_tail) { _tail.nextConnection.connect(b.previousConnection); }
+    else {
+      const proc = ftcEnsureRunOpMode();
+      if (!proc) return;
+      proc.getInput("STACK").connection.connect(b.previousConnection);
+    }
+    _tail = b; made++;
+  };
 
   const dual = (idA, idB, prop, vA, vB) => {
     const b = mk("dcMotor_setDualProperty_Number");
@@ -8007,16 +8035,28 @@ function initBlockly() {
 /* Above this many recorded steps the workspace is not rebuilt on its own: the cost climbs
    steeply with length and a long routine would hang the tab the moment it was opened. The
    button is still there to do it deliberately, and the note says so. */
-const BLK_MAX_AUTO_STEPS = 25;
+/* Above this many steps the build takes long enough to want the bar. It is NOT a limit -
+   a recording of any length is built. */
+const BLK_SLOW_STEPS = 12;
 
 function drawBlocks() {
   initBlockly();
   /* reflect the routine just driven - HERE, where the student is looking at the blocks,
      not back on the FIELD where they are looking at the ROBOT */
+  /* The cap used to stop a long recording being built AT ALL, and the panel then showed
+     the WORKED EXAMPLE instead - 63 blocks of somebody else's program sitting under a
+     label that said "55 steps recorded". A student's own routine is the one thing this
+     panel exists to show, so it is always built now, however long, behind the loading bar
+     when it will take a moment. */
   if (BLK.ready && BLK.stale && S.codeView !== "teleop") {
     BLK.stale = false;
-    if (REC.steps.length && REC.steps.length <= BLK_MAX_AUTO_STEPS) blocksFromRecording();
-    else if (!REC.steps.length) { if (BLK.cleared) blocksFromSteps([], null); else blocksStarter(); }
+    const n = REC.steps.length;
+    if (n) {
+      withLoadingBar("building your " + n + "-step routine as blocks\u2026",
+                     n > BLK_SLOW_STEPS && "one moment \u00b7 " + n + " steps is a lot of blocks",
+                     function () { blocksFromRecording(); });
+    } else if (BLK.cleared) blocksFromSteps([], null);
+    else blocksStarter();
   }
   if (BLK.ws) { Blockly.svgResize(BLK.ws); blkRefreshJava(); }
   $("blkMyBlocks").textContent = myBlocksJava();
@@ -10083,9 +10123,14 @@ $("bHome").addEventListener("click", () => { goHome(); refreshAll(); });
     if (id === "bBlkRun") blkRun();
     else if (id === "bBlkFromRec") {
       S.codeView = "auto"; save(); drawRec();
-      const n = blocksFromRecording();
-      $("blkRunMsg").textContent = n ? "built " + n + " block" + (n===1?"":"s") + " from your recording"
-                                     : "record an AUTO first";
+      const steps = REC.steps.length;
+      if (!steps) { $("blkRunMsg").textContent = "record an AUTO first"; return; }
+      withLoadingBar("building your " + steps + "-step routine as blocks\u2026",
+                     steps > BLK_SLOW_STEPS && "one moment \u00b7 " + steps + " steps is a lot of blocks",
+                     function () {
+        const n = blocksFromRecording();
+        $("blkRunMsg").textContent = "built " + n + " block" + (n===1?"":"s") + " from your recording";
+      });
     } else {
       /* The SAME thing the recorder's CLEAR does, because they are the same word on the
          same program: keep the drivetrain, drop the driving. This one used to empty the
