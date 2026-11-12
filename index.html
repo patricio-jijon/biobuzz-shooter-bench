@@ -1962,7 +1962,7 @@ const S = {
   showTraj:true, showTags:true, showHud:true, chase:false,
   tab:"build", predict:5.5, pts:[], code:STARTER
 };
-const BUILD_ID = "2026-11-12e \u00b7 PLAY works with a key held, replay exact";
+const BUILD_ID = "2026-11-12f \u00b7 REC / STOP / PLAY instant, no freeze";
 const DEFAULTS = JSON.parse(JSON.stringify(S));
 /* Settings persist between visits; the robot pose, magazine and score do not - a stale pose
    from last time is a terrible way to open, and the match state should always start clean. */
@@ -3943,7 +3943,14 @@ function toJava() {
    4 pre-loaded in the ROBOT, and 3 NECTAR already sitting in each upward-facing CELL.
    AUTO is 30 seconds (10.1). LEAVE is 3 points for stopping contact with the perimeter wall. */
 const AUTO_SECS = 30;
-function stageAuto() {
+/* solvePreload defaults to true for the Stage button and the start of a MATCH, where
+   working out a shootable pre-load IS the job. It is passed false by PLAYBACK, for two
+   reasons: it walks about 2000 full ballistics solutions - 180 flywheel speeds across 11
+   hood angles - and took EIGHT TO TEN SECONDS on every press of PLAY, which is the app
+   "freezing"; and it overwrites S.angle and S.rpm, so replaying a routine silently moved
+   the student's hood and flywheel. A recorded routine carries its own shot speeds. */
+function stageAuto(solvePreload) {
+  if (solvePreload === undefined) solvePreload = true;
   /* Put the HIVE back to its staged lean FIRST. Restaging used to leave the rocker wherever
      the last tip had thrown it, so the "fresh" FIELD did not match Figure 10-2 - and the
      three staged NECTAR went into whichever CELL happened to be up rather than the right one. */
@@ -4020,6 +4027,7 @@ function stageAuto() {
   /* Shooting into a CELL tilted 30 degrees away from you, the scoring speeds are NOT one
      clean band - some speeds drop through the mouth and others clip the near lip. Take the
      WIDEST CONTIGUOUS run, because the midpoint of first-to-last can land in a dead gap. */
+  if (!solvePreload) { needUI = true; return; }
   const keepRpmNow = rpmNow;
   const bandAt = () => {
     let best = null, run = null;
@@ -5699,7 +5707,7 @@ function releaseDriveInputs() {
 
 function playSteps(list) {
   if (!list || !list.length) return false;
-  stageAuto();
+  stageAuto(false);
   releaseDriveInputs();
   PLAY.list = list;
   PLAY.on = true; PLAY.i = 0; PLAY.cur = null; PLAY.rem = 0;
@@ -5711,7 +5719,7 @@ function playSteps(list) {
 }
 function recPlay() {
   if (!REC.steps.length) return false;
-  stageAuto();
+  stageAuto(false);
   /* stageAuto() resets the FIELD, which is right - a replay should face the same staged
      POLLEN you did - but it also parks the ROBOT on a legal G304 start. Put it back where
      the recording actually began, or the whole routine runs from the wrong square. */
@@ -7297,9 +7305,11 @@ function blkRefreshJava() {
   /* "20 blocks" alone does not say WHOSE 20 blocks. Without a recording this panel shows a
      worked example, and somebody who has just driven a routine needs to know at a glance
      whether they are looking at it or at the demo. */
+  const tooLong = REC.steps.length > BLK_MAX_AUTO_STEPS;
   if (note) note.textContent = n + " block" + (n===1?"":"s") + " \u00b7 "
-    + (REC.steps.length ? "from your recording \u00b7 " + REC.steps.length + " steps"
-                        : "worked example \u2014 record a routine to replace it")
+    + (!REC.steps.length ? "worked example \u2014 record a routine to replace it"
+       : tooLong ? REC.steps.length + " steps recorded \u2014 press Build from my recording"
+                 : "from your recording \u00b7 " + REC.steps.length + " steps")
     + " \u00b7 Java by the FTC generator";
 }
 
@@ -7448,7 +7458,10 @@ function blocksFromSteps(steps, startPose) {
   const have = t => Blockly.Blocks[t];
   if (!have("dcMotor_setDualProperty_Number")) return 0;
 
-  const mk  = t => { const b = BLK.ws.newBlock(t); b.initSvg(); b.render(); return b; };
+  /* render() per block re-laid-out the whole workspace on every single one: twenty
+     recorded steps took 1.7 s and it climbed steeply from there. Build them all, render
+     the workspace once at the end. */
+  const mk  = t => { const b = BLK.ws.newBlock(t); b.initSvg(); return b; };
   /* Do NOT round everything: ticks arrive already rounded, but DRIVE_POWER is 0.55 and
      Math.round turned it into setPower(1) - full power into every target. */
   const num = v => { const n = mk("math_number");
@@ -7586,6 +7599,7 @@ function blocksFromSteps(steps, startPose) {
   else { put(dual(DR[0], DR[1], "Power", 0, 0));
          put(dual(DR[2], DR[3], "Power", 0, 0)); }
 
+  try { if (BLK.ws.render) BLK.ws.render(); } catch (e) {}
   blkRefreshJava();
   return made;
 }
@@ -7642,8 +7656,20 @@ function initBlockly() {
   });
 }
 
+/* Above this many recorded steps the workspace is not rebuilt on its own: the cost climbs
+   steeply with length and a long routine would hang the tab the moment it was opened. The
+   button is still there to do it deliberately, and the note says so. */
+const BLK_MAX_AUTO_STEPS = 25;
+
 function drawBlocks() {
   initBlockly();
+  /* reflect the routine just driven - HERE, where the student is looking at the blocks,
+     not back on the FIELD where they are looking at the ROBOT */
+  if (BLK.ready && BLK.stale && S.codeView !== "teleop") {
+    BLK.stale = false;
+    if (REC.steps.length && REC.steps.length <= BLK_MAX_AUTO_STEPS) blocksFromRecording();
+    else if (!REC.steps.length) blocksStarter();
+  }
   if (BLK.ws) { Blockly.svgResize(BLK.ws); blkRefreshJava(); }
   $("blkMyBlocks").textContent = myBlocksJava();
   drawBlockMap();
@@ -9791,10 +9817,11 @@ const toggleRec = () => {
 };
 const stopRec  = () => {
   recStop(); drawRec(); refreshAll();
-  /* The Blocks tab used to keep whatever was in it, so a student drove a routine, opened
-     the tab, and read the worked EXAMPLE believing it was their own driving. Rebuild from
-     what they just drove - it is their recording that the panel is for. */
-  if (BLK.ready && REC.steps.length && S.codeView !== "teleop") blocksFromRecording();
+  /* NOTHING heavy on this path. Rebuilding the Blocks workspace here froze the app for
+     seconds - longer on a long routine - with the driver staring at the FIELD wondering why
+     STOP had hung. REC, STOP and PLAY must answer instantly, always. The Blocks tab
+     rebuilds itself when it is opened instead; BLK.stale says it needs to. */
+  BLK.stale = true;
   if (!REC.steps.length) recSay("nothing recorded \u2014 " + driveKeysNow());
   else recSay(REC.steps.length + " steps captured");
 };
