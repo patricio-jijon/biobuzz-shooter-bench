@@ -96,6 +96,24 @@ body{margin:0; background:var(--plane); color:var(--ink);
    through display:none in the browser's own sheet, and ANY author display wins over that.
    So display:flex here quietly cancelled hidden, and the bar stayed on screen for the rest
    of the session - while box.hidden read back true, which is how my own check passed. */
+.finalcard[hidden]{display:none !important}
+.finalcard{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:12;
+  display:flex; flex-direction:column; gap:9px; min-width:300px; padding:18px 22px;
+  border-radius:11px; background:rgba(9,12,16,.96); border:1px solid rgba(255,255,255,.2);
+  box-shadow:0 14px 44px rgba(0,0,0,.7)}
+.finalcard .h{font-family:var(--f-display); font-size:15px; font-weight:700; letter-spacing:.1em;
+  color:var(--amber); text-align:center}
+.finalcard table{width:100%; border-collapse:collapse; font-family:var(--f-mono); font-size:11.5px}
+.finalcard td{padding:3px 0; color:#cfd8e3}
+.finalcard td:last-child{text-align:right; color:#fff; font-weight:700}
+.finalcard td.zero{opacity:.42}
+.finalcard .tot{display:flex; justify-content:space-between; align-items:baseline;
+  border-top:1px solid rgba(255,255,255,.2); padding-top:8px; font-family:var(--f-display);
+  font-size:13px; letter-spacing:.06em; color:#fff}
+.finalcard .tot b{font-size:25px; color:var(--amber)}
+.finalcard .all{display:flex; justify-content:space-between; font-family:var(--f-mono);
+  font-size:11px; color:#8b97a4}
+.finalcard .all b{color:#fff}
 .solvebar[hidden]{display:none !important}
 /* FIXED, not absolute. It lived inside .stage, so it only ever appeared over the FIELD -
    and the longest job it covers, building a recording into blocks, is one you watch from
@@ -675,6 +693,8 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
         <button class="chip" id="chipTags" aria-pressed="true">AprilTags</button>
         <button class="chip" id="chipMini" aria-pressed="true">Mini-cam</button>
         <button class="chip" id="chipHud" aria-pressed="true">Telemetry</button>
+        <button class="chip" id="chipSound" aria-pressed="true"
+                title="The MATCH horns: start, the 60-second END GAME, and the final buzzer">Sound</button>
       </div>
     </div>
 
@@ -694,6 +714,16 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
            that takes seconds. The bar is a CSS transform animation on purpose: those run on
            the compositor, so it KEEPS MOVING while the solve blocks JavaScript. A bar driven
            from JavaScript would freeze solid at the exact moment it is needed. -->
+      <!-- The result, when the buzzer goes. [hidden] carries its own display:none rule -
+           an author display beats the attribute, which is how the loading bar once got
+           stuck on screen for a whole session. -->
+      <div class="finalcard" id="finalCard" hidden>
+        <span class="h">MATCH OVER</span>
+        <table id="finalRows"></table>
+        <div class="tot"><span>YOUR TOTAL</span><b id="finalTotal">0</b></div>
+        <div class="all"><span>RED <b id="finalRed">0</b></span><span>BLUE <b id="finalBlue">0</b></span></div>
+        <button class="recbtn" id="finalClose">CLOSE</button>
+      </div>
       <div class="solvebar" id="solveBar" hidden>
         <span class="t" id="solveBarT">working out a shootable pre-load&hellip;</span>
         <span class="track"><i></i></span>
@@ -2000,7 +2030,7 @@ const S = {
   showTraj:true, showTags:true, showHud:true, chase:false,
   tab:"build", predict:5.5, pts:[], code:STARTER
 };
-const BUILD_ID = "2026-11-12r \u00b7 blocks show YOUR routine, however long";
+const BUILD_ID = "2026-11-12s \u00b7 match horns, the buzzer stops play, final score";
 const DEFAULTS = JSON.parse(JSON.stringify(S));
 /* Settings persist between visits; the robot pose, magazine and score do not - a stale pose
    from last time is a terrible way to open, and the match state should always start clean. */
@@ -4392,7 +4422,8 @@ function startCountdown() {
     b.mag = 4; b.scored = 0; b.state = "shoot"; b.cool = 0; b.skip = null;
   });
   S.matchPhase = "countdown"; S.matchT = PHASE.countdown;
-  S.scoreAuto = 0; S.left = false; S.park = false;
+  S.scoreAuto = 0; S.left = false; S.park = false; S.endgameRung = false;
+  if (typeof hideFinalScore === "function") hideFinalScore();
   S.autoRun = false;
   cancelGoto(); recPlayStop();
   S.trackL = S.trackR = S.strafeX = 0;
@@ -4406,13 +4437,87 @@ function startMatch() {
   S.autoRun = true; S.autoT = PHASE.auto;
   needUI = true;
 }
+/* ============================================================================================
+   THE HORNS.
+   Synthesised, not sampled - no files to fetch, so they work from a Desktop copy opened as
+   file:// exactly as they do from the web. A browser will not let a page make a sound until
+   somebody has interacted with it, which is fine here: every horn follows a button press.
+
+   Three distinct sounds, because a DRIVE TEAM needs to tell them apart without looking:
+     START      two rising notes, the way a MATCH is called on
+     ENDGAME    three quick pips at the one-minute mark, 10.1's "60 seconds left"
+     END        one long low horn, unmistakably over
+   ============================================================================================ */
+let AC = null;
+function audioCtx() {
+  if (AC) return AC;
+  try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { AC = null; }
+  return AC;
+}
+/* one note. `at` is seconds from now, so a horn can be a little tune without setTimeout. */
+function tone(freq, ms, at, gain, type) {
+  const c = audioCtx(); if (!c || S.mute) return;
+  if (c.state === "suspended") { try { c.resume(); } catch (e) {} }
+  const t0 = c.currentTime + (at || 0), dur = ms/1000;
+  const o = c.createOscillator(), g = c.createGain();
+  o.type = type || "square";
+  o.frequency.setValueAtTime(freq, t0);
+  /* a short fade at each end - a square wave switched on and off clicks otherwise */
+  g.gain.setValueAtTime(0, t0);
+  g.gain.linearRampToValueAtTime(gain === undefined ? 0.22 : gain, t0 + 0.012);
+  g.gain.setValueAtTime(gain === undefined ? 0.22 : gain, t0 + dur - 0.03);
+  g.gain.linearRampToValueAtTime(0, t0 + dur);
+  o.connect(g); g.connect(c.destination);
+  o.start(t0); o.stop(t0 + dur + 0.02);
+}
+function hornStart()   { tone(660, 160, 0, .20); tone(990, 420, 0.17, .22); }
+function hornEndgame() { [0, .20, .40].forEach(function (t) { tone(1320, 110, t, .17, "triangle"); }); }
+function hornEnd()     { tone(300, 900, 0, .26); tone(150, 1100, 0.04, .20, "sawtooth"); }
+function hornCount()   { tone(880, 90, 0, .14, "triangle"); }
+
+/* Every way a BIOBUZZ ROBOT scores, on one card, at the moment the MATCH ends - including
+   the ones worth nothing this time, greyed rather than hidden, because "PARK 0" teaches
+   more than a line that is not there. AUTO is shown as banked: 10.5 scores it at the AUTO
+   buzzer and it does not change afterwards. */
+function showFinalScore() {
+  const card = $("finalCard"), rows = $("finalRows");
+  if (!card || !rows) return;
+  const cellsIn = (typeof cellCount === "function") ? cellCount() : 0;
+  const line = [
+    ["AUTO banked",              S.scoreAuto || 0, ""],
+    ["LEAVE",                    S.left ? POINTS.leave.auto : 0, S.left ? "yes" : "no"],
+    ["HIVE TIP \u00d7" + (S.tips||0),   (S.tips||0) * POINTS.tip.teleop, ""],
+    ["IN CELL \u00d7" + cellsIn,        cellsIn * POINTS.cell.teleop, ""],
+    ["GARDEN \u00d7" + (S.garden||0),   (S.garden||0) * POINTS.garden.teleop, ""],
+    ["FLOWER \u00d7" + (S.flower||0),   (S.flower||0) * POINTS.flower.teleop, ""],
+    ["PARK",                     S.park ? POINTS.park.teleop : 0, S.park ? "in the LOADING ZONE" : "not parked"]
+  ];
+  rows.textContent = "";
+  line.forEach(function (r) {
+    const tr = document.createElement("tr");
+    const a = document.createElement("td"), b = document.createElement("td");
+    a.textContent = r[0] + (r[2] ? "  \u00b7 " + r[2] : "");
+    b.textContent = "+" + r[1];
+    if (!r[1]) { a.className = "zero"; b.className = "zero"; }
+    tr.appendChild(a); tr.appendChild(b); rows.appendChild(tr);
+  });
+  $("finalTotal").textContent = (typeof totalPoints === "function") ? totalPoints() : 0;
+  $("finalRed").textContent  = alliancePoints("red");
+  $("finalBlue").textContent = alliancePoints("blue");
+  card.hidden = false;
+}
+function hideFinalScore() { const c = $("finalCard"); if (c) c.hidden = true; }
+
 function stepMatch(dt) {
   if (S.matchPhase === "idle" || S.matchPhase === "done") return;
   if (S.matchPhase === "countdown") {
+    const was = Math.ceil(S.matchT);
     S.matchT -= dt;
+    if (Math.ceil(S.matchT) !== was && S.matchT > 0) hornCount();   /* 3 - 2 - 1 */
     if (S.matchT <= 0) {            /* GO: the AUTO clock starts here, not before */
       S.matchPhase = "auto"; S.matchT = PHASE.auto;
       S.autoRun = true; S.autoT = PHASE.auto;
+      hornStart();
       recStart();
     }
     needUI = true;
@@ -4426,6 +4531,11 @@ function stepMatch(dt) {
      ROBOT sitting correctly parked scored nothing. */
   const LZ = S.ally === "blue" ? LOAD_BLUE : LOAD_RED;
   S.park = (S.rx > LZ.x0 - 9 && S.rx < LZ.x1 + 9 && S.ry > LZ.z0 - 9 && S.ry < LZ.z1 + 9);
+  /* 10.1: "With 60 seconds left in the MATCH, ALLIANCES can enter all remaining NECTAR."
+     That is the END GAME, and it is announced once, as the clock crosses the minute. */
+  if (S.matchPhase === "teleop" && S.matchT <= 60 && !S.endgameRung) {
+    S.endgameRung = true; hornEndgame(); needUI = true;
+  }
   if (S.matchT <= 0) {
     if (S.matchPhase === "auto") {
       S.scoreAuto = matchPoints();          // AUTO is banked at the buzzer
@@ -4433,7 +4543,16 @@ function stepMatch(dt) {
       recStop();
     } else if (S.matchPhase === "transition") {
       S.matchPhase = "teleop"; S.matchT = PHASE.teleop;
-    } else { S.matchPhase = "done"; S.matchT = 0; }
+    } else {
+      /* the buzzer. Everything stops here - see drive(), which refuses to move a ROBOT
+         after the MATCH is over, exactly as a real FIELD cuts the power. */
+      S.matchPhase = "done"; S.matchT = 0;
+      S.autoRun = false;
+      S.trackL = S.trackR = S.strafeX = 0;
+      recPlayStop();
+      hornEnd();
+      showFinalScore();
+    }
     needUI = true;
   }
 }
@@ -5114,6 +5233,8 @@ function drive(dt) {
   /* G304.H: motionless until the MATCH starts. The count-in is part of the MATCH, so the
      sticks are dead through it - the same three seconds the real DRIVE TEAM stands back. */
   if (S.matchPhase === "countdown") { S.trackL = S.trackR = S.strafeX = 0; return; }
+  /* and nothing moves after the buzzer, the way a real FIELD cuts the power at 0:00 */
+  if (S.matchPhase === "done") { S.trackL = S.trackR = S.strafeX = 0; return false; }
   /* W/A/S/D IS the left stick and I/J/K/L IS the right stick - not an approximation of
      them. The keys produce the four axis numbers a thumb would and mixDrive turns those
      into wheels exactly as it does for a real pad, so the keyboard drives identically on
@@ -9337,6 +9458,7 @@ function drawBoard(C) {
    A MATCH stages exactly what Figure 10-2 stages and no more, which is a poor place to
    practise a shot. This puts back the loose FIELD full of balls, with no clock running. */
 function goHome() {
+  if (typeof hideFinalScore === "function") hideFinalScore();
   S.matchPhase = "idle";
   S.matchT = MATCH_TOTAL;
   S.scoreAuto = 0; S.autoRun = false; S.autoT = MATCH_CLOCK.auto;
@@ -10280,6 +10402,17 @@ if (bcbj) bcbj.addEventListener("click", () => {
   if (!t.trim()) { const m = $("blkMsg"); if (m) m.textContent = "no blocks yet"; return; }
   copyText(t, "the Blocks Java");
 });
+/* the horns can be turned off - a classroom of these is a lot of buzzers */
+{ const sc = $("chipSound");
+  if (sc) {
+    const paint = () => sc.setAttribute("aria-pressed", S.mute ? "false" : "true");
+    paint();
+    sc.addEventListener("click", () => { S.mute = !S.mute; save(); paint();
+      if (!S.mute) hornCount(); });           /* a pip, so you know it is back on */
+  }
+}
+{ const fc = $("finalClose"); if (fc) fc.addEventListener("click", hideFinalScore); }
+
 ["bRec","bRec2","bRec3","bRecF"].forEach(id => { const e = $(id);
   if (e) e.addEventListener("click", toggleRec); });
 ["bRecStop","bRecStop3"].forEach(id => { const e = $(id);
