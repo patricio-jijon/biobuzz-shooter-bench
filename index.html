@@ -244,11 +244,11 @@ body{margin:0; background:var(--plane); color:var(--ink);
 
 .btns{display:flex; gap:13px; justify-content:center; flex-wrap:wrap}
 /* ---- the AUTO recorder, beside the sticks ---- */
-.recpad{display:flex; flex-direction:column; gap:6px; align-items:stretch; min-width:124px}
+.recpad{display:flex; flex-direction:column; gap:4px; align-items:stretch; min-width:96px}
 .recpad-h{font-family:var(--f-mono); font-size:9.5px; letter-spacing:.14em; color:#8b97a4;
   text-align:center}
-.recbtn{font-family:var(--f-display); font-size:12.5px; font-weight:700; letter-spacing:.06em;
-  padding:8px 12px; border-radius:7px; cursor:pointer; color:#dfe6ee;
+.recbtn{font-family:var(--f-display); font-size:9.5px; font-weight:700; letter-spacing:.05em;
+  padding:5px 8px; border-radius:5px; cursor:pointer; color:#dfe6ee;
   background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.16);
   transition:filter .12s, transform .08s}
 .recbtn:hover{filter:brightness(1.22)}
@@ -260,7 +260,7 @@ body{margin:0; background:var(--plane); color:var(--ink);
 .recbtn.rec.live{animation:recpulse 1.1s ease-in-out infinite}
 @keyframes recpulse{50%{filter:brightness(1.5)}}
 .recbtn:disabled{opacity:.38; cursor:not-allowed; filter:none}
-.recpad-n{font-family:var(--f-mono); font-size:10px; color:#8b97a4; text-align:center}
+.recpad-n{font-family:var(--f-mono); font-size:9px; color:#8b97a4; text-align:center}
 @media (prefers-reduced-motion:reduce){ .recbtn.rec.live{animation:none} }
 .gbtn{display:flex; flex-direction:column; align-items:center; gap:4px; border:0; background:none;
   cursor:pointer; padding:0}
@@ -1955,14 +1955,14 @@ const S = {
   angle:40, tip:0, wrap:135, launch:9.8, zFloorBase:3.5, zBaseAxis:3, hub:"h1309", ally:"red", drive:"mecanum", keySwap:true, players:1, pDrive:["mecanum","mecanum","mecanum","mecanum"], padMap:null, airT:20, airP:1017, airRH:35, gear:1, cell:59.55, tilt:30, eta:0.45, cd:0.75, rpm:3900,
   wheelMass:85, robotMass:12, magSize:4, magLeft:4,
   ballCount:80, intakeOn:true, rejectBlue:false, tipMass:191, tipBalls:8,
-  claw:null, armT:0, clawMsg:"", armFitted:false, human:{red:5, blue:5},
+  claw:null, armT:0, clawMsg:"", armFitted:false, rakeFitted:true, human:{red:5, blue:5},
   scored:{red:0, blue:0}, tips:0, picked:0, curve:null, miniCam:true, waitAtSpeed:true,
   src:"fixed", ball:"pollen", magnus:true, drag:true, holes:true, cmp:"wheel",
   rx:22, ry:22, heading:Math.PI/4,
   showTraj:true, showTags:true, showHud:true, chase:false,
   tab:"build", predict:5.5, pts:[], code:STARTER
 };
-const BUILD_ID = "2026-11-12h \u00b7 PLAY never touches the field";
+const BUILD_ID = "2026-11-12j \u00b7 FLOWER intake, GM0-checked, MATCH only";
 const DEFAULTS = JSON.parse(JSON.stringify(S));
 /* Settings persist between visits; the robot pose, magazine and score do not - a stale pose
    from last time is a terrible way to open, and the match state should always start clean. */
@@ -3250,6 +3250,8 @@ function buildScene() {
   }
   robot.add(yaw);
   robot.add(makePlow(0xc9b23a));     /* the intake plow, at TILE level */
+  const rake = makeRake(0xc9b23a);   /* the compliant-wheel intake that empties a FLOWER */
+  robot.add(rake);
   const arm = makeArm(0xd8a32a);     /* and the NECTAR arm above it */
   robot.add(arm);
   scene.add(robot);
@@ -3262,7 +3264,7 @@ function buildScene() {
 
   return { renderer, scene, camera, key, robot, yaw, pitch, fw, hoodMesh, mag, magBalls,
            traj, trajGeo, cells, hive, floor, fieldGroup, fieldBalls:[], flowerBalls:flowerBalls,
-           mecRollers:mecRollers, tankParts:tankParts, arm:arm,
+           mecRollers:mecRollers, tankParts:tankParts, arm:arm, rake:rake,
            bodyHolder:bodyHolder, bodies:bodies };
 }
 
@@ -3368,6 +3370,122 @@ function makeArm(colour) {
   return g;
 }
 
+/* ===== THE FLOWER RAKE =====
+   9.7, TU06: "There is a Retrieval Opening at the bottom of the FLOWER for ROBOTS to remove
+   SCORING ELEMENTS which is approximately 3.55 in. (9.0 cm) tall and 3.57 in. (9.1 cm)
+   deep", and the POLLEN sits in a lower ring "approximately 0.4 in. (1.0 cm) tall".
+
+   So the thing that empties a FLOWER is not a special power, it is a geometry problem: a
+   finger that is LOW enough to enter a 3.55 in. slot and LONG enough to reach 3.57 in. into
+   it. That is what this is. It is drawn at those dimensions deliberately - a student can
+   hold it against the figure in the manual and see why it is the shape it is.
+
+   The manual names no mechanism, only the opening, so any floor-level intake, plow or rake
+   would do. This is the simplest one that visibly fits. */
+const RAKE_H    = 3.4;        /* under the 3.55 in. opening, with clearance */
+const RAKE_DEEP = 3.6;        /* reaches the full 3.57 in. depth */
+const RAKE_WD   = 2.9;        /* compliant wheel diameter - fits the slot and the 2.79 in. ring */
+
+/* One intake wheel, and the SPOKES are the point.
+
+   Game Manual 0, Types of Intakes, is blunt about the alternative: a solid compliant wheel
+   intake "excel[s] at controlling elements with flat surfaces such as cubes or rectangular
+   prisms. They suffer at picking up balls." POLLEN is a 2.8 in. ball, so a solid roller is
+   the wrong tool and GM0 says so.
+
+   What works on a ball is a FLEXIBLE FINGER that sweeps past it and carries it along -
+   GM0's tubing / zip-tie / TPU family - which is what these eight tapered spokes are, and
+   what the green star wheels on a real StarterBot are. They are drawn as spokes rather than
+   as a solid disc on purpose: a student comparing this to a solid wheel should be able to
+   see WHY one picks a ball up and the other skids off it.
+
+   GM0 also asks for a low durometer "to have maximum grippiness for intaking game
+   elements", and for the intake to obey "touch it, own it" - control the element the
+   instant it is contacted, with margin for misalignment. That is exactly why touching the
+   base of a FLOWER from any direction is enough here. */
+function compliantWheel() {
+  const g = new THREE.Group();
+  const green = new THREE.MeshStandardMaterial({ color:0x62d12e, roughness:.62, metalness:.03 });
+  const dark  = new THREE.MeshStandardMaterial({ color:0x2a2f36, roughness:.5,  metalness:.5 });
+  const r = RAKE_WD/2;
+  const hub = new THREE.Mesh(new THREE.CylinderGeometry(r*0.3, r*0.3, 0.62, 14), dark);
+  hub.rotation.x = Math.PI/2;                 /* axle across the ROBOT */
+  g.add(hub);
+  for (let i = 0; i < 8; i++) {
+    const a = i/8 * Math.PI*2;
+    const sp = new THREE.Mesh(new THREE.BoxGeometry(r*0.92, 0.46, 0.5), green);
+    sp.position.set(Math.cos(a)*r*0.56, Math.sin(a)*r*0.56, 0);
+    sp.rotation.z = a;
+    sp.castShadow = true;
+    g.add(sp);
+  }
+  return g;
+}
+
+/* The intake itself: two counter-rotating compliant wheels on a low frame, exactly the
+   arrangement in goBILDA's own StarterBot intake. Low enough to enter the 3.55 in. opening,
+   long enough to reach the 3.57 in. depth, and narrow enough to sit over the 2.79 in. ring
+   the POLLEN rests in. It SPINS - while the intake is running, and whenever it is working a
+   FLOWER - because a student should be able to see the thing that is doing the work. */
+function makeRake(colour) {
+  const g = new THREE.Group();
+  const frame = new THREE.MeshStandardMaterial({ color:0xb9c0c8, roughness:.38, metalness:.72 });
+  /* two side rails, out to the front, in goBILDA channel grey */
+  [-3.1, 3.1].forEach(function (z) {
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(RAKE_DEEP + 4.0, 0.5, 0.42), frame);
+    rail.position.set(8.0, RAKE_H*0.62, z);
+    rail.castShadow = true; g.add(rail);
+  });
+  /* the two wheels, one behind the other, counter-rotating - the near one pulls the POLLEN
+     out of the opening and the far one carries it back under the ROBOT */
+  const spin = [];
+  [[9.5, 1], [6.9, -1]].forEach(function (p) {
+    const w = compliantWheel();
+    w.position.set(p[0], RAKE_WD/2 + 0.18, 0);
+    w.userData.dir = p[1];
+    g.add(w); spin.push(w);
+  });
+  g.userData.spin = spin;
+  return g;
+}
+
+/* Spin the wheels. They turn while the intake is running, and whenever the ROBOT is up
+   against a loaded FLOWER - the moment they are doing the thing the Retrieval Opening
+   exists for is the moment they should visibly be turning.
+
+   The speed is GM0's: it reports that "many of the top performing teams used a 3.7:1
+   (1600 RPM) motor or a 5.2:1 (1000 RPM) motor on their intake", and warns that too fast
+   and "game pieces might fly out", too slow and "it may jam itself". INTAKE_RPM is the
+   lower of those two, which is the safer one for a ball. It is divided down for display
+   because 1000 rpm at 60 frames a second is a blur that shows a student nothing. */
+/* Keeps its OWN clock. It was handed a dt from syncScene(), which has no dt - an undefined
+   variable that made the whole spin a no-op (and would have thrown had anything read it).
+   Timing a 3D animation off a value the caller may not have is a trap; this cannot miss. */
+const INTAKE_RPM  = 1000;                 /* GM0: a 5.2:1 motor, the slower of its two */
+const INTAKE_SHOW = 0.055;                /* slowed for the eye; the real figure is above */
+let _spinT = 0;
+function spinIntake(rake, running) {
+  if (!rake || !rake.userData || !rake.userData.spin) return;
+  const now = performance.now();
+  const dt = Math.min(0.05, _spinT ? (now - _spinT)/1000 : 0.016);
+  _spinT = now;
+  if (!running) return;
+  const rad = INTAKE_RPM * 2*Math.PI / 60 * INTAKE_SHOW;
+  rake.userData.spin.forEach(function (w) {
+    w.rotation.z += w.userData.dir * dt * rad;
+  });
+}
+/* is there a FLOWER within reach that still holds POLLEN? */
+function nearLoadedFlower(rx, rz) {
+  if (!R3 || !R3.flowerBalls || !R3.flowerBalls.length) return false;
+  for (let fi = 0; fi < FLOWERS.length; fi++) {
+    const f = FLOWERS[fi];
+    if (Math.hypot(f[0] - rx, f[1] - rz) > FLOWER_TOUCH + 3) continue;
+    if (R3.flowerBalls.some(function (b) { return b.fi === fi; })) return true;
+  }
+  return false;
+}
+
 function makePlow(colour) {
   const g = new THREE.Group();
   const sh = new THREE.Shape();
@@ -3404,13 +3522,33 @@ const FLOWER_Y0 = 2.2;                              /* bottom POLLEN centre heig
 const FLOWER_DY = BALL.pollen.dia*0.95;             /* stack pitch */
 const PLOW_REACH = 12;                              /* plow tip to the retrieval opening */
 const PLOW_AHEAD = 7;                               /* plow tip ahead of ROBOT centre */
+/* TOUCHING THE BASE is enough, from any direction. The plow tip had to be pointed at the
+   opening, so a ROBOT could sit against a FLOWER, plainly in contact with it, and get
+   nothing because it had arrived sideways or backwards. An 18 in. frame against the stalks
+   has its centre about this far out, and a FIELD full of ROBOTS shoving each other rarely
+   arrives facing the way it meant to. */
+const FLOWER_TOUCH = 13;                            /* ROBOT centre to FLOWER centre */
 
-function releaseFromFlower(rx, rz, heading) {
+/* Is a MATCH actually being played? Emptying a FLOWER is a MATCH action - asked for as
+   match mode only - so on the idle practice FIELD the FLOWERS stay loaded. */
+function matchLive() {
+  return S.matchPhase === "auto" || S.matchPhase === "teleop"
+      || S.matchPhase === "countdown" || S.matchPhase === "transition";
+}
+
+function releaseFromFlower(rx, rz, heading, hasRake) {
   if (!R3 || !R3.flowerBalls || !R3.flowerBalls.length) return null;
+  if (!matchLive()) return null;
+  /* No rake, no POLLEN. A ROBOT with nothing low enough to enter a 3.55 in. slot cannot
+     empty a FLOWER, and pretending otherwise would teach the wrong lesson about why the
+     opening is that size. Every BOT on the FIELD carries one; yours is a fitting. */
+  if (hasRake === false) return null;
   const px = rx + Math.cos(heading)*PLOW_AHEAD, pz = rz + Math.sin(heading)*PLOW_AHEAD;
   for (let fi = 0; fi < FLOWERS.length; fi++) {
     const f = FLOWERS[fi];
-    if (Math.hypot(f[0] - px, f[1] - pz) > PLOW_REACH) continue;
+    const plowOn  = Math.hypot(f[0] - px, f[1] - pz) <= PLOW_REACH;   /* driven at it */
+    const bodyOn  = Math.hypot(f[0] - rx, f[1] - rz) <= FLOWER_TOUCH; /* touching the base */
+    if (!plowOn && !bodyOn) continue;
     /* the lowest POLLEN still in this FLOWER is the one the opening can reach */
     let low = null;
     R3.flowerBalls.forEach(function (b) {
@@ -3419,8 +3557,9 @@ function releaseFromFlower(rx, rz, heading) {
     if (!low) continue;
     R3.flowerBalls.splice(R3.flowerBalls.indexOf(low), 1);
     R3.flowerBalls.forEach(function (b) { if (b.fi === fi) b.slot--; });
-    /* it lands on the TILES just outside the stalks, on the side the ROBOT came from */
-    const a = Math.atan2(pz - f[1], px - f[0]);
+    /* it lands on the TILES just outside the stalks, on the side the ROBOT is actually on
+       - measured from the ROBOT, not from a plow tip that may be pointing elsewhere */
+    const a = Math.atan2(rz - f[1], rx - f[0]);
     const dia = BALL.pollen.dia, ox = f[0] + Math.cos(a)*5.5, oz = f[1] + Math.sin(a)*5.5;
     low.mesh.position.set(ox, dia/2, oz);
     R3.fieldBalls.push({ mesh:low.mesh, kind:"pollen", blue:false, x:ox, z:oz, dia:dia });
@@ -3511,7 +3650,7 @@ function runIntake() {
   if (!S.intakeOn) return;
   /* the plow frees POLLEN whether or not there is room in the magazine - it drops to the
      TILES, it does not go straight aboard */
-  releaseFromFlower(S.rx, S.ry, S.heading);
+  releaseFromFlower(S.rx, S.ry, S.heading, S.rakeFitted !== false);
   if (S.magLeft >= S.magSize) return;
   const reach = 11, ch = Math.cos(S.heading), sh = Math.sin(S.heading);
   const mx = S.rx + ch*7, mz = S.ry + sh*7;      // the intake mouth, ahead of centre
@@ -5210,6 +5349,10 @@ function syncScene(C) {
   if (R3.arm) {
     /* goBILDA's StarterBot has no arm, so by default neither does this one */
     R3.arm.visible = !!S.armFitted;
+    if (R3.rake) {
+      R3.rake.visible = S.rakeFitted !== false;
+      spinIntake(R3.rake, S.intakeOn || nearLoadedFlower(S.rx, S.ry));
+    }
     const want = S.claw ? 1 : 0;
     S.armT += Math.max(-1, Math.min(1, want - S.armT))*Math.min(1, ARM_UP_RATE*0.016);
     if (Math.abs(want - S.armT) < 0.01) S.armT = want;
@@ -5910,6 +6053,10 @@ function makeBotMesh(col, drive) {
     m.position.set(x, BY, 0); m.castShadow = true; g.add(m);
   });
   g.add(makePlow(col));              /* they empty FLOWERS too */
+  const rake = makeRake(col);        /* and the floor-level finger that reaches 9.7's opening */
+  rake.visible = S.rakeFitted !== false;
+  g.add(rake);
+  g.userData.rake = rake;
   const arm = makeArm(col);          /* only if YOU have fitted one - they match your ROBOT */
   arm.visible = !!S.armFitted;
   g.add(arm);
@@ -5937,6 +6084,7 @@ function makeBots() {
     if (R3 && R3.scene) {
       const g = makeBotMesh(s.col, S.drive);
       b.armMesh = g.userData.arm;
+      b.rakeMesh = g.userData.rake;
       R3.scene.add(g); b.mesh = g;
     }
     BOTS.push(b);
@@ -6113,13 +6261,32 @@ function stepBots(dt) {
          deadlocked any pair that started close: they shoved each other to exactly the
          threshold distance and sat there for the whole match. */
       const crowded = separate(bot, dt);
-      const speed = TOP_SPEED*(crowded ? 0.35 : 0.8);
+      /* They drove at 0.8 of top speed all match, which made them easy to out-cycle and
+         made a MATCH feel like a demonstration rather than a contest. They push now, and
+         push harder once FLOWER scoring opens in the last minute (G410) - which is exactly
+         when a real ALLIANCE stops collecting and starts finishing. */
+      const endgame = S.matchPhase === "teleop" && (S.matchT || 0) <= 60;
+      const speed = TOP_SPEED*(crowded ? 0.45 : (endgame ? 0.95 : 0.88));
       /* their plow frees POLLEN exactly as yours does, just by being driven at a FLOWER */
-      releaseFromFlower(bot.x, bot.z, bot.h);
+      releaseFromFlower(bot.x, bot.z, bot.h, true);
       if (bot.state === "hunt") {
         const t = nearestBall(bot);
         bot.huntT = (bot.huntT || 0) + dt;
         if (bot.mag >= 4) { bot.state = "shoot"; bot.huntT = 0; }
+        /* A FLOWER holds four POLLEN in one place, which beats chasing singles across the
+           FIELD. They used to go there ONLY when the TILES were swept bare; now a loaded
+           FLOWER that is closer than the nearest loose POLLEN wins, which is the call a
+           real DRIVE TEAM makes. */
+        else if (t && (function () {
+          const fl = nearestLoadedFlower(bot.x, bot.z);
+          if (!fl) return false;
+          const dBall = Math.hypot(t.x - bot.x, t.z - bot.z);
+          const dFlow = Math.hypot(fl.x - bot.x, fl.z - bot.z);
+          if (dFlow > dBall) return false;
+          steerTo(bot, fl.x, fl.z, dt, speed, 4);
+          bot.huntT = (bot.huntT > 6) ? 0 : bot.huntT;
+          return true;
+        })()) { /* working a FLOWER */ }
         else if (!t) {
           /* nothing loose left on the TILES - go and empty a FLOWER, which is where 16 of
              the 40 POLLEN start. Before this they simply gave up and idled. */
@@ -6159,6 +6326,10 @@ function stepBots(dt) {
       if (rr < 17 && rr > 1e-3) { bot.x = c + dxh/rr*17; bot.z = c + dzh/rr*17; }
     }
     if (bot.armMesh) bot.armMesh.visible = !!S.armFitted;
+    if (bot.rakeMesh) {
+      bot.rakeMesh.visible = S.rakeFitted !== false;
+      spinIntake(bot.rakeMesh, true);         /* theirs run all match */
+    }
     if (bot.mesh) { bot.mesh.position.set(bot.x, 0, bot.z); bot.mesh.rotation.y = -bot.h; }
   });
 
