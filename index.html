@@ -1996,7 +1996,7 @@ const S = {
   showTraj:true, showTags:true, showHud:true, chase:false,
   tab:"build", predict:5.5, pts:[], code:STARTER
 };
-const BUILD_ID = "2026-11-12p \u00b7 CLEAR erases the moves, keeps the drivetrain";
+const BUILD_ID = "2026-11-12q \u00b7 both CLEAR buttons behave the same";
 const DEFAULTS = JSON.parse(JSON.stringify(S));
 /* Settings persist between visits; the robot pose, magazine and score do not - a stale pose
    from last time is a terrible way to open, and the match state should always start clean. */
@@ -7640,11 +7640,16 @@ function blkRefreshJava() {
      whether they are looking at it or at the demo. */
   const tooLong = REC.steps.length > BLK_MAX_AUTO_STEPS;
   if (note) note.textContent = n + " block" + (n===1?"":"s") + " \u00b7 "
-    + (REC.steps.length
+    /* cleared comes FIRST. The blocks panel's own Clear leaves the recording alone - only
+       the blocks are wiped - so a label that keyed off REC.steps announced "from your
+       recording, 5 steps" over a workspace that plainly had no moves in it. What is on
+       SCREEN is what this line has to describe. */
+    + (BLK.cleared
+         ? "drivetrain ready, no moves \u2014 press REC and drive one"
+       : REC.steps.length
          ? (tooLong ? REC.steps.length + " steps recorded \u2014 press Build from my recording"
                     : "from your recording \u00b7 " + REC.steps.length + " steps")
-       : BLK.cleared ? "drivetrain ready, no moves \u2014 press REC and drive one"
-                     : "worked example \u2014 record a routine to replace it")
+         : "worked example \u2014 record a routine to replace it")
     + " \u00b7 Java by the FTC generator";
 }
 
@@ -10082,8 +10087,14 @@ $("bHome").addEventListener("click", () => { goHome(); refreshAll(); });
       $("blkRunMsg").textContent = n ? "built " + n + " block" + (n===1?"":"s") + " from your recording"
                                      : "record an AUTO first";
     } else {
-      BLK.ws.clear(); ftcEnsureRunOpMode();
-      blkRefreshJava(); $("blkRunMsg").textContent = "cleared \u2014 drag blocks in, or press Build from my recording";
+      /* The SAME thing the recorder's CLEAR does, because they are the same word on the
+         same program: keep the drivetrain, drop the driving. This one used to empty the
+         workspace outright and never set BLK.cleared, so the WORKED EXAMPLE was put back
+         on the next refresh - press Clear, watch 63 blocks of a program you did not write
+         reappear, and reasonably conclude that Clear does not work. */
+      BLK.cleared = true; BLK.stale = false;
+      blocksFromSteps([], null);
+      $("blkRunMsg").textContent = "moves cleared \u2014 the drivetrain setup is still here";
     }
   });
 });
