@@ -1962,7 +1962,7 @@ const S = {
   showTraj:true, showTags:true, showHud:true, chase:false,
   tab:"build", predict:5.5, pts:[], code:STARTER
 };
-const BUILD_ID = "2026-11-12j \u00b7 FLOWER intake, GM0-checked, MATCH only";
+const BUILD_ID = "2026-11-12k \u00b7 Home and Run full match no longer freeze";
 const DEFAULTS = JSON.parse(JSON.stringify(S));
 /* Settings persist between visits; the robot pose, magazine and score do not - a stale pose
    from last time is a terrible way to open, and the match state should always start clean. */
@@ -4094,6 +4094,23 @@ const AUTO_SECS = 30;
    hood angles - and took EIGHT TO TEN SECONDS on every press of PLAY, which is the app
    "freezing"; and it overwrites S.angle and S.rpm, so replaying a routine silently moved
    the student's hood and flywheel. A recorded routine carries its own shot speeds. */
+let STAGE_SOLVE = null;        /* the last pre-load solve, and the inputs it came from */
+/* The FIRST solve still costs about thirteen seconds, and the first thing it is asked for
+   is usually Run full match - so it would be paid for exactly when a student is waiting.
+   Pay it early instead, once the scene is up and nothing is happening, and keep the
+   ROBOT's own settings untouched while doing it. */
+let _warmed = false;
+function warmPreloadSolve() {
+  if (_warmed || !R3) return;
+  _warmed = true;
+  const keep = {};
+  ["rpm","src","angle","rpmMid","rpmSlow","rpmFull","trRpm","trDist",
+   "rx","ry","heading","autoT","autoRun","magLeft","tips","picked","left","park"]
+    .forEach(function (k) { keep[k] = S[k]; });
+  try { stageAuto(true); } catch (e) {}
+  Object.keys(keep).forEach(function (k) { S[k] = keep[k]; });
+  needUI = true;
+}
 function stageAuto(solvePreload) {
   if (solvePreload === undefined) solvePreload = true;
   /* Put the HIVE back to its staged lean FIRST. Restaging used to leave the rocker wherever
@@ -4173,6 +4190,43 @@ function stageAuto(solvePreload) {
      clean band - some speeds drop through the mouth and others clip the near lip. Take the
      WIDEST CONTIGUOUS run, because the midpoint of first-to-last can land in a dead gap. */
   if (!solvePreload) { needUI = true; return; }
+
+  /* ---- the pre-load solve, and why it is cached ----
+     Below this line are about 2000 full ballistics solutions - 180 flywheel speeds across
+     11 hood angles - and they took EIGHT TO TEN SECONDS. PLAY was taught to skip them, but
+     Run full match and Stage still ran them, so starting a MATCH froze the app exactly the
+     way PLAY used to. Skipping them there is not an option: a MATCH needs a pre-load that
+     can actually score.
+
+     So: solve once, and remember the ANSWER against the inputs that produced it. The
+     signature is every piece of state the solve reads, which is all of S except the values
+     the solve itself writes and the ones that cannot affect a trajectory - where the ROBOT
+     is standing, what the clock says, which tab is open. Change a wheel, a gear, the CELL
+     height or the air, and it solves again. Press Run full match twice and the second is
+     instant. */
+  const SOLVE_OUT = ["angle","rpmMid","rpmSlow","rpmFull","trRpm","trDist"];
+  const SOLVE_SKIP = new Set(SOLVE_OUT.concat([
+    "rpm","src","rx","ry","heading","trackL","trackR","strafeX","matchPhase","matchT",
+    "scoreAuto","autoT","autoRun","tips","picked","left","park","magLeft","human","claw",
+    "clawMsg","armT","recCount","padName","padMap","padInvert","keySwap","codeView","tab",
+    "players","pDrive","intakeOn","chase","miniCam","showTraj","showTags","showHud",
+    "code","notes","rakeFitted","ballCount"]));
+  let _sig = "";
+  try {
+    const o = {};
+    Object.keys(S).sort().forEach(function (k) { if (!SOLVE_SKIP.has(k)) o[k] = S[k]; });
+    _sig = JSON.stringify(o);
+  } catch (e) { _sig = ""; }
+  if (_sig && STAGE_SOLVE && STAGE_SOLVE.sig === _sig) {
+    SOLVE_OUT.forEach(function (k) {
+      if (STAGE_SOLVE.out[k] !== undefined) S[k] = STAGE_SOLVE.out[k];
+    });
+    if (STAGE_SOLVE.out.rpmMid !== undefined) { S.rpm = STAGE_SOLVE.out.rpmMid; S.src = "fixed"; }
+    S.autoT = AUTO_SECS; S.autoRun = false;
+    rpmNow = 0; needUI = true; save();
+    return;
+  }
+
   const keepRpmNow = rpmNow;
   const bandAt = () => {
     let best = null, run = null;
@@ -4223,6 +4277,12 @@ function stageAuto(solvePreload) {
     S.rpmFull = Math.min(Math.round(maxFlyRpm()), Math.round(mid*1.12));
     S.rpm = mid; S.src = "fixed"; S.trRpm = mid;
     S.trDist = Math.round(dAuto/IN);
+  }
+  /* remember this answer against the inputs that produced it */
+  if (_sig) {
+    const out = {};
+    SOLVE_OUT.forEach(function (k) { out[k] = S[k]; });
+    STAGE_SOLVE = { sig:_sig, out:out };
   }
   S.autoT = AUTO_SECS; S.autoRun = false;
   rpmNow = 0;
@@ -6449,7 +6509,19 @@ function catRow(o) {
   return b;
 }
 
-function drawCatalogue() {
+/* Rebuilding the whole parts catalogue - every chassis, motor, servo, wheel and hub row,
+   each with its own drawn thumbnail - took nearly THREE SECONDS, and refreshAll() called it
+   every single time. That is the freeze on Home: goHome() itself is 7 ms, refreshAll() was
+   2.9 s, and all but a few of those milliseconds were here.
+
+   None of it changes unless a PART changes, so it is rebuilt only then. _catSig starts
+   empty, so the first call always builds. */
+let _catSig = "";
+function drawCatalogue(force) {
+  const sig = [S.chassis, S.motor, S.servo, S.wheel, S.duro, S.hub, S.ball,
+               S.gear, S.drive, S.channels].join("|");
+  if (!force && sig === _catSig) return;
+  _catSig = sig;
   const fill = (id, rows) => { const box = $(id); box.textContent = "";
     rows.forEach(r => box.appendChild(catRow(r))); };
 
@@ -10378,6 +10450,9 @@ function boot() {
     R3 = buildScene();
     resize();
     applyDriveLook();        /* the saved drivetrain decides which ROBOT you see */
+    /* Solve the pre-load now, while the student is still looking at the FIELD, so that
+       Run full match does not stop dead for thirteen seconds the first time it is used. */
+    setTimeout(warmPreloadSolve, 1200);
   } catch (err) {
     R3 = null;
     why = (err && err.message) ? err.message : String(err);
