@@ -92,6 +92,11 @@ body{margin:0; background:var(--plane); color:var(--ink);
 .fieldrec{position:absolute; top:10px; right:244px; z-index:6; display:flex; gap:7px;
   align-items:center}
 /* ---- the pre-load solve, while it is happening ---- */
+/* [hidden] must come with the rule, not instead of it: the attribute hides an element
+   through display:none in the browser's own sheet, and ANY author display wins over that.
+   So display:flex here quietly cancelled hidden, and the bar stayed on screen for the rest
+   of the session - while box.hidden read back true, which is how my own check passed. */
+.solvebar[hidden]{display:none !important}
 .solvebar{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:9;
   display:flex; flex-direction:column; gap:9px; align-items:center; min-width:290px;
   padding:18px 24px; border-radius:10px; background:rgba(10,13,17,.93);
@@ -147,6 +152,10 @@ body{margin:0; background:var(--plane); color:var(--ink);
 /* the verdict moves to the middle so the two do not fight for the corner */
 .verdictpill{right:auto !important; left:50% !important; transform:translateX(-50%)}
 
+/* same trap as .solvebar: this element is hidden through the hidden ATTRIBUTE, and an
+   author display:flex beats the browser's display:none. The count-in badge therefore never
+   went away - it sat over the FIELD for the rest of the session. */
+.cdown[hidden]{display:none !important}
 .cdown{position:absolute; top:76px; right:12px; z-index:4; pointer-events:none;
   display:flex; align-items:center; gap:9px; padding:7px 13px 7px 11px; border-radius:9px;
   background:rgba(11,14,18,.84); border:1px solid rgba(255,255,255,.14);
@@ -1987,7 +1996,7 @@ const S = {
   showTraj:true, showTags:true, showHud:true, chase:false,
   tab:"build", predict:5.5, pts:[], code:STARTER
 };
-const BUILD_ID = "2026-11-12m \u00b7 loading bar while the pre-load solves";
+const BUILD_ID = "2026-11-12n \u00b7 the loading bar actually goes away";
 const DEFAULTS = JSON.parse(JSON.stringify(S));
 /* Settings persist between visits; the robot pose, magazine and score do not - a stale pose
    from last time is a terrible way to open, and the match state should always start clean. */
