@@ -1996,7 +1996,7 @@ const S = {
   showTraj:true, showTags:true, showHud:true, chase:false,
   tab:"build", predict:5.5, pts:[], code:STARTER
 };
-const BUILD_ID = "2026-11-12n \u00b7 the loading bar actually goes away";
+const BUILD_ID = "2026-11-12p \u00b7 CLEAR erases the moves, keeps the drivetrain";
 const DEFAULTS = JSON.parse(JSON.stringify(S));
 /* Settings persist between visits; the robot pose, magazine and score do not - a stale pose
    from last time is a terrible way to open, and the match state should always start clean. */
@@ -7640,9 +7640,11 @@ function blkRefreshJava() {
      whether they are looking at it or at the demo. */
   const tooLong = REC.steps.length > BLK_MAX_AUTO_STEPS;
   if (note) note.textContent = n + " block" + (n===1?"":"s") + " \u00b7 "
-    + (!REC.steps.length ? "worked example \u2014 record a routine to replace it"
-       : tooLong ? REC.steps.length + " steps recorded \u2014 press Build from my recording"
-                 : "from your recording \u00b7 " + REC.steps.length + " steps")
+    + (REC.steps.length
+         ? (tooLong ? REC.steps.length + " steps recorded \u2014 press Build from my recording"
+                    : "from your recording \u00b7 " + REC.steps.length + " steps")
+       : BLK.cleared ? "drivetrain ready, no moves \u2014 press REC and drive one"
+                     : "worked example \u2014 record a routine to replace it")
     + " \u00b7 Java by the FTC generator";
 }
 
@@ -7781,8 +7783,13 @@ function blkRun() {
    opening the Blocks tab without a recording saw that broken program and had no way to
    know it was the stale twin. There is no twin now - the example is just a short step
    list fed through here. */
+/* An EMPTY step list is not nothing - it is the drivetrain, ready and waiting. The motors
+   are named, the encoders reset, RUN_TO_POSITION set and the power applied, then
+   waitForStart, then no moves at all. That is what CLEAR should leave behind: the robot's
+   own setup kept, the movements gone. */
 function blocksFromSteps(steps, startPose) {
-  if (!BLK.ws || !steps || !steps.length) return 0;
+  if (!BLK.ws) return 0;
+  steps = steps || [];
   BLK.ws.clear();
   ftcEnsureRunOpMode();
   let made = 0;
@@ -7960,7 +7967,10 @@ function blocksStarter() {
 function blocksRebuild() {
   if (!BLK.ready || !BLK.ws) return 0;
   if (S.codeView === "teleop") return blocksTeleOp();
-  return REC.steps.length ? blocksFromRecording() : blocksStarter();
+  if (REC.steps.length) return blocksFromRecording();
+  /* cleared: the drivetrain without the moves, not the worked example */
+  if (BLK.cleared) return blocksFromSteps([], null);
+  return blocksStarter();
 }
 
 function initBlockly() {
@@ -8001,7 +8011,7 @@ function drawBlocks() {
   if (BLK.ready && BLK.stale && S.codeView !== "teleop") {
     BLK.stale = false;
     if (REC.steps.length && REC.steps.length <= BLK_MAX_AUTO_STEPS) blocksFromRecording();
-    else if (!REC.steps.length) blocksStarter();
+    else if (!REC.steps.length) { if (BLK.cleared) blocksFromSteps([], null); else blocksStarter(); }
   }
   if (BLK.ws) { Blockly.svgResize(BLK.ws); blkRefreshJava(); }
   $("blkMyBlocks").textContent = myBlocksJava();
@@ -10147,6 +10157,7 @@ function syncRecPad() {
 }
 const toggleRec = () => {
   if (REC.on) { stopRec(); return; }
+  BLK.cleared = false;          /* a new take replaces the blank sheet */
   recStart(); syncRecPad();
   recSay("recording \u2014 " + driveKeysNow());
   drawRec(); refreshAll();
@@ -10165,8 +10176,31 @@ const stopRec  = () => {
   if (!REC.steps.length) recSay("nothing recorded \u2014 " + driveKeysNow());
   else recSay(REC.steps.length + " steps captured");
 };
-const clearRec = () => { REC.steps = []; S.recCount = 0; REC.start = null;
-                         recPlayStop(); drawRec(); syncRecPad(); refreshAll(); };
+/* CLEAR wipes the recording AND the two views of it.
+
+   It used to empty REC.steps and nothing else, so the table went to "0 steps captured"
+   while the BLOCKS and the Java beside them still showed a full program - which reads
+   exactly like the Clear did not work. Worse, the workspace would then be refilled with
+   the WORKED EXAMPLE, a 63-block program the student never wrote, sitting where their
+   recording had been.
+
+   After an explicit Clear the workspace is left EMPTY - just the runOpMode shell, ready to
+   drag into. BLK.cleared says so, and stops the example being put back; recording again
+   clears the flag. The example is for a student who has never recorded anything, not for
+   one who has just asked for a blank sheet. */
+const clearRec = () => {
+  REC.steps = []; S.recCount = 0; REC.start = null;
+  recPlayStop();
+  /* Not a blank sheet - the DRIVETRAIN stays. Rebuild with no steps, which leaves the
+     motors, the encoder reset, RUN_TO_POSITION, the power and waitForStart, and removes
+     only the driving. */
+  if (BLK.ready && BLK.ws) {
+    try { blocksFromSteps([], null); } catch (e) {}
+  }
+  BLK.cleared = true; BLK.stale = false;
+  drawRec(); syncRecPad(); refreshAll();
+  recSay("moves cleared \u00b7 drivetrain code kept");
+};
 const playRec  = () => {
   if (PLAY.on) { recPlayStop(); syncRecPad(); refreshAll(); return; }
   if (REC.on) recStop();                 /* pressing PLAY while recording ends the take */
