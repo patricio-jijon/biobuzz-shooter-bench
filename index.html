@@ -91,6 +91,22 @@ body{margin:0; background:var(--plane); color:var(--ink);
    [REC][PLAY]  [2:30]  [FULL SCREEN] */
 .fieldrec{position:absolute; top:10px; right:244px; z-index:6; display:flex; gap:7px;
   align-items:center}
+/* ---- the pre-load solve, while it is happening ---- */
+.solvebar{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:9;
+  display:flex; flex-direction:column; gap:9px; align-items:center; min-width:290px;
+  padding:18px 24px; border-radius:10px; background:rgba(10,13,17,.93);
+  border:1px solid rgba(255,255,255,.16); box-shadow:0 10px 34px rgba(0,0,0,.6)}
+.solvebar .t{font-family:var(--f-display); font-size:12.5px; font-weight:700;
+  letter-spacing:.05em; text-transform:uppercase; color:#fff}
+.solvebar small{font-family:var(--f-mono); font-size:10px; color:#8b97a4}
+.solvebar .track{position:relative; width:100%; height:6px; border-radius:3px;
+  background:rgba(255,255,255,.12); overflow:hidden}
+/* transform only, so the compositor owns it and a blocked main thread cannot stop it */
+.solvebar .track i{position:absolute; left:0; top:0; bottom:0; width:40%; border-radius:3px;
+  background:linear-gradient(90deg,#e0a52c,#ffd47a,#e0a52c);
+  animation:solveslide 1.05s linear infinite; will-change:transform}
+@keyframes solveslide{ from{transform:translateX(-110%)} to{transform:translateX(360%)} }
+@media (prefers-reduced-motion:reduce){ .solvebar .track i{animation-duration:2.4s} }
 .frbtn{font-family:var(--f-display); font-size:13px; font-weight:700; letter-spacing:.06em;
   padding:9px 15px; border-radius:6px; cursor:pointer; color:#fff; border:1px solid transparent;
   box-shadow:0 2px 8px rgba(0,0,0,.5); transition:filter .12s, transform .08s}
@@ -661,6 +677,15 @@ footer code{font-family:var(--f-mono); font-size:11px; color:var(--ink-2)}
       <!-- On the FIELD itself, top right, next to FULL SCREEN - the recorder belongs where
            you are looking while you drive the routine, not under the field or behind a tab.
            Inside .stage so it survives full screen too. -->
+      <!-- Shown only while the pre-load is being solved, which is the one thing in the app
+           that takes seconds. The bar is a CSS transform animation on purpose: those run on
+           the compositor, so it KEEPS MOVING while the solve blocks JavaScript. A bar driven
+           from JavaScript would freeze solid at the exact moment it is needed. -->
+      <div class="solvebar" id="solveBar" hidden>
+        <span class="t" id="solveBarT">working out a shootable pre-load&hellip;</span>
+        <span class="track"><i></i></span>
+        <small>about 5 seconds, once &middot; remembered after this</small>
+      </div>
       <div class="fieldrec" role="group" aria-label="Record an AUTO">
         <button class="frbtn rec" id="bRecF">&#9679; REC</button>
         <button class="frbtn play" id="bPlayF">&#9654; PLAY</button>
@@ -1962,7 +1987,7 @@ const S = {
   showTraj:true, showTags:true, showHud:true, chase:false,
   tab:"build", predict:5.5, pts:[], code:STARTER
 };
-const BUILD_ID = "2026-11-12k \u00b7 Home and Run full match no longer freeze";
+const BUILD_ID = "2026-11-12m \u00b7 loading bar while the pre-load solves";
 const DEFAULTS = JSON.parse(JSON.stringify(S));
 /* Settings persist between visits; the robot pose, magazine and score do not - a stale pose
    from last time is a terrible way to open, and the match state should always start clean. */
@@ -4095,21 +4120,63 @@ const AUTO_SECS = 30;
    "freezing"; and it overwrites S.angle and S.rpm, so replaying a routine silently moved
    the student's hood and flywheel. A recorded routine carries its own shot speeds. */
 let STAGE_SOLVE = null;        /* the last pre-load solve, and the inputs it came from */
-/* The FIRST solve still costs about thirteen seconds, and the first thing it is asked for
-   is usually Run full match - so it would be paid for exactly when a student is waiting.
-   Pay it early instead, once the scene is up and nothing is happening, and keep the
-   ROBOT's own settings untouched while doing it. */
-let _warmed = false;
-function warmPreloadSolve() {
-  if (_warmed || !R3) return;
-  _warmed = true;
-  const keep = {};
-  ["rpm","src","angle","rpmMid","rpmSlow","rpmFull","trRpm","trDist",
-   "rx","ry","heading","autoT","autoRun","magLeft","tips","picked","left","park"]
-    .forEach(function (k) { keep[k] = S[k]; });
-  try { stageAuto(true); } catch (e) {}
-  Object.keys(keep).forEach(function (k) { S[k] = keep[k]; });
-  needUI = true;
+let SOLVE_STEP  = 25;          /* rpm step: coarse for the angle hunt, fine for the winner */
+
+/* What the pre-load solve READS. Everything in S except the values the solve itself writes
+   and the ones that cannot change a trajectory - where the ROBOT stands, what the clock
+   says, which tab is open. Shared, so a caller can ask whether a solve is about to happen
+   and warn the student before it does. */
+const SOLVE_OUT  = ["angle","rpmMid","rpmSlow","rpmFull","trRpm","trDist"];
+const SOLVE_SKIP = new Set(SOLVE_OUT.concat([
+  "rpm","src","rx","ry","heading","trackL","trackR","strafeX","matchPhase","matchT",
+  "scoreAuto","autoT","autoRun","tips","picked","left","park","magLeft","human","claw",
+  "clawMsg","armT","recCount","padName","padMap","padInvert","keySwap","codeView","tab",
+  "players","pDrive","intakeOn","chase","miniCam","showTraj","showTags","showHud",
+  "code","notes","rakeFitted","ballCount"]));
+function solveSig() {
+  try {
+    const o = {};
+    Object.keys(S).sort().forEach(function (k) { if (!SOLVE_SKIP.has(k)) o[k] = S[k]; });
+    return JSON.stringify(o);
+  } catch (e) { return ""; }
+}
+/* Put the bar up, let the browser actually PAINT it, then do the work.
+
+   Two frames and a tick of delay before starting: one frame is not enough, because the
+   style change and the paint happen in different frames, and starting the solve in between
+   means the bar never appears at all. The animation itself is CSS, so it carries on moving
+   through the blocking search. */
+function withSolveBar(label, fn) {
+  if (!preloadSolveNeeded()) { fn(); return; }
+  const box = $("solveBar"), txt = $("solveBarT");
+  if (!box) { fn(); return; }
+  if (txt && label) txt.textContent = label;
+  box.hidden = false;
+  requestAnimationFrame(function () {
+    requestAnimationFrame(function () {
+      setTimeout(function () {
+        try { fn(); } finally { box.hidden = true; }
+      }, 30);
+    });
+  });
+}
+
+/* true when the next stage WILL run the long search rather than reuse an answer */
+function preloadSolveNeeded() {
+  const sig = solveSig();
+  return !(sig && STAGE_SOLVE && STAGE_SOLVE.sig === sig);
+}
+/* The solve survives a reload. Without this it was recomputed on every page load, and
+   thirteen seconds is far too long to pay more than once. Keyed on the inputs, so changing
+   a wheel or a gear still forces a fresh solve. */
+const SOLVE_STORE = "biobuzz-preload-solve-v1";
+try {
+  const raw = localStorage.getItem(SOLVE_STORE);
+  if (raw) { const o = JSON.parse(raw); if (o && o.sig && o.out) STAGE_SOLVE = o; }
+} catch (e) {}
+function rememberSolve(sig, out) {
+  STAGE_SOLVE = { sig:sig, out:out };
+  try { localStorage.setItem(SOLVE_STORE, JSON.stringify(STAGE_SOLVE)); } catch (e) {}
 }
 function stageAuto(solvePreload) {
   if (solvePreload === undefined) solvePreload = true;
@@ -4204,19 +4271,7 @@ function stageAuto(solvePreload) {
      is standing, what the clock says, which tab is open. Change a wheel, a gear, the CELL
      height or the air, and it solves again. Press Run full match twice and the second is
      instant. */
-  const SOLVE_OUT = ["angle","rpmMid","rpmSlow","rpmFull","trRpm","trDist"];
-  const SOLVE_SKIP = new Set(SOLVE_OUT.concat([
-    "rpm","src","rx","ry","heading","trackL","trackR","strafeX","matchPhase","matchT",
-    "scoreAuto","autoT","autoRun","tips","picked","left","park","magLeft","human","claw",
-    "clawMsg","armT","recCount","padName","padMap","padInvert","keySwap","codeView","tab",
-    "players","pDrive","intakeOn","chase","miniCam","showTraj","showTags","showHud",
-    "code","notes","rakeFitted","ballCount"]));
-  let _sig = "";
-  try {
-    const o = {};
-    Object.keys(S).sort().forEach(function (k) { if (!SOLVE_SKIP.has(k)) o[k] = S[k]; });
-    _sig = JSON.stringify(o);
-  } catch (e) { _sig = ""; }
+  const _sig = solveSig();
   if (_sig && STAGE_SOLVE && STAGE_SOLVE.sig === _sig) {
     SOLVE_OUT.forEach(function (k) {
       if (STAGE_SOLVE.out[k] !== undefined) S[k] = STAGE_SOLVE.out[k];
@@ -4230,7 +4285,7 @@ function stageAuto(solvePreload) {
   const keepRpmNow = rpmNow;
   const bandAt = () => {
     let best = null, run = null;
-    for (let r = 1500; r <= maxFlyRpm(); r += 25) {
+    for (let r = 1500; r <= maxFlyRpm(); r += SOLVE_STEP) {
       S.rpm = r; rpmNow = r;                 // judge at speed, not at whatever the wheel is doing
       if (compute().verdict === "IN") {
         run = run || { lo:r, hi:r };
@@ -4247,8 +4302,22 @@ function stageAuto(solvePreload) {
      search, and AUTO staged a pre-load that could not score. And a wide band is worth more
      than a narrow one anyway: it is how much the flywheel may drift and still go in, which
      is exactly the tolerance a student is trying to find. */
-  let band = bandAt(), ang = S.angle;
+  /* Coarse, then fine. Sweeping all eleven hood angles at a 25 rpm step is about 2000 full
+     trajectory solutions and took thirteen seconds. Find the best angle on a 100 rpm step
+     first - four times cheaper, and plenty to tell a good angle from a bad one - then spend
+     the fine step only on the winner and its two neighbours, which is where the exact edges
+     of the band actually matter. */
+  let band = null, ang = S.angle;
+  SOLVE_STEP = 100;
   for (const a of [25, 30, 35, 40, 45, 50, 55, 60, 65, 70]) {
+    S.angle = a;
+    const b = bandAt();
+    if (b && (!band || (b.hi - b.lo) > (band.hi - band.lo))) { band = b; ang = a; }
+  }
+  SOLVE_STEP = 25;
+  const near = [ang - 5, ang, ang + 5].filter(function (a) { return a >= 25 && a <= 70; });
+  band = null;
+  for (const a of near) {
     S.angle = a;
     const b = bandAt();
     if (b && (!band || (b.hi - b.lo) > (band.hi - band.lo))) { band = b; ang = a; }
@@ -4282,7 +4351,7 @@ function stageAuto(solvePreload) {
   if (_sig) {
     const out = {};
     SOLVE_OUT.forEach(function (k) { out[k] = S[k]; });
-    STAGE_SOLVE = { sig:_sig, out:out };
+    rememberSolve(_sig, out);
   }
   S.autoT = AUTO_SECS; S.autoRun = false;
   rpmNow = 0;
@@ -9968,12 +10037,14 @@ $("gbIntake").addEventListener("click", () => { S.intakeOn = !S.intakeOn;
   recAction({ type:"intake", on:S.intakeOn }); refreshAll(); });
 
 /* ---- AUTO ---- */
-$("bAutoStage").addEventListener("click", () => { T2.on ? stage2D() : stageAuto(); refreshAll(); });
+$("bAutoStage").addEventListener("click", () => {
+  if (T2.on) { stage2D(); refreshAll(); return; }
+  withSolveBar("staging the FIELD\u2026", () => { stageAuto(); refreshAll(); });
+});
 $("bMatch").addEventListener("click", () => {
   if (T2.on) { stage2D(); S.matchPhase = "auto"; S.matchT = 30; S.scoreAuto = 0;
-    S.left = false; S.park = false; recStart(); S.autoRun = true; }
-  else startCountdown();
-  refreshAll();
+    S.left = false; S.park = false; recStart(); S.autoRun = true; refreshAll(); return; }
+  withSolveBar("setting the FIELD for a MATCH\u2026", () => { startCountdown(); refreshAll(); });
 });
 $("bPlay").addEventListener("click", () => {
   if (PLAY.on) { recPlayStop(); return; }
@@ -10156,8 +10227,10 @@ $("bCopyJava").addEventListener("click", async () => {
   setTimeout(() => { $("copyMsg").textContent = ""; }, 2600);
 });
 $("bAutoStart").addEventListener("click", () => {
-  if (S.autoT === undefined || S.autoT <= 0) stageAuto();
-  S.autoRun = !S.autoRun; needUI = true; syncInputs(); save();
+  const go = () => { S.autoRun = !S.autoRun; needUI = true; syncInputs(); save(); };
+  if (S.autoT === undefined || S.autoT <= 0)
+    withSolveBar("setting up AUTO\u2026", () => { stageAuto(); go(); });
+  else go();
 });
 
 /* ---- test range ---- */
@@ -10450,9 +10523,11 @@ function boot() {
     R3 = buildScene();
     resize();
     applyDriveLook();        /* the saved drivetrain decides which ROBOT you see */
-    /* Solve the pre-load now, while the student is still looking at the FIELD, so that
-       Run full match does not stop dead for thirteen seconds the first time it is used. */
-    setTimeout(warmPreloadSolve, 1200);
+    /* NO automatic solve here. Running it 1.2 s after load meant the page froze for
+       thirteen seconds exactly as the student started pressing things, and every button
+       they hit in that window did nothing. Moving a freeze is not fixing it. The answer is
+       remembered across reloads instead - see STAGE_SOLVE - so it is computed once, when
+       something is actually asked for, and never again for those settings. */
   } catch (err) {
     R3 = null;
     why = (err && err.message) ? err.message : String(err);
