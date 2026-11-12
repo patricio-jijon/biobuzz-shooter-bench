@@ -1962,7 +1962,7 @@ const S = {
   showTraj:true, showTags:true, showHud:true, chase:false,
   tab:"build", predict:5.5, pts:[], code:STARTER
 };
-const BUILD_ID = "2026-11-12d \u00b7 blocks show YOUR recording, and they run";
+const BUILD_ID = "2026-11-12e \u00b7 PLAY works with a key held, replay exact";
 const DEFAULTS = JSON.parse(JSON.stringify(S));
 /* Settings persist between visits; the robot pose, magazine and score do not - a stale pose
    from last time is a terrible way to open, and the match state should always start clean. */
@@ -5290,7 +5290,13 @@ function loop(t) {
   const dt = Math.max(0, Math.min(0.05, (t - lastT)/1000 || 0.016)); lastT = t;
   pollGamepad();
   let moved = drive(dt);
-  if (moved) { cancelGoto(); recPlayStop(); }      // your hands on the sticks win
+  /* Your hands on the sticks still win - but not before playback has even begun.
+     drive() reports movement while a key is HELD, not only when it is newly pressed, so a
+     key still down when PLAY was clicked - or one whose keyup was missed because the click
+     moved focus - cancelled playback on the very first frame, every frame, for ever. PLAY
+     looked completely dead and said nothing. A short grace window after the start, plus
+     clearing the keys as playback begins, means only a FRESH push stops it. */
+  if (moved && Date.now() >= (PLAY.graceUntil || 0)) { cancelGoto(); recPlayStop(); }
   if (stepGoto(dt)) moved = true;
   if (stepPlay(dt)) moved = true;
   stepBots(dt);
@@ -5683,11 +5689,21 @@ function stepGoto(dt) {
 const PLAY = { on:false, i:0, cur:null, rem:0 };
 /* Any list of steps can be played, not just the recorder's - which is how a program built
    out of Blocks drives the same robot on the same FIELD. */
+/* Let go of everything before a routine plays, so a held or stuck key cannot cancel it
+   the instant it starts. */
+function releaseDriveInputs() {
+  for (const k in keys) keys[k] = false;
+  S.trackL = 0; S.trackR = 0; S.strafeX = 0;
+  if (typeof padPrev === "object" && padPrev) padPrev.moved = false;
+}
+
 function playSteps(list) {
   if (!list || !list.length) return false;
   stageAuto();
+  releaseDriveInputs();
   PLAY.list = list;
   PLAY.on = true; PLAY.i = 0; PLAY.cur = null; PLAY.rem = 0;
+  PLAY.graceUntil = Date.now() + 500;
   S.matchPhase = "auto"; S.matchT = PHASE.auto;
   S.scoreAuto = 0; S.autoRun = true; S.autoT = PHASE.auto;
   cancelGoto(); needUI = true;
@@ -5703,8 +5719,10 @@ function recPlay() {
     S.rx = REC.start.x; S.ry = REC.start.y; S.heading = REC.start.h;
     sanePose();
   }
+  releaseDriveInputs();
   PLAY.list = REC.steps;
   PLAY.on = true; PLAY.i = 0; PLAY.cur = null; PLAY.rem = 0;
+  PLAY.graceUntil = Date.now() + 500;
   S.matchPhase = "auto"; S.matchT = PHASE.auto;
   S.scoreAuto = 0; S.autoRun = true; S.autoT = PHASE.auto;
   cancelGoto();
@@ -5727,7 +5745,7 @@ function stepPlay(dt) {
     const step = Math.sign(PLAY.rem)*Math.min(Math.abs(PLAY.rem), TOP_SPEED*dt);
     S.rx += Math.cos(S.heading)*step; S.ry += Math.sin(S.heading)*step;
     PLAY.rem -= step;
-    if (Math.abs(PLAY.rem) < 0.4) PLAY.cur = null;
+    if (Math.abs(PLAY.rem) < 1e-9) PLAY.cur = null;   /* exact: the step is clamped to the remainder */
   } else if (a.type === "strafe") {
     /* Without this a strafe fell through to the catch-all below and was DROPPED, so
        replaying your own recording put the ROBOT somewhere you never drove it. Sideways
@@ -5736,12 +5754,12 @@ function stepPlay(dt) {
     S.rx += -Math.sin(S.heading)*step;
     S.ry +=  Math.cos(S.heading)*step;
     PLAY.rem -= step;
-    if (Math.abs(PLAY.rem) < 0.4) PLAY.cur = null;
+    if (Math.abs(PLAY.rem) < 1e-9) PLAY.cur = null;   /* exact: the step is clamped to the remainder */
   } else if (a.type === "turn") {
     const rate = TOP_SPEED/TRACK_W*2;
     const step = Math.sign(PLAY.rem)*Math.min(Math.abs(PLAY.rem), rate*dt);
     S.heading += step; PLAY.rem -= step;
-    if (Math.abs(PLAY.rem) < 0.02) PLAY.cur = null;
+    if (Math.abs(PLAY.rem) < 1e-9) PLAY.cur = null;   /* exact, as above */
   } else if (a.type === "shoot") {
     if (a.rpm) { S.rpm = a.rpm; S.src = "fixed"; }
     /* Give up waiting after 2 seconds and fire anyway - exactly what the exported Java
