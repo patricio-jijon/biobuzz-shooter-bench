@@ -4653,11 +4653,16 @@ function levelCells(st) {
      The ramp has to span the SWING. It used to run over 2*PI, back when a TIP was half a
      turn; against a quarter turn only a quarter of the ramp got used and the CELLS came to
      rest part-turned - the twisted baskets. */
-  const t = Math.max(0, Math.min(1, (st.ang || 0) / ((st.side || 1)*TIP_SWING)));
-  _tA.copy(st.qA).slerp(st.qB, t);
-  _tB.copy(st.qB).slerp(st.qA, t);
-  st.a.quaternion.copy(_rqi).multiply(_tA);
-  st.b.quaternion.copy(_rqi).multiply(_tB);
+  /* THE CELLS ARE BOLTED TO THE ARM. In the build video the whole assembly turns as one
+     piece: push the raised CELL down and both CELLS tumble with the beam, leaning further
+     and further over as it goes. Nothing holds them upright.
+
+     This used to undo the beam's rotation on every frame (`_rqi`) and slide each CELL
+     between two stored poses, so the cages stayed level while the arm swung underneath
+     them - a gimbal the real HIVE does not have, and the reason the motion read as fake.
+     Keeping the built LOCAL orientation lets the parent rotation carry them. */
+  st.a.quaternion.copy(st.qA);
+  st.b.quaternion.copy(st.qB);
 }
 
 /* Which CELL is actually up is a question about the world, so measure it there. The upIsA
@@ -4823,7 +4828,11 @@ function stepTips(dt) {
   const h = Math.min(dt, 0.02);
   Object.keys(R3.cells).forEach(ally => {
     const st = R3.cells[ally];
-    if (st.w === undefined) { st.w = 0; st.ang = st.flip || 0; }
+    /* Guard each field on its own. These were initialised together, so anything that set a
+       velocity before the first step left st.ang undefined - and undefined + number is NaN,
+       which propagates into rocker.rotation.x and makes the whole HIVE vanish. */
+    if (!isFinite(st.w))   st.w = 0;
+    if (!isFinite(st.ang)) st.ang = isFinite(st.flip) ? st.flip : 0;
     /* Re-test the TIP every frame, not only at the instant a ball lands. checkTip used to be
        called from dropIntoCell alone, and it refuses while the rocker is still settling - so a
        ball arriving during that settle skipped the check, and if no further ball came the CELL
