@@ -1962,7 +1962,7 @@ const S = {
   showTraj:true, showTags:true, showHud:true, chase:false,
   tab:"build", predict:5.5, pts:[], code:STARTER
 };
-const BUILD_ID = "2026-11-12f \u00b7 REC / STOP / PLAY instant, no freeze";
+const BUILD_ID = "2026-11-12g \u00b7 record and play where you are: HOME stays HOME";
 const DEFAULTS = JSON.parse(JSON.stringify(S));
 /* Settings persist between visits; the robot pose, magazine and score do not - a stale pose
    from last time is a terrible way to open, and the match state should always start clean. */
@@ -3531,7 +3531,7 @@ function runIntake() {
    Everything you do to the robot is captured as a step. Driving is stored the way an OpMode
    would actually execute it - turn to a heading, then travel a distance - rather than as a
    stream of poses, so the exported Java is something a team can read and tune. */
-const REC = { on:false, t0:0, steps:[], last:null, start:null };
+const REC = { on:false, t0:0, steps:[], last:null, start:null, mode:"home" };
 /* How far the ROBOT may travel, or how far it may swing, before the recorder writes down
    what it has done so far. recMove() only ever ran when an ACTION fired or when you pressed
    Stop, so everything between two shots - however long, however curved - collapsed into ONE
@@ -3554,6 +3554,12 @@ function recStart() {
      the ROBOT on a legal G304 start, so a routine recorded from your RED PARKING spot began
      somewhere else entirely and every move after it landed in the wrong place. */
   REC.start = { x:S.rx, y:S.ry, h:S.heading };
+  /* And WHICH PART OF THE APP you were in. A routine driven on the practice FIELD belongs
+     to the practice FIELD: playing it back used to restage for AUTO, which swept away the
+     SCORING ELEMENTS scattered for practice and replaced them with the staged set - the
+     "empty ball field". Recording in AUTO or in a MATCH still restages on playback,
+     because there the staging IS the thing being rehearsed. */
+  REC.mode = (S.matchPhase === "idle" || S.matchPhase === "done") ? "home" : S.matchPhase;
   S.recCount = 0; needUI = true;
 }
 function recStop() {
@@ -5719,10 +5725,19 @@ function playSteps(list) {
 }
 function recPlay() {
   if (!REC.steps.length) return false;
-  stageAuto(false);
-  /* stageAuto() resets the FIELD, which is right - a replay should face the same staged
-     POLLEN you did - but it also parks the ROBOT on a legal G304 start. Put it back where
-     the recording actually began, or the whole routine runs from the wrong square. */
+  /* Replay a routine in the part of the app it was driven in.
+
+     AUTO or a MATCH: restage, because the staged SCORING ELEMENTS are exactly what the
+     routine was rehearsed against, and run the AUTO clock.
+
+     HOME, the practice FIELD: change NOTHING about the FIELD. It used to restage here too,
+     which wiped whatever had been scattered to practise on and handed back the staged AUTO
+     set instead - you pressed PLAY on the practice FIELD and watched it empty. */
+  const staged = REC.mode === "auto" || REC.mode === "teleop"
+              || REC.mode === "countdown" || REC.mode === "transition";
+  if (staged) stageAuto(false);
+  /* Put the ROBOT back where the recording actually began, or the whole routine runs from
+     the wrong square. On AUTO this also undoes the G304 start stageAuto() just set. */
   if (REC.start) {
     S.rx = REC.start.x; S.ry = REC.start.y; S.heading = REC.start.h;
     sanePose();
@@ -5731,8 +5746,10 @@ function recPlay() {
   PLAY.list = REC.steps;
   PLAY.on = true; PLAY.i = 0; PLAY.cur = null; PLAY.rem = 0;
   PLAY.graceUntil = Date.now() + 500;
-  S.matchPhase = "auto"; S.matchT = PHASE.auto;
-  S.scoreAuto = 0; S.autoRun = true; S.autoT = PHASE.auto;
+  if (staged) {
+    S.matchPhase = "auto"; S.matchT = PHASE.auto;
+    S.scoreAuto = 0; S.autoRun = true; S.autoT = PHASE.auto;
+  }
   cancelGoto();
   needUI = true;
   return true;
@@ -9812,11 +9829,16 @@ function syncRecPad() {
 }
 const toggleRec = () => {
   if (REC.on) { stopRec(); return; }
-  recStart(); drawRec(); refreshAll();
+  recStart(); syncRecPad();
   recSay("recording \u2014 " + driveKeysNow());
+  drawRec(); refreshAll();
 };
 const stopRec  = () => {
-  recStop(); drawRec(); refreshAll();
+  /* syncRecPad FIRST. drawRec and refreshAll are tens of milliseconds and the button used
+     to change only after them, so STOP felt like it had not registered. Repaint the control
+     the moment its state is true, then do the rest. */
+  recStop(); syncRecPad();
+  drawRec(); refreshAll();
   /* NOTHING heavy on this path. Rebuilding the Blocks workspace here froze the app for
      seconds - longer on a long routine - with the driver staring at the FIELD wondering why
      STOP had hung. REC, STOP and PLAY must answer instantly, always. The Blocks tab
@@ -9834,7 +9856,10 @@ const playRec  = () => {
     recSay("nothing to play \u2014 press REC, then " + driveKeysNow());
     return;
   }
-  syncRecPad(); refreshAll();
+  syncRecPad();
+  recSay((REC.mode === "home" ? "playing on the practice field" : "playing in AUTO")
+         + " \u00b7 " + REC.steps.length + " steps");
+  refreshAll();
 };
 const bcj3 = $("bCopyJava3");
 if (bcj3) bcj3.addEventListener("click", () => {
