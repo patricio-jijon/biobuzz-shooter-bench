@@ -1962,7 +1962,7 @@ const S = {
   showTraj:true, showTags:true, showHud:true, chase:false,
   tab:"build", predict:5.5, pts:[], code:STARTER
 };
-const BUILD_ID = "2026-11-12g \u00b7 record and play where you are: HOME stays HOME";
+const BUILD_ID = "2026-11-12h \u00b7 PLAY never touches the field";
 const DEFAULTS = JSON.parse(JSON.stringify(S));
 /* Settings persist between visits; the robot pose, magazine and score do not - a stale pose
    from last time is a terrible way to open, and the match state should always start clean. */
@@ -5725,19 +5725,17 @@ function playSteps(list) {
 }
 function recPlay() {
   if (!REC.steps.length) return false;
-  /* Replay a routine in the part of the app it was driven in.
+  /* PLAY MOVES THE ROBOT. It does not touch the FIELD, ever.
 
-     AUTO or a MATCH: restage, because the staged SCORING ELEMENTS are exactly what the
-     routine was rehearsed against, and run the AUTO clock.
+     It used to restage for AUTO, which sweeps the SCORING ELEMENTS away and lays out the
+     staged set - press PLAY on the practice FIELD and watch it empty. Gating that on
+     S.matchPhase did not fix it, because the phase is a LEFTOVER: playback itself set it
+     to "auto" and nothing set it back, so the next recording was captured as an AUTO
+     routine, which restaged, which set it again. Once you had played once, every replay
+     emptied the FIELD for ever after.
 
-     HOME, the practice FIELD: change NOTHING about the FIELD. It used to restage here too,
-     which wiped whatever had been scattered to practise on and handed back the staged AUTO
-     set instead - you pressed PLAY on the practice FIELD and watched it empty. */
-  const staged = REC.mode === "auto" || REC.mode === "teleop"
-              || REC.mode === "countdown" || REC.mode === "transition";
-  if (staged) stageAuto(false);
-  /* Put the ROBOT back where the recording actually began, or the whole routine runs from
-     the wrong square. On AUTO this also undoes the G304 start stageAuto() just set. */
+     So there is no gate and no guessing. Replaying is about the ROBOT's path; staging the
+     FIELD is what the Stage button is for, and the student presses it when they mean it. */
   if (REC.start) {
     S.rx = REC.start.x; S.ry = REC.start.y; S.heading = REC.start.h;
     sanePose();
@@ -5746,10 +5744,7 @@ function recPlay() {
   PLAY.list = REC.steps;
   PLAY.on = true; PLAY.i = 0; PLAY.cur = null; PLAY.rem = 0;
   PLAY.graceUntil = Date.now() + 500;
-  if (staged) {
-    S.matchPhase = "auto"; S.matchT = PHASE.auto;
-    S.scoreAuto = 0; S.autoRun = true; S.autoT = PHASE.auto;
-  }
+  /* and no phase change either - that was the other half of the trap */
   cancelGoto();
   needUI = true;
   return true;
@@ -9857,8 +9852,7 @@ const playRec  = () => {
     return;
   }
   syncRecPad();
-  recSay((REC.mode === "home" ? "playing on the practice field" : "playing in AUTO")
-         + " \u00b7 " + REC.steps.length + " steps");
+  recSay("playing " + REC.steps.length + " steps \u00b7 the FIELD is left as it is");
   refreshAll();
 };
 const bcj3 = $("bCopyJava3");
