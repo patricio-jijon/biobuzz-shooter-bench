@@ -2030,7 +2030,7 @@ const S = {
   showTraj:true, showTags:true, showHud:true, chase:false,
   tab:"build", predict:5.5, pts:[], code:STARTER
 };
-const BUILD_ID = "2026-11-13h · every tag back on its own cage floor";
+const BUILD_ID = "2026-11-13i · tags printed on one face, under the cage floor";
 const DEFAULTS = JSON.parse(JSON.stringify(S));
 /* Settings persist between visits; the robot pose, magazine and score do not - a stale pose
    from last time is a terrible way to open, and the match state should always start clean. */
@@ -3189,9 +3189,14 @@ function buildScene() {
         g.add(tube([p0[0],p0[1],0], [p0[0],p0[1],-dep], .40, tubeMat));
       });
 
+      /* ONE-SIDED, like a printed tag. DoubleSide drew the cluster just as brightly on the
+         face pointing INTO the basket, and since a CELL is an open cage you looked straight
+         down through the mouth and saw the tags lying there - reading as tags on the lid,
+         facing the sky, when the panel itself was correctly underneath all along. A printed
+         tag has a front and a back; from above you should see the back of the panel. */
       const tg = new THREE.Mesh(new THREE.PlaneGeometry(9, 9),
         new THREE.MeshStandardMaterial({ map:tagTexture(tagIds), roughness:.9,
-          side:THREE.DoubleSide }));
+          side:THREE.FrontSide }));
       tg.rotation.x = Math.PI/2;
       /* 9.6: the cluster sits on the CELL's BOTTOM face, under the middle of the cage.
          The walls run from z = 0 (the MOUTH plane) back to z = -dep, so -dep/2 is the
@@ -3204,7 +3209,9 @@ function buildScene() {
          the group's origin as "the middle of the basket" - the origin is the MOUTH plane,
          and the cage sits entirely behind it, so a tag correctly under the floor measured
          as though it were above centre. Measure against the cage centre (0, 0, -dep/2). */
-      tg.position.set(0, -hh - .6, -dep/2);
+      /* flush against the underside of the floor, not hanging 0.6 in. below it in open air
+         where it read as a separate panel floating under the basket */
+      tg.position.set(0, -hh - .12, -dep/2);
       g.add(tg);
       /* 9.6 puts ONE cluster on the bottom face. A second one was added up top to cope with
          CELLS being flipped upside down by the old one-way rotor - the rotor does not do
