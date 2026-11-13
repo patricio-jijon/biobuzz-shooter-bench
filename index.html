@@ -2030,7 +2030,7 @@ const S = {
   showTraj:true, showTags:true, showHud:true, chase:false,
   tab:"build", predict:5.5, pts:[], code:STARTER
 };
-const BUILD_ID = "2026-11-13g · tags under both baskets, CELLS ride the arm";
+const BUILD_ID = "2026-11-13h · every tag back on its own cage floor";
 const DEFAULTS = JSON.parse(JSON.stringify(S));
 /* Settings persist between visits; the robot pose, magazine and score do not - a stale pose
    from last time is a terrible way to open, and the match state should always start clean. */
@@ -3193,13 +3193,18 @@ function buildScene() {
         new THREE.MeshStandardMaterial({ map:tagTexture(tagIds), roughness:.9,
           side:THREE.DoubleSide }));
       tg.rotation.x = Math.PI/2;
-      /* 9.6 puts the cluster on the CELL's BOTTOM face. The second CELL is turned a half
-         turn about its own vertical axis (qFace, below) so its MOUTH opens the other way -
-         and that half turn carries anything offset along the cage's DEPTH across to the
-         far side. Mounted at the same -dep/2 as the first CELL, the tag came back out ON
-         TOP of the basket, which is where the lid is, not the floor. Mirroring the offset
-         puts it under the cage for both. */
-      tg.position.set(0, -hh - .6, (sign > 0 ? -1 : 1) * dep/2);
+      /* 9.6: the cluster sits on the CELL's BOTTOM face, under the middle of the cage.
+         The walls run from z = 0 (the MOUTH plane) back to z = -dep, so -dep/2 is the
+         middle of the floor - for BOTH CELLS. qFace turns the second CELL a half turn
+         about its own vertical axis and carries the tag round WITH the cage, so it stays
+         on that cage's floor; nothing needs mirroring.
+
+         Mirroring it to +dep/2 put the panel a half-depth in FRONT of the mouth instead,
+         hanging in open air beside the basket. That was chasing a measurement that used
+         the group's origin as "the middle of the basket" - the origin is the MOUTH plane,
+         and the cage sits entirely behind it, so a tag correctly under the floor measured
+         as though it were above centre. Measure against the cage centre (0, 0, -dep/2). */
+      tg.position.set(0, -hh - .6, -dep/2);
       g.add(tg);
       /* 9.6 puts ONE cluster on the bottom face. A second one was added up top to cope with
          CELLS being flipped upside down by the old one-way rotor - the rotor does not do
