@@ -2030,7 +2030,7 @@ const S = {
   showTraj:true, showTags:true, showHud:true, chase:false,
   tab:"build", predict:5.5, pts:[], code:STARTER
 };
-const BUILD_ID = "2026-11-13f · 8 POLLEN tips the HIVE, both sides";
+const BUILD_ID = "2026-11-13g · tags under both baskets, CELLS ride the arm";
 const DEFAULTS = JSON.parse(JSON.stringify(S));
 /* Settings persist between visits; the robot pose, magazine and score do not - a stale pose
    from last time is a terrible way to open, and the match state should always start clean. */
@@ -3193,7 +3193,13 @@ function buildScene() {
         new THREE.MeshStandardMaterial({ map:tagTexture(tagIds), roughness:.9,
           side:THREE.DoubleSide }));
       tg.rotation.x = Math.PI/2;
-      tg.position.set(0, -hh - .6, -dep/2);
+      /* 9.6 puts the cluster on the CELL's BOTTOM face. The second CELL is turned a half
+         turn about its own vertical axis (qFace, below) so its MOUTH opens the other way -
+         and that half turn carries anything offset along the cage's DEPTH across to the
+         far side. Mounted at the same -dep/2 as the first CELL, the tag came back out ON
+         TOP of the basket, which is where the lid is, not the floor. Mirroring the offset
+         puts it under the cage for both. */
+      tg.position.set(0, -hh - .6, (sign > 0 ? -1 : 1) * dep/2);
       g.add(tg);
       /* 9.6 puts ONE cluster on the bottom face. A second one was added up top to cope with
          CELLS being flipped upside down by the old one-way rotor - the rotor does not do
@@ -4700,13 +4706,23 @@ function levelCells(st) {
 
      Holding the built pose instead kept every CELL mouth-up, so the basket that went down
      carried its load with it and nothing ever spilled. */
-  const sw = (st.side === undefined ? 1 : st.side) * TIP_SWING;
-  const t = Math.max(0, Math.min(1, (st.ang || 0) / sw));
-  _tA.copy(st.qA).slerp(st.qB, t);
-  _tB.copy(st.qB).slerp(st.qA, t);
-  _rqi.copy(_rq).invert();
-  st.a.quaternion.copy(_rqi).multiply(_tA);
-  st.b.quaternion.copy(_rqi).multiply(_tB);
+  /* THE CELLS ARE BOLTED TO THE ARM - the build video shows the whole assembly turning as
+     one piece - so each CELL simply keeps the LOCAL orientation it was built with and the
+     arm carries it. Over a 93.3 degree rock that is enough to turn the descending CELL's
+     MOUTH over so it dumps, while its AprilTag face only swings from 30 degrees below
+     horizontal to 33 degrees below it: the tag stays UNDER the basket and keeps looking at
+     the TILES, which is the whole point of mounting it there.
+
+     Two wrong versions came before this one, and both are worth remembering:
+       - cancelling the arm's rotation held every CELL mouth-up, so the basket going down
+         carried its load with it and nothing ever spilled;
+       - sliding between the two built poses rolled the CELL about its own axis, and because
+         the cage is tilted 30 degrees that carried the tag OVER THE TOP of the basket - the
+         tags on the lid that the screenshot caught.
+     Riding rigid only ever went wrong while the rotor was advancing a full turn; it rocks
+     now, so a CELL never passes 93.3 degrees and never ends up inverted. */
+  st.a.quaternion.copy(st.qA);
+  st.b.quaternion.copy(st.qB);
 }
 
 /* Which CELL is actually up is a question about the world, so measure it there. The upIsA
